@@ -1,0 +1,220 @@
+{
+    "input_path": "./adhoc/data/simple_text.png",
+    "page_index": null,
+    "model_settings": {
+        "use_doc_preprocessor": true,
+        "use_textline_orientation": false
+    },
+    "doc_preprocessor_res": {
+        "input_path": null,
+        "page_index": null,
+        "model_settings": {
+            "use_doc_orientation_classify": false,
+            "use_doc_unwarping": false
+        },
+        "angle": -1
+    },
+    "dt_polys": [
+        [
+            [
+                11,
+                13
+            ],
+            [
+                1284,
+                16
+            ],
+            [
+                1284,
+                50
+            ],
+            [
+                11,
+                48
+            ]
+        ],
+        [
+            [
+                11,
+                63
+            ],
+            [
+                1233,
+                64
+            ],
+            [
+                1233,
+                95
+            ],
+            [
+                11,
+                94
+            ]
+        ],
+        [
+            [
+                12,
+                112
+            ],
+            [
+                594,
+                112
+            ],
+            [
+                594,
+                143
+            ],
+            [
+                12,
+                143
+            ]
+        ],
+        [
+            [
+                609,
+                115
+            ],
+            [
+                633,
+                115
+            ],
+            [
+                633,
+                139
+            ],
+            [
+                609,
+                139
+            ]
+        ]
+    ],
+    "text_det_params": {
+        "limit_side_len": 64,
+        "limit_type": "min",
+        "thresh": 0.3,
+        "max_side_limit": 4000,
+        "box_thresh": 0.6,
+        "unclip_ratio": 1.5
+    },
+    "text_type": "general",
+    "textline_orientation_angles": [
+        -1,
+        -1,
+        -1,
+        -1
+    ],
+    "text_rec_score_thresh": 0.0,
+    "return_word_box": false,
+    "rec_texts": [
+        "To keep your tests organized and understandable, you can apply naming conventions to",
+        "both the test files and the functions that use them. A clear name should immediately",
+        "inform a developer what is being tested.",
+        "C"
+    ],
+    "rec_scores": [
+        0.9824069142341614,
+        0.9847647547721863,
+        0.9627794027328491,
+        0.2773416340351105
+    ],
+    "rec_polys": [
+        [
+            [
+                11,
+                13
+            ],
+            [
+                1284,
+                16
+            ],
+            [
+                1284,
+                50
+            ],
+            [
+                11,
+                48
+            ]
+        ],
+        [
+            [
+                11,
+                63
+            ],
+            [
+                1233,
+                64
+            ],
+            [
+                1233,
+                95
+            ],
+            [
+                11,
+                94
+            ]
+        ],
+        [
+            [
+                12,
+                112
+            ],
+            [
+                594,
+                112
+            ],
+            [
+                594,
+                143
+            ],
+            [
+                12,
+                143
+            ]
+        ],
+        [
+            [
+                609,
+                115
+            ],
+            [
+                633,
+                115
+            ],
+            [
+                633,
+                139
+            ],
+            [
+                609,
+                139
+            ]
+        ]
+    ],
+    "rec_boxes": [
+        [
+            11,
+            13,
+            1284,
+            50
+        ],
+        [
+            11,
+            63,
+            1233,
+            95
+        ],
+        [
+            12,
+            112,
+            594,
+            143
+        ],
+        [
+            609,
+            115,
+            633,
+            139
+        ]
+    ]
+}

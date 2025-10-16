@@ -1,0 +1,5 @@
+datasets
+requests
+tqdm
+regex
+Pillow

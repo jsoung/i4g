@@ -1,0 +1,5 @@
+datasets
+paddleocr[all]
+regex
+requests
+tqdm
