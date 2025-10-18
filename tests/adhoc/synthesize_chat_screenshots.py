@@ -8,23 +8,25 @@ Input  : JSONL file with {"text": "..."} or {"metadata": {...}, "text": "..."}
 Output : ./chat_screens/ folder with chat_0001.png, chat_0002.png, ...
 
 Usage:
-    python synthesize_chat_screenshots.py --input output/ucirvine_sms.jsonl --limit 20
+    python tests/adhoc/synthesize_chat_screenshots.py --input data/bundles/ucirvine_sms.jsonl --limit 20
 """
 
+import argparse
 import json
 import random
 import textwrap
 from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
-import argparse
 
 # -------- CONFIG --------
-BG_COLOR = (245, 245, 245)           # chat background
+BG_COLOR = (245, 245, 245)  # chat background
 USER_COLORS = [(220, 248, 198), (255, 255, 255)]  # bubbles (sent, received)
 TEXT_COLOR = (0, 0, 0)
 FONT_SIZE = 22
 IMG_WIDTH = 1080
-MAX_BUBBLES = 8                      # messages per screenshot
+MAX_BUBBLES = 8  # messages per screenshot
+
 
 def load_font():
     """Try to load a readable system font."""
@@ -32,6 +34,7 @@ def load_font():
         return ImageFont.truetype("Arial.ttf", FONT_SIZE)
     except:
         return ImageFont.load_default()
+
 
 def draw_bubble(draw, xy, text, font, bubble_color, max_width):
     """Draw a single chat bubble and return its bottom Y coordinate."""
@@ -47,6 +50,7 @@ def draw_bubble(draw, xy, text, font, bubble_color, max_width):
         draw.text((x + pad, ty), line, font=font, fill=TEXT_COLOR)
         ty += FONT_SIZE + 4
     return bubble[3] + 10  # new y position
+
 
 def create_chat_image(messages, out_path):
     """Render list of messages to a chat-style PNG."""
@@ -72,6 +76,7 @@ def create_chat_image(messages, out_path):
     img = img.crop((0, 0, IMG_WIDTH, min(y + 60, 1800)))
     img.save(out_path)
 
+
 def main(input_file, limit):
     output_dir = Path("chat_screens")
     output_dir.mkdir(exist_ok=True)
@@ -90,6 +95,7 @@ def main(input_file, limit):
         idx += num_msgs
         n += 1
     print(f"✅ Generated {n} chat screenshots in {output_dir}/")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -6,17 +6,18 @@ Downloads / loads several public scam/spam datasets, masks PII, chunks
 and normalizes into a JSONL bundle that can be ingested by RAGFlow/DeepDoc.
 
 Usage:
-  python3 build_scam_bundle.py --outdir data/bundles --chunk_chars 800
+  python3 tests/adhoc/build_scam_bundle.py --outdir data/bundles --chunk_chars 800
 
 Dependencies:
   pip install datasets requests tqdm regex
 """
 
+import argparse
+import json
 import os
 import re
-import json
-import argparse
 from pathlib import Path
+
 from tqdm import tqdm
 
 # Try to import Hugging Face datasets (used for SMS and phishing mirrors)
@@ -30,7 +31,7 @@ import requests
 # ---------------------------
 # Configurable dataset sources
 # ---------------------------
-UCI_SMS_HF = "ucirvine/sms_spam"   # Hugging Face mirror of UCI SMS
+UCI_SMS_HF = "ucirvine/sms_spam"  # Hugging Face mirror of UCI SMS
 PHISHING_HF = "ealvaradob/phishing-dataset"  # example HF phishing mirror
 ZENODO_SCAM_URL = "https://zenodo.org/records/15212527/files/scam_conversations.jsonl"  # try direct file; if different, script will save landing page
 
@@ -47,6 +48,7 @@ PII_PATTERNS = {
     "SSN": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
 }
 
+
 def mask_pii(text):
     if not text:
         return text
@@ -54,6 +56,7 @@ def mask_pii(text):
     for token, pat in PII_PATTERNS.items():
         s = pat.sub(f"<REDACTED_{token}>", s)
     return s
+
 
 # ---------------------------
 # Chunking helper
@@ -66,7 +69,7 @@ def chunk_text(ret_text, max_chars=800):
     if not ret_text:
         return []
     # crude sentence split: split on .!? or newline
-    sentences = re.split(r'(?<=[\.\!\?\n])\s+', ret_text.strip())
+    sentences = re.split(r"(?<=[\.\!\?\n])\s+", ret_text.strip())
     chunks = []
     cur = ""
     for sent in sentences:
@@ -82,11 +85,12 @@ def chunk_text(ret_text, max_chars=800):
             else:
                 # hard-split long sentence
                 for i in range(0, len(sent), max_chars):
-                    chunks.append(sent[i:i+max_chars])
+                    chunks.append(sent[i : i + max_chars])
                 cur = ""
     if cur:
         chunks.append(cur)
     return chunks
+
 
 # ---------------------------
 # Normalizers for each dataset
@@ -94,8 +98,8 @@ def chunk_text(ret_text, max_chars=800):
 def process_ucirvine_sms(dataset, out_docs, chunk_chars):
     for i, item in enumerate(dataset):
         # dataset fields vary; HF mirror tends to have 'label' and 'text' or 'sms'
-        text = item.get('text') or item.get('sms') or item.get('message') or ""
-        label = item.get('label') or item.get('class') or None
+        text = item.get("text") or item.get("sms") or item.get("message") or ""
+        label = item.get("label") or item.get("class") or None
         source_id = f"ucisms-{i}"
         text = mask_pii(text)
         chunks = chunk_text(text, max_chars=chunk_chars)
@@ -106,17 +110,20 @@ def process_ucirvine_sms(dataset, out_docs, chunk_chars):
                 "text": c,
                 "date": None,
                 "platform": "sms",
-                "scam_type": "spam" if label and str(label).lower().startswith("spam") else "ham" if label else "unknown",
-                "metadata": {"orig_index": i}
+                "scam_type": (
+                    "spam" if label and str(label).lower().startswith("spam") else "ham" if label else "unknown"
+                ),
+                "metadata": {"orig_index": i},
             }
             out_docs.append(doc)
+
 
 def process_phishing_hf(dataset, out_docs, chunk_chars):
     for i, item in enumerate(dataset):
         # different mirrors use different fields; guess common ones:
-        body = item.get('body') or item.get('email_body') or item.get('text') or item.get('content') or ""
-        subject = item.get('subject') or item.get('title') or ""
-        label = item.get('label') or item.get('class') or item.get('is_phish') or item.get('label_text')
+        body = item.get("body") or item.get("email_body") or item.get("text") or item.get("content") or ""
+        subject = item.get("subject") or item.get("title") or ""
+        label = item.get("label") or item.get("class") or item.get("is_phish") or item.get("label_text")
         source_id = f"phish-{i}"
         combined = (subject + "\n\n" + body).strip()
         combined = mask_pii(combined)
@@ -126,12 +133,15 @@ def process_phishing_hf(dataset, out_docs, chunk_chars):
                 "id": f"{source_id}-{j}",
                 "source": "phishing_hf",
                 "text": c,
-                "date": item.get('date') or None,
+                "date": item.get("date") or None,
                 "platform": "email",
-                "scam_type": "phishing" if label and str(label).lower() in ("phish","phishing","1","spam") else "unknown",
-                "metadata": {"orig_index": i}
+                "scam_type": (
+                    "phishing" if label and str(label).lower() in ("phish", "phishing", "1", "spam") else "unknown"
+                ),
+                "metadata": {"orig_index": i},
             }
             out_docs.append(doc)
+
 
 def process_zenodo_scc(local_path, out_docs, chunk_chars):
     """
@@ -154,7 +164,7 @@ def process_zenodo_scc(local_path, out_docs, chunk_chars):
             if not messages and isinstance(rec.get("text"), str):
                 messages = [{"text": rec.get("text"), "role": "unknown"}]
             # Convert into message-level docs
-            text_join = "\n".join([mask_pii(m.get("text","")) for m in messages if m.get("text")])
+            text_join = "\n".join([mask_pii(m.get("text", "")) for m in messages if m.get("text")])
             chunks = chunk_text(text_join, max_chars=chunk_chars)
             for j, c in enumerate(chunks or [text_join]):
                 doc = {
@@ -164,9 +174,10 @@ def process_zenodo_scc(local_path, out_docs, chunk_chars):
                     "date": rec.get("date") or None,
                     "platform": rec.get("platform") or "chat",
                     "scam_type": rec.get("scam_type") or "scam",
-                    "metadata": {"orig": rec.get("meta") or {}}
+                    "metadata": {"orig": rec.get("meta") or {}},
                 }
                 out_docs.append(doc)
+
 
 # ---------------------------
 # Main orchestration
@@ -200,9 +211,9 @@ def main(outdir="outputs", chunk_chars=800, force_zenodo_download=False):
         print("[3/4] Downloading Zenodo Scam Conversation Corpus from Zenodo landing URL...")
         try:
             r = requests.get(ZENODO_SCAM_URL, stream=True, timeout=30)
-            if r.status_code == 200 and r.headers.get("content-type","").startswith("application/json"):
+            if r.status_code == 200 and r.headers.get("content-type", "").startswith("application/json"):
                 with open(local_zenodo_path, "wb") as fh:
-                    for chunk in r.iter_content(chunk_size=1<<14):
+                    for chunk in r.iter_content(chunk_size=1 << 14):
                         fh.write(chunk)
                 print("  -> downloaded zenodo file to", local_zenodo_path)
             else:
@@ -235,6 +246,7 @@ def main(outdir="outputs", chunk_chars=800, force_zenodo_download=False):
         for it in docs:
             fh.write(json.dumps(it, ensure_ascii=False) + "\n")
     print(f"[done] wrote combined bundle to {bundle_path} ({len(docs)} total docs)")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

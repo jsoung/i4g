@@ -1,5 +1,6 @@
 datasets
 paddleocr[all]
+pytesseract
 regex
 requests
 tqdm

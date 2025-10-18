@@ -1,15 +1,4 @@
-# i4g - Scam/Spam Data Processing Toolkit
-
-This repository contains a collection of Python scripts for processing and augmenting datasets related to scams, spam, and other fraudulent activities. The tools help in normalizing data, masking PII, and generating synthetic data for analysis and model training.
-
-## Features
-
-*   **Data Bundling**: Aggregate multiple public scam/spam datasets into a unified JSONL format.
-*   **PII Masking**: Automatically find and redact Personally Identifiable Information (PII) like emails, phone numbers, and URLs.
-*   **Text Chunking**: Split large text documents into smaller, manageable chunks suitable for RAG systems.
-*   **Synthetic Data Generation**: Create realistic chat-style screenshot images from text conversations.
-
-## Scripts
+This is a collection of scripts for quick testing different components of the project.
 
 ### `build_scam_bundle.py`
 
@@ -17,7 +6,7 @@ Downloads and processes several public scam/spam datasets (e.g., from Hugging Fa
 
 **Usage:**
 ```bash
-python3 scripts/build_scam_bundle.py --outdir data/bundles --chunk_chars 800
+python3 tests/adhoc/build_scam_bundle.py --outdir data/bundles --chunk_chars 800
 ```
 
 ### `synthesize_chat_screenshots.py`
@@ -47,3 +36,12 @@ python3 scripts/synthesize_chat_screenshots.py --input data/bundles/ucirvine_sms
     ```bash
     pip install -r requirements.txt
     ```
+
+### HuggingFace Connection Test
+```bash
+curl -X POST \
+  -H "Authorization: Bearer [API_TOKEN]]" \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": ["Hello world, this is a test."]}' \
+  https://api-inference.huggingface.co/models/BAAI/bge-small-en-v1.5
+```
