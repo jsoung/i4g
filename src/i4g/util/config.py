@@ -1,0 +1,1 @@
+# Glocal constant definitions for configuration settings

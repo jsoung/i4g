@@ -59,6 +59,8 @@ einops==0.8.1
     # via paddlex
 et-xmlfile==2.0.0
     # via openpyxl
+faiss-cpu==1.12.0
+    # via -r requirements.in
 filelock==3.20.0
     # via
     #   datasets
@@ -87,6 +89,7 @@ httpx==0.28.1
     # via
     #   datasets
     #   langsmith
+    #   ollama
     #   openai
 httpx-sse==0.4.3
     # via langchain-community
@@ -115,17 +118,23 @@ jsonpointer==3.0.0
     # via jsonpatch
 langchain==0.3.27
     # via
+    #   -r requirements.in
     #   langchain-community
     #   paddlex
 langchain-community==0.3.31
-    # via paddlex
+    # via
+    #   -r requirements.in
+    #   paddlex
 langchain-core==0.3.79
     # via
     #   langchain
     #   langchain-community
+    #   langchain-ollama
     #   langchain-openai
     #   langchain-text-splitters
     #   paddlex
+langchain-ollama==0.3.10
+    # via -r requirements.in
 langchain-openai==0.3.35
     # via paddlex
 langchain-text-splitters==0.3.11
@@ -139,10 +148,14 @@ lxml==6.0.2
     # via
     #   paddlex
     #   premailer
+markdown-it-py==4.0.0
+    # via rich
 markupsafe==3.0.3
     # via jinja2
 marshmallow==3.26.1
     # via dataclasses-json
+mdurl==0.1.2
+    # via markdown-it-py
 modelscope==1.31.0
     # via paddlex
 more-itertools==10.8.0
@@ -158,6 +171,7 @@ mypy-extensions==1.1.0
 numpy==2.3.4
     # via
     #   datasets
+    #   faiss-cpu
     #   langchain-community
     #   opencv-contrib-python
     #   paddlex
@@ -165,6 +179,10 @@ numpy==2.3.4
     #   scikit-learn
     #   scipy
     #   shapely
+ollama==0.6.0
+    # via
+    #   -r requirements.in
+    #   langchain-ollama
 openai==2.4.0
     # via
     #   langchain-openai
@@ -178,6 +196,7 @@ orjson==3.11.3
 packaging==25.0
     # via
     #   datasets
+    #   faiss-cpu
     #   huggingface-hub
     #   langchain-core
     #   langsmith
@@ -194,6 +213,7 @@ pandas==2.3.3
     #   paddlex
 pillow==12.0.0
     # via
+    #   -r requirements.in
     #   paddlex
     #   pytesseract
 premailer==3.10.0
@@ -221,6 +241,7 @@ pydantic==2.12.2
     #   langchain
     #   langchain-core
     #   langsmith
+    #   ollama
     #   openai
     #   paddlex
     #   pydantic-settings
@@ -228,6 +249,8 @@ pydantic-core==2.41.4
     # via pydantic
 pydantic-settings==2.11.0
     # via langchain-community
+pygments==2.19.2
+    # via rich
 pypdfium2==4.30.0
     # via paddlex
 pytesseract==0.3.13
@@ -271,6 +294,8 @@ requests==2.32.5
     #   tiktoken
 requests-toolbelt==1.0.0
     # via langsmith
+rich==14.2.0
+    # via -r requirements.in
 ruamel-yaml==0.18.15
     # via paddlex
 ruamel-yaml-clib==0.2.14

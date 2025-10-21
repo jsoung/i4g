@@ -1,6 +1,13 @@
 datasets
+faiss-cpu
+langchain
+langchain-community
+langchain-ollama
+ollama
 paddleocr[all]
+Pillow
 pytesseract
 regex
 requests
+rich
 tqdm
