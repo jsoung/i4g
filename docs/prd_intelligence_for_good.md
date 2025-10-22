@@ -1,3 +1,7 @@
+> [!NOTE]
+> This PRD serves as an initial communication document for the i4g team. It will evolve as experimentation and architectural design progress.
+
+
 # i4g
 
 ## Product Requirements Document (PRD)
@@ -25,27 +29,27 @@
 | **Law Enforcement Officer** | Receives summarized, evidence-rich reports | Use aggregated evidence to prosecute scammers | Lack of structured data from victims |
 
 ### 5. Use Cases
-1. **Victim Verification & Assistance**  
-   - A user visits the i4g website and interacts with a **chat helper** powered by LLMs.  
-   - The system provides **real-time guidance** to help identify suspicious activity and protect the user from further harm.  
-   - Victims can optionally **upload chat histories or screenshots** to contribute to the knowledge base.  
-   - Uploaded data is processed via OCR (Tesseract) and semantic extraction (LangChain + Ollama).  
+1. **Victim Verification & Assistance**
+   - A user visits the i4g website and interacts with a **chat helper** powered by LLMs.
+   - The system provides **real-time guidance** to help identify suspicious activity and protect the user from further harm.
+   - Victims can optionally **upload chat histories or screenshots** to contribute to the knowledge base.
+   - Uploaded data is processed via OCR (Tesseract) and semantic extraction (LangChain + Ollama).
    - Classification outcomes:
      - **Likely Scam** → Added to knowledge base.
      - **Unclear** → Queued for analyst review.
      - **False Positive** → Discarded.
 
-2. **Fraud Analyst Review**  
+2. **Fraud Analyst Review**
    - Analysts use a web-based dashboard to review queued cases.
    - They can annotate each case with relevant notes or metadata.
    - Each case is then marked as **accepted** (True Positive) or **rejected** (False Positive).
    - Accepted cases, along with annotations, are integrated into the knowledge base for future training and analysis.
 
-3. **Knowledge Base Growth**  
+3. **Knowledge Base Growth**
    - True Positive samples enrich embeddings and structured data stores.
    - The knowledge base becomes queryable for pattern recognition and cross-referencing of scam entities.
 
-4. **Law Enforcement Escalation & Automated Reporting**  
+4. **Law Enforcement Escalation & Automated Reporting**
    - When related scams surpass an internal severity threshold, the system:
      - Aggregates related entities (names, accounts, wallets, IPs, screenshots).
      - Uses a **RAG and Agentic pipeline** to generate comprehensive, evidence-based reports.
@@ -95,8 +99,3 @@
 - Expand persona details with anonymized real examples.
 - Define schema for the knowledge base and structured entities.
 - Begin drafting the Technical Design Document (TDD) aligned with this PRD.
-
----
-
-**Note:** This PRD serves as an initial communication document for the i4g team. It will evolve as experimentation and architectural design progress.
-
