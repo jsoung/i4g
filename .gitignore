@@ -22,6 +22,7 @@ dist/
 # Output directories from scripts
 chat_screens/
 outputs/
+faiss_index/
 data/
 
 # Local data files
