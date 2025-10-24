@@ -85,10 +85,10 @@
 | Milestone | Description | Status |
 |------------|-------------|--------|
 | M1 | OCR + Extraction (Tesseract + LangChain + Ollama) | ✅ Completed |
-| M2 | Semantic NER + Structured Entity Extraction | ✅ Ongoing |
-| M3 | Fraud Classification + Confidence Scoring | ⏳ Next |
-| M4 | Analyst Review Interface (web dashboard) | Planned |
-| M5 | Automated Law Enforcement Report Generation (RAG + Agentic) | Planned |
+| M2 | Semantic NER + Structured Entity Extraction | ✅ Completed |
+| M3 | Fraud Classification + Confidence Scoring | ✅ Ongoing |
+| M4 | Analyst Review Interface (web dashboard) | ⏳ Next |
+| M5 | Automated Law Enforcement Report Generation (RAG + Agentic) | 🗓️ Planned |
 
 ### 9. Success Metrics
 - ≥90% accuracy on detecting scam intent in validation datasets.
