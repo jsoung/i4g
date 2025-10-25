@@ -23,15 +23,15 @@ This guide explains how developers can understand, extend, and test the ingestio
 
 ```mermaid
 flowchart TD
-  A[Raw chat / screenshots] --> B[OCR (Tesseract)]
-  B --> C[Semantic NER (LangChain + Ollama)]
-  C --> D[Fraud Classifier (rule-based / hybrid)]
-  D --> E[IngestPipeline]
-  E --> F[StructuredStore (SQLite)]
-  E --> G[VectorStore (Chroma / FAISS)]
-  F --> H[Analyst Dashboard / Search]
-  G --> H
-  H --> I[RAG / Report Generation (M5)]
+    A["Raw chat / screenshots"] --> B["OCR (Tesseract)"]
+    B --> C["Semantic NER (LangChain + Ollama)"]
+    C --> D["Fraud Classifier (rule-based / hybrid)"]
+    D --> E["IngestPipeline"]
+    E --> F["StructuredStore (SQLite)"]
+    E --> G["VectorStore (Chroma / FAISS)"]
+    F --> H["Analyst Dashboard / Search"]
+    G --> H
+    H --> I["RAG / Report Generation (M5)"]
 ```
 
 ---
