@@ -184,29 +184,3 @@ Milestone 5 will build on M4 and focus on:
 - Analyst dashboard and case-linking utilities
 
 This current architecture is designed to make the transition smooth.
-
----
-
-## Appendix: Mermaid Diagram (text)
-
-You can render the diagram above with any Mermaid viewer. To produce an SVG locally, see the instructions below.
-
----
-
-## How to export the Mermaid diagram to SVG (options)
-
-### Option A — mermaid-cli (local)
-1. Install mermaid-cli (Node.js required):
-   ```bash
-   npm install -g @mermaid-js/mermaid-cli
-   ```
-2. Save the mermaid block to `diagram.mmd` (the content between the ```mermaid block above).
-3. Run:
-   ```bash
-   mmdc -i diagram.mmd -o diagram.svg
-   ```
-
-### Option B — Online (mermaid.live)
-1. Go to https://mermaid.live
-2. Paste the Mermaid code from the diagram block.
-3. Export as SVG using the UI.
