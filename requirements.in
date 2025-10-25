@@ -2,6 +2,7 @@ datasets
 faiss-cpu
 langchain
 langchain-community
+langchain-chroma
 langchain-ollama
 ollama
 paddleocr[all]
