@@ -80,13 +80,16 @@
 - Data privacy: all sensitive information is anonymized and redacted.
 
 ## Milestones
+## ✅ Updated Development Milestones
+
 | Milestone | Description | Status |
 |------------|-------------|--------|
-| M1 | OCR + Extraction (Tesseract + LangChain + Ollama) | ✅ Completed |
-| M2 | Semantic NER + Structured Entity Extraction | ✅ Completed |
-| M3 | Fraud Classification + Confidence Scoring | ✅ Completed |
-| M4 | Analyst Review Interface (web dashboard) | ⚙️ Ongoing |
-| M5 | Automated Law Enforcement Report Generation (RAG + Agentic) | ⏳ Next |
+| **M1** | OCR + Extraction (Tesseract + LangChain + Ollama) | ✅ Completed |
+| **M2** | Semantic NER + Structured Entity Extraction | ✅ Completed |
+| **M3** | Fraud Classification + Confidence Scoring | ✅ Completed |
+| **M4** | Structured & Vector Storage (Database + Chroma Integration) | ✅ Completed |
+| **M5** | Analyst Review Interface (Web Dashboard) | ⚙️ Ongoing |
+| **M6** | Automated Law Enforcement Report Generation (RAG + Agentic) | ⏳ Next |
 
 ### M4: Structured Storage & Retrieval
 #### Objective
