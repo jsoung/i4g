@@ -116,9 +116,9 @@ ollama pull nomic-embed-text
 
 ## 🧭 For Product Managers & Advisors
 
-- 📄 [prd.md](./docs/prd.md): Product Requirements Document with personas, use cases, and roadmap.  
-- 🧠 [dev_guide.md](./docs/developer_guide.md): Engineering overview of ingestion, storage, and data flow.  
-- 🧩 *(Upcoming)* `tdd.md`: Technical Design Document for production-ready architecture.  
+- 📄 [prd.md](./docs/prd.md): Product Requirements Document with personas, use cases, and roadmap.
+- 🧠 [dev_guide.md](./docs/developer_guide.md): Engineering overview of ingestion, storage, and data flow.
+- 🧩 *(Upcoming)* `tdd.md`: Technical Design Document for production-ready architecture.
 
 > i4g processes only anonymized and voluntarily submitted data, following strong data ethics and compliance principles.
 
@@ -131,28 +131,3 @@ ollama pull nomic-embed-text
 - [ ] Analyst Review Dashboard (M5)
 - [ ] Automated RAG Report Generation (M6)
 - [ ] Cloud Deployment + Law Enforcement API
-
----
-
-## 🤝 Contributing
-
-We welcome collaboration from:
-- 🧠 **NLP & LLM Researchers**
-- 🕵️ **Fraud Analysts**
-- 💻 **Full-Stack Engineers**
-- ⚖️ **Legal / Data Ethics Experts**
-
-Open a discussion or issue to propose new features, integrations, or datasets.
-
----
-
-## 📄 License
-
-Licensed under the **MIT License**.  
-All AI-generated components are for educational and research use only.
-
----
-
-⭐ **Support the Mission**  
-If you believe in making AI work for public good — star this repo, share it, or contribute!  
-Together, we can make online spaces safer through intelligence for good.
