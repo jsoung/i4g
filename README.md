@@ -131,3 +131,8 @@ ollama pull nomic-embed-text
 - [ ] Analyst Review Dashboard (M5)
 - [ ] Automated RAG Report Generation (M6)
 - [ ] Cloud Deployment + Law Enforcement API
+
+## 📄 License
+
+Licensed under the **MIT License**.
+All AI-generated components are for educational and research use only.
