@@ -1,0 +1,25 @@
+# {{ title }}
+
+**Date:** {{ date }}
+**Case ID:** {{ case_id }}
+
+## Summary
+{{ summary }}
+
+## Entities Extracted
+{% for key, values in entities.items() %}
+- **{{ key }}**:
+  {% for v in values %}
+  - {{ v }}
+  {% endfor %}
+{% endfor %}
+
+## Risk Assessment
+- Classification: {{ classification }}
+- Confidence: {{ confidence }}%
+- Recommended Action: {{ recommendation }}
+
+## Evidence
+{{ evidence }}
+
+*Generated automatically by i4g Intelligence for Good system.*

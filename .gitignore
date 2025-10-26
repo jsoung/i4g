@@ -24,6 +24,7 @@ chat_screens/
 outputs/
 faiss_index/
 data/
+reports/
 
 # Local data files
 *.jsonl
