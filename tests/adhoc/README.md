@@ -55,3 +55,8 @@ This directory contains a collection of ad-hoc scripts for quick testing, demons
 ### `test_store_vector.py`
 -   **Description:** A script for testing the `IngestPipeline` and the vector store. It ingests a single classified case and then runs a similarity query.
 -   **Usage:** `python tests/adhoc/test_store_vector.py`
+
+### `manual_report_export_demo.py`
+-   **Description:** A manual, end-to-end smoke test for the full report generation and export pipeline. It uses a text query to generate a report and can save it locally or upload it to Google Docs.
+-   **Usage (Local Save):** `python tests/adhoc/manual_report_export_demo.py`
+-   **Usage (Google Docs Upload):** `python tests/adhoc/manual_report_export_demo.py --upload`

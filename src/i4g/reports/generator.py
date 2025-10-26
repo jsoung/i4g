@@ -21,7 +21,7 @@ from datetime import datetime
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
 from i4g.reports.template_engine import TemplateEngine
-from i4g.reports.gdoc_exporter import save_markdown_to_file, upload_to_gdocs
+from i4g.reports.gdoc_exporter import export_to_gdoc
 from langchain_ollama import OllamaLLM
 
 DEFAULT_REPORTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "reports"))
@@ -151,7 +151,6 @@ class ReportGenerator:
         template_name: str = "base_template.md.j2",
         top_k: int = 8,
         upload_to_gdocs_flag: bool = False,
-        gdrive_credentials: Optional[dict] = None,
     ) -> Dict[str, Any]:
         """Generate a report and save it to disk (and optionally upload to Google Docs).
 
@@ -192,19 +191,17 @@ class ReportGenerator:
             # Fallback: simple auto-generated markdown
             rendered = f"# i4g Report\n\nGenerated: {context['generated_at']}\n\n## Summary\n\n{summary}\n\n## Entities\n\n{json.dumps(aggregated, indent=2)}\n"
 
-        # Save locally
-        filename = f"report_{context['report_id']}.md"
-        path = os.path.join(self.reports_dir, filename)
-        saved_path = save_markdown_to_file(rendered, path)
-
-        gdoc_url = None
-        if upload_to_gdocs_flag:
-            # Attempt upload (stub raises NotImplementedError by default)
-            gdoc_url = upload_to_gdocs(rendered, title=f"i4g Report {context['report_id']}", gdrive_credentials=gdrive_credentials)
+        # Export the report
+        title = f"i4g Report {context['report_id']}"
+        export_result = export_to_gdoc(
+            title=title,
+            content=rendered,
+            offline=not upload_to_gdocs_flag
+        )
 
         return {
-            "report_path": saved_path,
-            "gdoc_url": gdoc_url,
+            "report_path": export_result.get("local_path"),
+            "gdoc_url": export_result.get("url"),
             "summary": summary,
             "aggregated_entities": aggregated,
         }

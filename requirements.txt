@@ -105,10 +105,27 @@ ftfy==6.3.1
     # via paddlex
 future==1.0.0
     # via bce-python-sdk
+google-api-core==2.27.0
+    # via google-api-python-client
+google-api-python-client==2.185.0
+    # via -r requirements.in
 google-auth==2.41.1
-    # via kubernetes
+    # via
+    #   google-api-core
+    #   google-api-python-client
+    #   google-auth-httplib2
+    #   google-auth-oauthlib
+    #   kubernetes
+google-auth-httplib2==0.2.0
+    # via
+    #   -r requirements.in
+    #   google-api-python-client
+google-auth-oauthlib==1.2.2
+    # via -r requirements.in
 googleapis-common-protos==1.71.0
-    # via opentelemetry-exporter-otlp-proto-grpc
+    # via
+    #   google-api-core
+    #   opentelemetry-exporter-otlp-proto-grpc
 grpcio==1.76.0
     # via
     #   chromadb
@@ -121,6 +138,10 @@ hf-xet==1.1.10
     # via huggingface-hub
 httpcore==1.0.9
     # via httpx
+httplib2==0.31.0
+    # via
+    #   google-api-python-client
+    #   google-auth-httplib2
 httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
@@ -321,11 +342,15 @@ propcache==0.4.1
     # via
     #   aiohttp
     #   yarl
+proto-plus==1.26.1
+    # via google-api-core
 protobuf==6.33.0
     # via
+    #   google-api-core
     #   googleapis-common-protos
     #   onnxruntime
     #   opentelemetry-proto
+    #   proto-plus
 psutil==7.1.0
     # via aistudio-sdk
 py-cpuinfo==9.0.0
@@ -360,6 +385,8 @@ pydantic-settings==2.11.0
     # via langchain-community
 pygments==2.19.2
     # via rich
+pyparsing==3.2.5
+    # via httplib2
 pypdfium2==4.30.0
     # via paddlex
 pypika==0.48.9
@@ -407,6 +434,7 @@ requests==2.32.5
     #   -r requirements.in
     #   aistudio-sdk
     #   datasets
+    #   google-api-core
     #   huggingface-hub
     #   kubernetes
     #   langchain
@@ -421,7 +449,9 @@ requests==2.32.5
     #   requests-toolbelt
     #   tiktoken
 requests-oauthlib==2.0.0
-    # via kubernetes
+    # via
+    #   google-auth-oauthlib
+    #   kubernetes
 requests-toolbelt==1.0.0
     # via langsmith
 rich==14.2.0
@@ -528,6 +558,8 @@ tzdata==2025.2
     # via pandas
 ujson==5.11.0
     # via paddlex
+uritemplate==4.2.0
+    # via google-api-python-client
 urllib3==2.5.0
     # via
     #   kubernetes

@@ -1,58 +1,90 @@
-"""Export utilities for i4g reports.
+"""Google Docs Exporter for i4g Reports (GCP-aware authentication).
 
-This module contains a lightweight local-export helper and a stubbed
-Google Docs uploader (needs GCP credentials and OAuth setup).
+Supports:
+1. Local file export (offline fallback).
+2. Google Docs export (authenticated via ADC or service account).
 """
 
 from __future__ import annotations
-
 import os
-from typing import Optional
+import datetime
 from pathlib import Path
+from typing import Optional, Dict
+
+from google.auth import default as google_auth_default
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
 
-def save_markdown_to_file(markdown_text: str, out_path: str) -> str:
-    """Save markdown content to a given file path.
-
-    Args:
-        markdown_text: Rendered markdown text.
-        out_path: Destination file path.
-
-    Returns:
-        The path to the saved file (absolute).
-    """
-    p = Path(out_path)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(markdown_text, encoding="utf-8")
-    return str(p.resolve())
+def _save_local_fallback(content: str, title: str) -> str:
+    """Fallback: save report locally if offline or credentials missing."""
+    reports_dir = Path("reports")
+    reports_dir.mkdir(exist_ok=True)
+    filename = f"{title.replace(' ', '_')}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    path = reports_dir / filename
+    path.write_text(content, encoding="utf-8")
+    return str(path.resolve())
 
 
-def upload_to_gdocs(markdown_text: str, title: str, gdrive_credentials: Optional[dict] = None) -> str:
-    """Upload a rendered Markdown report to Google Docs.
+def _get_gcp_credentials():
+    """Retrieve GCP credentials using best available method.
 
-    This is a stub: implement your preferred upload workflow here. Options:
-    - Convert Markdown to HTML and call Google Docs API to create a document.
-    - Use Google Drive API to upload a .docx file generated from Markdown (python-docx),
-      then convert by Drive API to Google Docs format.
-    - Use a pre-existing GCP service account + OAuth flow for an interactive upload.
-
-    Args:
-        markdown_text: The report content in Markdown.
-        title: Desired Google Doc title.
-        gdrive_credentials: Optional credentials/config (placeholder).
+    Priority:
+        1. Application Default Credentials (ADC) via `gcloud auth application-default login`
+           or running inside GCP environment.
+        2. GOOGLE_APPLICATION_CREDENTIALS (Service Account JSON).
+        3. Raise a clear error if neither is available.
 
     Returns:
-        The Google Docs URL (string) or document ID.
-
-    Raises:
-        NotImplementedError: Since this function is intentionally a stub.
+        google.auth.credentials.Credentials
     """
-    # Raise with instructions so developers know how to continue.
-    raise NotImplementedError(
-        "Google Docs upload is not implemented. "
-        "Provide gdrive_credentials and implement upload using Google Drive/Docs APIs. "
-        "Suggested approach:\n"
-        "1. Convert Markdown to HTML (or .docx).\n"
-        "2. Use Google Drive API to upload the file.\n"
-        "3. (Optional) Convert uploaded file to Google Docs MIME type.\n"
-    )
+    try:
+        creds, _ = google_auth_default(scopes=["https://www.googleapis.com/auth/documents"])
+        return creds
+    except Exception:
+        service_file = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if service_file and os.path.exists(service_file):
+            creds = service_account.Credentials.from_service_account_file(
+                service_file,
+                scopes=["https://www.googleapis.com/auth/documents"],
+            )
+            return creds
+        raise RuntimeError(
+            "No valid GCP credentials found. Please run:\n"
+            "  gcloud auth application-default login\n"
+            "or set GOOGLE_APPLICATION_CREDENTIALS to your service account JSON file."
+        )
+
+
+def export_to_gdoc(
+    title: str,
+    content: str,
+    offline: bool = True,
+) -> Dict[str, Optional[str]]:
+    """Export a rendered report to Google Docs or save locally if offline.
+
+    Args:
+        title: The report title.
+        content: The report content (Markdown or text).
+        offline: If True, saves locally instead of uploading.
+
+    Returns:
+        A dictionary with:
+            - "url": Google Docs URL if uploaded.
+            - "local_path": path to saved file if offline.
+            - "mode": "gdoc" or "offline".
+    """
+    if offline:
+        local_path = _save_local_fallback(content, title)
+        return {"url": None, "local_path": local_path, "mode": "offline"}
+
+    creds = _get_gcp_credentials()
+    service = build("docs", "v1", credentials=creds)
+    doc = service.documents().create(body={"title": title}).execute()
+    doc_id = doc.get("documentId")
+
+    requests = [{"insertText": {"location": {"index": 1}, "text": content}}]
+    service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
+
+    url = f"https://docs.google.com/document/d/{doc_id}/edit"
+    return {"url": url, "local_path": None, "mode": "gdoc"}
