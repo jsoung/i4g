@@ -88,8 +88,8 @@
 | **M2** | Semantic NER + Structured Entity Extraction | ✅ Completed |
 | **M3** | Fraud Classification + Confidence Scoring | ✅ Completed |
 | **M4** | Structured & Vector Storage (Database + Chroma Integration) | ✅ Completed |
-| **M5** | Analyst Review Interface (Web Dashboard) | ⚙️ Ongoing |
-| **M6** | Automated Law Enforcement Report Generation (RAG + Agentic) | ⏳ Next |
+| **M5** | Analyst Review Interface (Web Dashboard) | ✅ Completed |
+| **M6** | Automated Law Enforcement Report Generation (RAG + Agentic) | ⚙️ Ongoing |
 
 ### M4: Structured Storage & Retrieval
 #### Objective

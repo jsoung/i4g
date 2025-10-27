@@ -55,62 +55,10 @@ flowchart LR
 
 ---
 
-## 🧱 Repository Structure
+## Learn More
 
-```
-i4g/
-├── extraction/         # OCR & NER extraction (Tesseract + LangChain)
-├── classification/     # Fraud classification & confidence scoring
-├── store/              # Structured & vector data storage modules
-│   ├── schema.py
-│   ├── structured.py
-│   ├── vector.py
-│   └── ingest.py
-├── rag/                # (Planned) RAG & agentic workflows
-├── tests/              # Unit and adhoc tests
-│   ├── unit/
-│   └── adhoc/
-├── docs/
-│   ├── prd.md          # Product Requirements Document
-│   ├── dev_guide.md    # Developer Guide
-│   └── (future) tdd.md # Technical Design Document
-└── scripts/            # Production & automation scripts
-```
-
----
-
-## 🧠 Technology Stack
-
-| Layer | Tools / Libraries |
-|-------|--------------------|
-| OCR | **Tesseract OCR** |
-| LLM Framework | **LangChain + Ollama (local models)** |
-| Data Storage | **SQLite + Chroma (FAISS-compatible)** |
-| ML / AI Pipeline | **Python, NumPy, Scikit-learn, LangChain** |
-| Web Interface | *(Planned)* FastAPI + Streamlit |
-| Infrastructure | *(Prototype)* Apple Silicon / Local Dev; *(Production)* Linux Cloud GPU |
-
----
-
-## 🧪 Getting Started (Developers)
-
-```bash
-# Clone the repository
-git clone https://github.com/<your-org>/i4g.git
-cd i4g
-
-# Install dependencies
-pip install -e .[dev]
-
-# Run unit tests
-pytest tests/unit -v
-
-# Optional: Start Ollama for embeddings
-ollama serve
-ollama pull nomic-embed-text
-```
-
-📘 See the [Developer Guide](./docs/developer_guide.md) for module details, pipeline architecture, and testing strategy.
+- 📄 **[Product Requirements Document](./docs/prd.md)**: For product managers, designers, and anyone interested in the project's vision, user personas, and use cases.
+- 🧠 **[Developer Guide](./docs/dev_guide.md)**: For engineers who want to understand the technical architecture, development workflow, and how to contribute to the project.
 
 ---
 

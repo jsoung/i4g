@@ -36,19 +36,40 @@ flowchart TD
 
 ---
 
-## Folder Layout (Core)
+## Repository Structure
 
 ```
 i4g/
-├── store/
-│   ├── schema.py         # ScamRecord dataclass
-│   ├── structured.py     # SQLite-based metadata store
-│   ├── vector.py         # Chroma semantic store
-│   └── ingest.py         # Unified ingestion pipeline
-├── extraction/           # Semantic NER (Tesseract + LLM)
-├── classification/       # Fraud classifier + confidence
-└── rag/                  # (To be implemented in M5)
+├── extraction/         # OCR & NER extraction (Tesseract + LangChain)
+├── classification/     # Fraud classification & confidence scoring
+├── store/              # Structured & vector data storage modules
+│   ├── schema.py
+│   ├── structured.py
+│   ├── vector.py
+│   └── ingest.py
+├── rag/                # (Planned) RAG & agentic workflows
+├── tests/              # Unit and adhoc tests
+│   ├── unit/
+│   └── adhoc/
+├── docs/
+│   ├── prd.md          # Product Requirements Document
+│   ├── dev_guide.md    # Developer Guide
+│   └── (future) tdd.md # Technical Design Document
+└── scripts/            # Production & automation scripts
 ```
+
+---
+
+## Technology Stack
+
+| Layer | Tools / Libraries |
+|-------|--------------------|
+| OCR | **Tesseract OCR** |
+| LLM Framework | **LangChain + Ollama (local models)** |
+| Data Storage | **SQLite + Chroma (FAISS-compatible)** |
+| ML / AI Pipeline | **Python, NumPy, Scikit-learn, LangChain** |
+| Web Interface | *(Planned)* FastAPI + Streamlit |
+| Infrastructure | *(Prototype)* Apple Silicon / Local Dev; *(Production)* Linux Cloud GPU |
 
 ---
 
@@ -129,49 +150,44 @@ case_id = pipeline.ingest_classified_case({
 
 ---
 
-## Testing Strategy
+## Development Workflow
 
-| Type | Location | Description |
-|------|-----------|-------------|
-| **Unit Tests** | `tests/unit/` | Automated pytest suite for schema, structured, vector, ingest modules. Use mocks to keep tests deterministic. |
-| **Adhoc Tests** | `tests/adhoc/` | Manual developer scripts for end-to-end smoke tests using real Ollama + Chroma. |
+This project uses `conda` for environment management and `pip-compile` to lock dependencies.
 
-Run unit tests:
+### 1. Environment Setup
 
-```bash
-pytest tests/unit -v
-```
-
-Run manual ingestion demo (developer-only):
+Create and activate a `conda` environment.
 
 ```bash
-python tests/adhoc/manual_ingest_demo.py
+# Create a new conda environment
+conda create -n i4g python=3.11
+
+# Activate the environment
+conda activate i4g
 ```
 
----
+### 2. Dependency Management
 
-## Developer Workflow Tips
-
-1. **Development Setup**
+Project dependencies are defined in `pyproject.toml`. A `requirements.txt` "lock file" is generated from this file to ensure reproducible builds.
 
 ```bash
-pip install -e .[dev]
-ollama serve
-ollama pull nomic-embed-text  # or your preferred embedding model
+# After activating the conda environment, install dependencies
+pip install -r requirements.txt
+
+# If you add a new dependency to pyproject.toml, regenerate the lock file
+pip-compile -o requirements.txt pyproject.toml --extra test
 ```
 
-2. **Storage Inspection**
-- SQLite DB files live under `data/*.db`.
-- Chroma vector store lives under `data/chroma/`.
+### 3. Running Tests
 
-3. **Reset Test Data**
+The project uses `pytest`. Unit tests are located in `tests/unit/`.
+
 ```bash
-rm -rf data/chroma data/*.db
+# Run all unit tests
+pytest
 ```
 
-4. **Performance Notes**
-- Ollama embeddings are CPU-friendly on Apple Silicon for small-to-medium data.
-- Chroma scales locally to thousands of vectors; for larger scale consider FAISS/Milvus.
+Ad-hoc and experimental scripts are located in `tests/adhoc/`. See the `tests/adhoc/README.md` for details on how to run them.
 
 ---
 

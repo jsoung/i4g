@@ -5,7 +5,7 @@ deterministic and offline.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from i4g.reports.generator import ReportGenerator
 

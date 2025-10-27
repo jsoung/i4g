@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools >= 77.0.3"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "i4g"
@@ -9,9 +9,45 @@ description = "Scratchpad for prototype utilities."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
+dependencies = [
+    "datasets",
+    "faiss-cpu",
+    "langchain",
+    "langchain-community",
+    "langchain-chroma",
+    "langchain-ollama",
+    "ollama",
+    "paddleocr[all]",
+    "Pillow",
+    "pytesseract",
+    "regex",
+    "requests",
+    "rich",
+    "tqdm",
+    "google-api-python-client",
+    "google-auth-httplib2",
+    "google-auth-oauthlib",
+]
 
-[tool.setuptools.dynamic]
-version = {file = "VERSION.txt"}
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-mock",
+    "pytest-anyio",
+    "pip-tools",
+]
 
 [project.scripts]
 run-dataflow = "prefect_gcp.beam.pipeline:main"
+
+[tool.hatch.version]
+path = "VERSION.txt"
+pattern = "(?P<version>.+)"
+
+
+
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (slower)",
+]
