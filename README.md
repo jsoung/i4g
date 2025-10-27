@@ -23,18 +23,6 @@ The i4g platform aspires to build a complete intelligence lifecycle that:
 
 ---
 
-## 🚀 Current Progress
-
-| Milestone | Description | Status |
-|------------|-------------|--------|
-| **M1** | OCR + Extraction (Tesseract + LangChain + Ollama) | ✅ Completed |
-| **M2** | Semantic NER + Structured Entity Extraction | ✅ Completed |
-| **M3** | Fraud Classification + Confidence Scoring | ✅ Completed |
-| **M4** | Structured & Vector Storage (Database + Chroma Integration) | ✅ Completed |
-| **M5** | Analyst Review Interface (Web Dashboard) | ⚙️ Ongoing |
-| **M6** | Automated Law Enforcement Report Generation (RAG + Agentic) | ⏳ Next |
-
----
 
 <details>
 <summary>🧩 <strong>System Architecture (click to expand)</strong></summary>
@@ -59,26 +47,10 @@ flowchart LR
 
 - 📄 **[Product Requirements Document](./docs/prd.md)**: For product managers, designers, and anyone interested in the project's vision, user personas, and use cases.
 - 🧠 **[Developer Guide](./docs/dev_guide.md)**: For engineers who want to understand the technical architecture, development workflow, and how to contribute to the project.
+- 🧩 **[Technical Design Document](./docs/tdd.md)**: (Placeholder) For the future production-ready design and architecture of the system.
+
 
 ---
-
-## 🧭 For Product Managers & Advisors
-
-- 📄 [prd.md](./docs/prd.md): Product Requirements Document with personas, use cases, and roadmap.
-- 🧠 [dev_guide.md](./docs/developer_guide.md): Engineering overview of ingestion, storage, and data flow.
-- 🧩 *(Upcoming)* `tdd.md`: Technical Design Document for production-ready architecture.
-
-> i4g processes only anonymized and voluntarily submitted data, following strong data ethics and compliance principles.
-
----
-
-## 🗺️ Roadmap Highlights
-
-- [x] OCR, Extraction & Classification (M1–M3)
-- [x] Structured & Vector Storage (M4)
-- [ ] Analyst Review Dashboard (M5)
-- [ ] Automated RAG Report Generation (M6)
-- [ ] Cloud Deployment + Law Enforcement API
 
 ## 📄 License
 
