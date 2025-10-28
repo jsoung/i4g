@@ -23,7 +23,7 @@
 |----------|--------------|--------|--------------|
 | **Victim (Senior Citizen)** | Engaged in suspicious online conversations (crypto or romance) | Understand whether they are being scammed; get AI chat assistance; voluntarily share data to help others | Fear, shame, lack of technical literacy |
 | **Fraud Analyst** | Reviews borderline or uncertain classifications | Validate or reject suspected scams; provide structured annotations | Overwhelming data volume, repetitive analysis |
-| **Scammer (Adversarial Persona)** | Operates scams via social media, dating apps, or crypto groups | Deceive victims for money or data | Increasing AI-based detection |
+| **Scammer (Adversarial Persona)** | Operates scams via social media, dating apps, or crypto groups | Deceive victims for money or data | Increasing AI
 | **Law Enforcement Officer** | Receives summarized, evidence-rich reports | Use aggregated evidence to prosecute scammers | Lack of structured data from victims |
 
 ## Use Cases
@@ -132,3 +132,7 @@ The M4 milestone covers two storage modalities:
 - Expand persona details with anonymized real examples.
 - Define schema for the knowledge base and structured entities.
 - Begin drafting the Technical Design Document (TDD) aligned with this PRD.
+
+## Reporting Updates
+
+Reports are now exported as `.docx` files instead of Google Docs. This change improves compatibility, simplifies the export process, and removes the dependency on Google Cloud credentials.

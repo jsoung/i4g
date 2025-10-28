@@ -17,7 +17,7 @@ def mock_dependencies():
         mock.patch("i4g.reports.generator.VectorStore") as MockVector,
         mock.patch("i4g.reports.generator.TemplateEngine") as MockTemplate,
         mock.patch("i4g.reports.generator.OllamaLLM") as MockLLM,
-        mock.patch("i4g.reports.generator.export_to_gdoc") as mock_export,
+        mock.patch("i4g.reports.generator.export_report") as mock_export,
     ):
         # Configure mock instances
         mock_structured_instance = MockStructured.return_value
@@ -29,7 +29,7 @@ def mock_dependencies():
         mock_vector_instance.query_similar.return_value = [{"text": "related case 1"}]
         mock_llm_instance.invoke.return_value = "This is an LLM summary."
         mock_template_instance.render.return_value = "# Rendered Report Content"
-        mock_export.return_value = {"local_path": "/path/to/report.md", "url": "http://docs.google.com/id/123"}
+        mock_export.return_value = {"local_path": "/path/to/report.docx", "mode": "docx"}
 
         yield {
             "structured": mock_structured_instance,
@@ -45,36 +45,18 @@ def test_generate_report_integration(mock_dependencies):
     # 1. Initialize the generator (dependencies are auto-mocked by the fixture)
     generator = ReportGenerator()
 
-    # 2. Run the report generation for local export
-    result_offline = generator.generate_report(
-        text_query="test query",
-        upload_to_gdocs_flag=False
+    # 2. Run the report generation
+    result = generator.generate_report(
+        text_query="test query"
     )
 
-    # 3. Assertions for offline mode
+    # 3. Assertions
     mock_dependencies["vector"].query_similar.assert_called_with("test query", top_k=8)
     mock_dependencies["llm"].invoke.assert_called_once()
     mock_dependencies["template"].render.assert_called_with("base_template.md.j2", mock.ANY)
     mock_dependencies["export"].assert_called_once_with(
         title=mock.ANY,
-        content="# Rendered Report Content",
-        offline=True
+        content="# Rendered Report Content"
     )
-    assert result_offline["report_path"] == "/path/to/report.md"
-    assert result_offline["summary"] == "This is an LLM summary."
-
-    # 4. Reset mocks and run for online export
-    mock_dependencies["export"].reset_mock()
-
-    result_online = generator.generate_report(
-        text_query="another query",
-        upload_to_gdocs_flag=True
-    )
-
-    # 5. Assertions for online mode
-    mock_dependencies["export"].assert_called_once_with(
-        title=mock.ANY,
-        content="# Rendered Report Content",
-        offline=False
-    )
-    assert result_online["gdoc_url"] == "http://docs.google.com/id/123"
+    assert result["report_path"] == "/path/to/report.docx"
+    assert result["summary"] == "This is an LLM summary."

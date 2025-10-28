@@ -21,7 +21,7 @@ from datetime import datetime
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
 from i4g.reports.template_engine import TemplateEngine
-from i4g.reports.gdoc_exporter import export_to_gdoc
+from i4g.reports.gdoc_exporter import export_report
 from langchain_ollama import OllamaLLM
 
 DEFAULT_REPORTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "reports"))
@@ -150,22 +150,18 @@ class ReportGenerator:
         text_query: Optional[str] = None,
         template_name: str = "base_template.md.j2",
         top_k: int = 8,
-        upload_to_gdocs_flag: bool = False,
     ) -> Dict[str, Any]:
-        """Generate a report and save it to disk (and optionally upload to Google Docs).
+        """Generate a report and save it to disk.
 
         Args:
             case_id: Optional primary case id to anchor the search.
             text_query: Optional free-text query if case_id is not provided.
             template_name: Name of the Jinja2 template in templates/ directory.
             top_k: Number of related cases to retrieve.
-            upload_to_gdocs_flag: If True, attempt to upload to Google Docs.
-            gdrive_credentials: Optional credentials for Google API.
 
         Returns:
             A dictionary containing:
-                - report_path: saved markdown path
-                - gdoc_url: URL or id if uploaded (or None)
+                - report_path: saved .docx path
                 - summary: LLM summary string
                 - aggregated_entities: aggregated structured entities
         """
@@ -193,15 +189,14 @@ class ReportGenerator:
 
         # Export the report
         title = f"i4g Report {context['report_id']}"
-        export_result = export_to_gdoc(
+        export_result = export_report(
             title=title,
             content=rendered,
-            offline=not upload_to_gdocs_flag
         )
 
         return {
             "report_path": export_result.get("local_path"),
-            "gdoc_url": export_result.get("url"),
+            "gdoc_url": None, # No longer supported
             "summary": summary,
             "aggregated_entities": aggregated,
         }

@@ -58,7 +58,7 @@ def mock_llm(monkeypatch):
 def test_generate_report_local_save(tmp_path, mock_structured, mock_vector, mock_templates, mock_llm):
     """Test the generate_report flow saves a file and returns expected keys."""
     rg = ReportGenerator(structured_store=mock_structured, vector_store=mock_vector, template_engine=mock_templates, llm_model="fake-model")
-    result = rg.generate_report(text_query="test query", template_name="base_template.md.j2", top_k=2, upload_to_gdocs_flag=False)
+    result = rg.generate_report(text_query="test query", template_name="base_template.md.j2", top_k=2)
     assert "report_path" in result
     assert "summary" in result
     assert result["aggregated_entities"]["people"]  # contains aggregated people list
@@ -70,6 +70,6 @@ def test_generate_report_handles_missing_template(tmp_path, mock_structured, moc
     mt = MagicMock()
     mt.render.side_effect = FileNotFoundError("not found")
     rg = ReportGenerator(structured_store=mock_structured, vector_store=mock_vector, template_engine=mt, llm_model="fake-model")
-    result = rg.generate_report(text_query="fallback test", template_name="nonexistent.j2", upload_to_gdocs_flag=False)
+    result = rg.generate_report(text_query="fallback test", template_name="nonexistent.j2")
     assert "report_path" in result
     assert "summary" in result

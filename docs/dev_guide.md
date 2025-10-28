@@ -200,3 +200,9 @@ Milestone 5 will build on M4 and focus on:
 - Analyst dashboard and case-linking utilities
 
 This current architecture is designed to make the transition smooth.
+
+---
+
+## Reporting Updates
+
+As of Milestone 5, reports are exported as `.docx` files instead of Google Docs. This change improves compatibility and removes the dependency on Google Cloud credentials.
