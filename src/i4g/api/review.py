@@ -10,12 +10,16 @@ Endpoints:
 - GET /reviews/{review_id}/actions
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from i4g.store.review_store import ReviewStore
 from i4g.api.auth import require_token
+from i4g.store.review_store import ReviewStore
+
+# Import the worker task — will be scheduled in background on "accepted"
+from i4g.worker.tasks import generate_report_for_case
 
 router = APIRouter()
 
@@ -34,6 +38,7 @@ class EnqueueRequest(BaseModel):
 class DecisionRequest(BaseModel):
     decision: str  # accepted | rejected | needs_more_info
     notes: Optional[str] = None
+    auto_generate_report: Optional[bool] = False  # new flag to control auto-generation
 
 
 class AnnotateRequest(BaseModel):
@@ -86,21 +91,50 @@ def claim_review(review_id: str, user=Depends(require_token), store: ReviewStore
 
 
 @router.post("/{review_id}/annotate", summary="Annotate a review item")
-def annotate_review(review_id: str, payload: AnnotateRequest, user=Depends(require_token), store: ReviewStore = Depends(get_store)):
+def annotate_review(
+    review_id: str, payload: AnnotateRequest, user=Depends(require_token), store: ReviewStore = Depends(get_store)
+):
     """Attach annotations and notes to a review; logs action."""
     # Save annotation into actions for now
-    store.log_action(review_id, actor=user["username"], action="annotate", payload={"annotations": payload.annotations, "notes": payload.notes})
+    store.log_action(
+        review_id,
+        actor=user["username"],
+        action="annotate",
+        payload={"annotations": payload.annotations, "notes": payload.notes},
+    )
     return {"review_id": review_id, "annotated": True}
 
 
 @router.post("/{review_id}/decision", summary="Make a decision on a review")
-def decision(review_id: str, payload: DecisionRequest, user=Depends(require_token), store: ReviewStore = Depends(get_store)):
-    """Record a decision (accepted/rejected/needs_more_info)."""
+def decision(
+    review_id: str,
+    payload: DecisionRequest,
+    background_tasks: BackgroundTasks,
+    user=Depends(require_token),
+    store: ReviewStore = Depends(get_store),
+):
+    """Record a decision (accepted/rejected/needs_more_info).
+
+    If decision is 'accepted' and auto_generate_report is True, schedule background report generation.
+    """
     if payload.decision not in {"accepted", "rejected", "needs_more_info", "in_review"}:
         raise HTTPException(status_code=400, detail="Invalid decision")
 
     store.update_status(review_id, status=payload.decision, notes=payload.notes)
-    store.log_action(review_id, actor=user["username"], action="decision", payload={"decision": payload.decision, "notes": payload.notes})
+    store.log_action(
+        review_id,
+        actor=user["username"],
+        action="decision",
+        payload={"decision": payload.decision, "notes": payload.notes},
+    )
+
+    # If accepted and auto_generate_report is requested, schedule background job
+    if payload.decision == "accepted" and payload.auto_generate_report:
+        # Schedule background task to generate and export report
+        # generate_report_for_case will use the default ReviewStore and exporter,
+        # and will log action results back into the store.
+        background_tasks.add_task(generate_report_for_case, review_id, store)
+
     return {"review_id": review_id, "status": payload.decision}
 
 

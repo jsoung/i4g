@@ -30,6 +30,7 @@ dependencies = [
     "rich",
     "streamlit",
     "tqdm",
+    "trio",
 ]
 
 [project.optional-dependencies]
