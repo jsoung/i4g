@@ -124,3 +124,14 @@ class VectorStore:
             return self.store._collection.count()
         except Exception:
             return 0
+
+    def as_retriever(self, search_kwargs: Optional[Dict[str, Any]] = None):
+        """Return a retriever object for the vector store.
+
+        Args:
+            search_kwargs: Additional search parameters (e.g., `k` for top-k results).
+
+        Returns:
+            A retriever object compatible with LangChain.
+        """
+        return self.store.as_retriever(search_kwargs=search_kwargs)

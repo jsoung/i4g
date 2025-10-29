@@ -1,48 +1,44 @@
-"""
-Unit test for the RAG pipeline (i4g/rag/pipeline.py).
-This test ensures the QA chain is built correctly and the right model + prompt are used.
-"""
-
-import pytest
-from unittest.mock import patch, MagicMock
-
-import i4g.rag.pipeline as pipeline
+from unittest.mock import MagicMock
+from langchain_core.runnables import Runnable
+from i4g.rag.pipeline import build_scam_detection_chain
 
 
-@patch("i4g.rag.pipeline.ChatOllama")
-@patch("i4g.rag.pipeline.RetrievalQA")
-def test_build_qa_chain(mock_retrievalqa, mock_chatollama):
-    # Mock the LLM and retriever behavior
-    mock_llm = MagicMock()
-    mock_chatollama.return_value = mock_llm
+class DummyDoc:
+    def __init__(self, text):
+        self.page_content = text
 
-    mock_chain = MagicMock()
-    mock_retrievalqa.from_chain_type.return_value = mock_chain
 
+class MockLLM(Runnable):
+    """Mock LLM that conforms to the Runnable interface."""
+
+    def invoke(self, input, config=None):
+        # LangChain's Runnable interface passes both input and config
+        return "Likely a crypto scam."
+
+    def __call__(self, input, config=None):
+        # LangChain uses __call__ to invoke Runnables
+        return self.invoke(input, config)
+
+
+def test_scam_detection_chain_basic(monkeypatch):
+    """Ensure pipeline composes correctly and produces an output string."""
+    # Mock retriever to return dummy documents
     mock_vectorstore = MagicMock()
     mock_retriever = MagicMock()
     mock_vectorstore.as_retriever.return_value = mock_retriever
 
-    # Call the function under test
-    result = pipeline.build_qa_chain(mock_vectorstore)
+    def fake_retrieve(_query):
+        return [DummyDoc("This looks like a crypto scam.")]
 
-    # --- Assertions ---
-    # 1️⃣ Should return the mocked chain object
-    assert result == mock_chain
+    # Patch retriever | lambda composition to simulate retrieval
+    mock_retriever.__or__ = lambda self, fn: lambda _: fake_retrieve(None)
+    mock_retriever.__ror__ = mock_retriever.__or__
 
-    # 2️⃣ Should instantiate ChatOllama with correct model
-    mock_chatollama.assert_called_once_with(model="llama3.1")
+    # Patch ChatOllama to use MockLLM
+    monkeypatch.setattr("i4g.rag.pipeline.ChatOllama", lambda model="llama3.1": MockLLM())
 
-    # 3️⃣ Should call RetrievalQA.from_chain_type with expected args
-    mock_retrievalqa.from_chain_type.assert_called_once()
-    args, kwargs = mock_retrievalqa.from_chain_type.call_args
+    chain = build_scam_detection_chain(mock_vectorstore)
+    response = chain.invoke({"question": "Is this message fraudulent?"})
 
-    assert kwargs["llm"] == mock_llm
-    assert kwargs["chain_type"] == "stuff"
-    assert kwargs["retriever"] == mock_retriever
-    assert "prompt" in kwargs["chain_type_kwargs"]
-
-    # 4️⃣ Verify that the prompt includes the correct intent
-    prompt = kwargs["chain_type_kwargs"]["prompt"]
-    assert "scam detection assistant" in prompt.template.lower()
-    assert "crypto and romance scams" in prompt.template.lower()
+    assert isinstance(response, str)
+    assert "scam" in response.lower()

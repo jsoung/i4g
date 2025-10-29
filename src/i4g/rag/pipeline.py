@@ -1,31 +1,61 @@
 """
-LangChain RetrievalQA pipeline with Ollama as the local LLM.
+Scam Detection RAG Pipeline (LangChain v0.2+)
+
+This module constructs a LangChain Expression Language (LCEL)-based pipeline
+that uses an Ollama chat model as the reasoning component. It retrieves
+relevant documents from a vector store and evaluates whether the provided
+context exhibits signs of fraud.
+
+The design is modular and composable:
+- Retriever → Prompt → LLM → Output Parser
 """
 
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain_ollama.chat_models import ChatOllama
+from langchain_community.chat_models import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
 
-def build_qa_chain(vectorstore) -> RetrievalQA:
+def build_scam_detection_chain(vectorstore):
     """
-    Build a simple RetrievalQA chain using Ollama as the LLM.
+    Build a RAG pipeline for scam detection using the LangChain LCEL API.
+
+    Args:
+        vectorstore: A LangChain-compatible vector store instance (e.g., FAISS, Chroma).
+
+    Returns:
+        Runnable: A composable LCEL chain that accepts {"question": str} and returns
+        a scam assessment string.
     """
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
     llm = ChatOllama(model="llama3.1")
-    template = (
-        "You are a scam detection assistant.\n"
-        "Given the following chat or message context, "
-        "decide if it shows signs of a scam. "
-        "Focus on crypto and romance scams targeting seniors.\n\n"
-        "Context:\n{context}\n\nQuestion: {question}\n"
-        "Answer clearly and concisely:"
-    )
-    prompt = PromptTemplate(template=template, input_variables=["context", "question"])
 
-    return RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=vectorstore.as_retriever(search_kwargs={"k": 4}),
-        chain_type_kwargs={"prompt": prompt},
-        return_source_documents=True,
+    prompt = ChatPromptTemplate.from_template(
+        """You are a scam detection assistant.
+Your task is to determine whether the following conversation or message
+shows signs of fraudulent or deceptive behavior.
+
+Focus specifically on crypto-related or romance scams that target
+senior citizens.
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer briefly, clearly, and objectively:"""
     )
+
+    # LCEL chain composition
+    chain = (
+        {
+            "context": retriever | (lambda docs: "\n\n".join(d.page_content for d in docs)),
+            "question": RunnablePassthrough(),
+        }
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+
+    return chain
