@@ -43,12 +43,21 @@ flowchart LR
 
 ---
 
-## Learn More
+## 📚 Documentation
 
-- 📄 **[Product Requirements Document](./docs/prd.md)**: For product managers, designers, and anyone interested in the project's vision, user personas, and use cases.
-- 🧠 **[Developer Guide](./docs/dev_guide.md)**: For engineers who want to understand the technical architecture, development workflow, and how to contribute to the project.
-- 🧩 **[Technical Design Document](./docs/tdd.md)**: (Placeholder) For the future production-ready design and architecture of the system.
+### Planning & Strategy
+- 📋 **[Prototype PRD](./docs/prd_prototype.md)** - Original product vision and milestones (M1-M6)
+- 🚀 **[Production PRD](./docs/prd_production.md)** - Zero-budget production roadmap with GCP free tier strategy
+- 🗺️ **[Development Roadmap](./docs/ROADMAP.md)** - 8-week task breakdown from prototype to production
 
+### Technical Documentation
+- 🏗️ **[System Architecture](./docs/ARCHITECTURE.md)** - High-level system design, deployment, and data flow
+- 🔧 **[Technical Design Document](./docs/tdd.md)** - Detailed implementation specs, APIs, and security design
+- 💻 **[Developer Guide](./docs/dev_guide.md)** - Setup instructions, development workflow
+
+### Governance & Compliance
+- 🔒 **[Data Compliance Guide](./docs/COMPLIANCE.md)** - PII handling, FERPA/GDPR compliance, incident response
+- 🤝 **[Contributing Guide](./docs/CONTRIBUTING.md)** - How to contribute code, tests, and documentation
 
 ---
 
