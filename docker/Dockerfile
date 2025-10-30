@@ -6,4 +6,4 @@ RUN pip install --upgrade pip && pip install poetry && poetry install --no-dev
 
 COPY src ./src
 COPY scripts ./scripts
-CMD ["python", "scripts/query_kb.py", "Hello"]
+CMD ["i4g-admin", "query", "--question", "Hello"]
