@@ -48,7 +48,7 @@ i4g/
 
 ## Local Datastore
 
-The `i4g_store.db` file is a local SQLite database used for storing application data, including:
+The `data/i4g_store.db` file is a local SQLite database used for storing application data, including:
 
 -   **Structured Data:** Extracted entities, classification results, and other structured information.
 -   **Vector Embeddings:** Embeddings of text for semantic search.

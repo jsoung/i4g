@@ -28,7 +28,6 @@ reports/
 
 # Local data files
 *.jsonl
-i4g_store.db
 
 # OS-specific
 .DS_Store

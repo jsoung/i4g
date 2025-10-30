@@ -23,7 +23,7 @@ from typing import Any, Dict, Iterable, List, Optional
 class ReviewStore:
     """Lightweight SQLite-based review queue and audit logger."""
 
-    def __init__(self, db_path: str = "i4g_store.db") -> None:
+    def __init__(self, db_path: str = "data/i4g_store.db") -> None:
         """
         Initialize the ReviewStore, creating tables if they do not exist.
 
