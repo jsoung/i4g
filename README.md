@@ -57,7 +57,6 @@ flowchart LR
 
 ### Governance & Compliance
 - 🔒 **[Data Compliance Guide](./docs/COMPLIANCE.md)** - PII handling, FERPA/GDPR compliance, incident response
-- 🤝 **[Contributing Guide](./docs/CONTRIBUTING.md)** - How to contribute code, tests, and documentation
 
 ---
 
