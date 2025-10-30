@@ -1,8 +1,12 @@
-> [!NOTE]
-> This PRD serves as an initial communication document for the i4g team. It will evolve as experimentation and architectural design progress.
+> [!IMPORTANT]
+> **PROTOTYPE DOCUMENTATION** - This PRD describes the initial prototype phase of i4g.
+> 
+> For production requirements and deployment strategy, see **[prd_production.md](./prd_production.md)**.
+> 
+> This document serves as historical reference for the experimental phase and is no longer actively maintained.
 
 
-# Product Requirements Document (PRD)
+# Product Requirements Document (PRD) - Prototype Phase
 
 ## Overview
 **i4g** is an experimental platform designed to detect, analyze, and help prevent **crypto and romance scams**, particularly those targeting **senior citizens**. The system ingests chat histories, screenshots, and related materials, performs OCR and semantic analysis, and assists victims, analysts, and law enforcement in identifying and tracking scam operations.
