@@ -1,7 +1,7 @@
 """Simple token-based auth helpers for i4g API (MVP)."""
 
-from fastapi import HTTPException, Header, status
-from typing import Optional
+from fastapi import Depends, HTTPException, Header, status
+from typing import Optional, Callable
 
 # Minimal token -> user mapping for prototype.
 # In production, use a proper identity provider.
@@ -32,15 +32,13 @@ def require_token(x_api_key: Optional[str] = Header(None)):
     return user
 
 
-def require_role(required_role: str):
-    """Dependency factory to enforce a required role."""
+def require_role(required_role: str) -> Callable:
+    """Dependency factory that enforces a required role (analyst/admin)."""
 
-    def _checker(user= require_token):
-        # Note: FastAPI will resolve require_token first and pass value here
-        if isinstance(user, dict):
-            role = user.get("role")
-            if role == required_role or role == "admin":
-                return user
+    def _checker(user=Depends(require_token)):
+        role = user.get("role")
+        if role == required_role or role == "admin":
+            return user
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
 
     return _checker

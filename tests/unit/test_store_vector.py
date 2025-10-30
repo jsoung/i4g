@@ -38,6 +38,24 @@ def mock_chroma(monkeypatch):
     return store_instance
 
 
+@pytest.fixture
+def mock_faiss(monkeypatch):
+    """Mock the FAISS vector store backend."""
+    store_instance = MagicMock()
+    store_instance.similarity_search_with_score.return_value = []
+    store_instance.delete.return_value = None
+    store_instance.as_retriever.return_value = MagicMock()
+    store_instance.save_local.return_value = None
+    store_instance.index.ntotal = 0
+
+    MockFAISS = MagicMock()
+    MockFAISS.from_texts.return_value = store_instance
+    MockFAISS.load_local.return_value = store_instance
+
+    monkeypatch.setattr("i4g.store.vector.FAISS", MockFAISS)
+    return MockFAISS
+
+
 # ----------------------------------------------------------------------
 # VectorStore tests
 # ----------------------------------------------------------------------
@@ -70,6 +88,18 @@ def test_delete_record(mock_embeddings, mock_chroma, tmp_path):
     success = store.delete_record("mock-id")
     assert success is True
     mock_chroma.delete.assert_called_once()
+
+
+def test_faiss_backend_add_and_query(tmp_path, mock_embeddings, mock_faiss):
+    """FAISS backend should initialize via from_texts and allow querying."""
+    store = VectorStore(persist_dir=str(tmp_path / "faiss"), embedding_model="fake-model", backend="faiss")
+
+    ids = store.add_texts(["doc content"], metadatas=[{"source": "sample"}], ids=["case-1"])
+    assert ids == ["case-1"]
+    mock_faiss.from_texts.assert_called_once()
+
+    store.query_similar("query text")
+    mock_faiss.from_texts.return_value.similarity_search_with_score.assert_called_once()
 
 
 # ----------------------------------------------------------------------

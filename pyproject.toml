@@ -42,6 +42,7 @@ test = [
 ]
 
 [project.scripts]
+i4g-admin = "i4g.cli.admin:main"
 run-dataflow = "prefect_gcp.beam.pipeline:main"
 
 [tool.hatch.version]

@@ -123,22 +123,19 @@ def _average_entity_confidence(scored_entities: Dict[str, List[Dict[str, Any]]])
 
 def _detect_romance_pattern(scored_entities: Dict[str, List[Dict[str, Any]]], raw_text: str) -> bool:
     """Simple heuristic for romance scams: presence of relationship tokens + money request."""
-    relationship_tokens = ["love", "dear", "miss you", "i love you", "relationship", "meet soon"]
-    money_tokens = ["send", "transfer", "pay", "wire", "bitcoin", "btc", "usdt", "wallet", "$"]
     text = raw_text.lower()
+    relationship_tokens = HEURISTICS["romance"]["relationship"]
+    money_tokens = HEURISTICS["romance"]["money"]
     rel = any(tok in text for tok in relationship_tokens)
     money = any(tok in text for tok in money_tokens)
-    rel = any(tok in text for tok in HEURISTICS["romance"]["relationship"])
-    money = any(tok in text for tok in HEURISTICS["romance"]["money"])
     return rel and money
 
 
 def _detect_investment_pattern(scored_entities: Dict[str, List[Dict[str, Any]]], raw_text: str) -> bool:
     """Heuristic for investment/crypto scams: investment keywords + presence of wallet/crypto."""
-    invest_tokens = ["investment", "guarantee", "double profit", "high return", "investment club", "investment guarantee"]
     text = raw_text.lower()
+    invest_tokens = HEURISTICS["investment"]["keywords"]
     has_invest = any(tok in text for tok in invest_tokens)
-    has_invest = any(tok in text for tok in HEURISTICS["investment"]["keywords"])
     has_wallet = len(scored_entities.get("wallet_addresses", [])) > 0
     has_crypto = len(scored_entities.get("crypto_assets", [])) > 0
     return has_invest or (has_wallet and has_crypto)
@@ -146,13 +143,11 @@ def _detect_investment_pattern(scored_entities: Dict[str, List[Dict[str, Any]]],
 
 def _detect_phishing_pattern(scored_entities: Dict[str, List[Dict[str, Any]]], raw_text: str) -> bool:
     """Heuristic for phishing: suspicious URLs / impersonation keywords."""
-    phishing_tokens = ["verify account", "suspend", "login", "password", "account suspended", "click here"]
     text = raw_text.lower()
+    phishing_tokens = HEURISTICS["phishing"]["keywords"]
     has_phish_tok = any(tok in text for tok in phishing_tokens)
-    has_phish_tok = any(tok in text for tok in HEURISTICS["phishing"]["keywords"])
     # existence of contact channels that look like short URLs or t.me/ etc.
     channels = [c["value"] for c in scored_entities.get("contact_channels", [])]
-    has_sus_url = any(re.search(r"(https?://|t\.me/|wa\.me/|@[\w_]+)", c) for c in channels)
     has_sus_url = any(any(regex.search(c) for regex in HEURISTICS["phishing"]["url_regex"]) for c in channels)
     return has_phish_tok or has_sus_url
 

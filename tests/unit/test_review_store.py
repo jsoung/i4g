@@ -89,3 +89,49 @@ def test_queue_and_actions_integration(tmp_path):
     assert case["case_id"] == "CASE_INTEGRATION"
     assert len(actions) == 1
     assert actions[0]["review_id"] == review_id
+
+
+def test_bulk_update_tags_add_remove(tmp_path):
+    """Bulk add/remove tags across multiple saved searches."""
+    db_path = tmp_path / "bulk_tags.db"
+    store = ReviewStore(str(db_path))
+
+    sid_a = store.upsert_saved_search(
+        name="Wallet urgent",
+        params={"text": "wallet"},
+        owner="analyst_1",
+        tags=["urgent", "wallet"],
+    )
+    sid_b = store.upsert_saved_search(
+        name="Legacy cleanup",
+        params={"text": "legacy"},
+        owner="analyst_1",
+        tags=["legacy"],
+    )
+
+    updated = store.bulk_update_tags([sid_a, sid_b], add=["review"], remove=["legacy"])
+    assert updated == 2
+
+    record_a = store.get_saved_search(sid_a)
+    record_b = store.get_saved_search(sid_b)
+    assert record_a["tags"] == ["urgent", "wallet", "review"]
+    assert record_b["tags"] == ["review"]
+
+
+def test_bulk_update_tags_replace(tmp_path):
+    """Replacing tags should ignore add/remove lists."""
+    db_path = tmp_path / "bulk_tags_replace.db"
+    store = ReviewStore(str(db_path))
+
+    sid = store.upsert_saved_search(
+        name="Mixed tags",
+        params={"text": "mix"},
+        owner=None,
+        tags=["foo", "bar", "foo"],
+    )
+
+    updated = store.bulk_update_tags([sid], add=["extra"], replace=["primary"])
+    assert updated == 1
+
+    record = store.get_saved_search(sid)
+    assert record["tags"] == ["primary"]

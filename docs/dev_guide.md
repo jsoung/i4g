@@ -121,7 +121,12 @@ http://localhost:8000/docs
 streamlit run tests/adhoc/analyst_dashboard_demo.py
 ```
 
-Allows analysts to claim, review, and approve or reject fraud cases.
+**Streamlit Analyst Dashboard**
+
+- **Launch UI:** `streamlit run tests/adhoc/analyst_dashboard_demo.py` (full workflow for claiming, accepting, and rejecting cases).
+- **Search faster:** blend vector + structured lookups, adjust result counts, and paginate without re-running queries; hits tally shows total coverage.
+- **Saved search controls:** tag-based grouping, quick presets, CSV export, rename/share/delete, and bulk tag edits directly in the sidebar.
+- **Audit trail:** every run lands in `/reviews/search/history`; preview previous runs or replay them from the recent history panel.
 
 ---
 
@@ -143,22 +148,21 @@ python scripts/export_report_gdoc.py --case-id CASE123
 
 ## Developer Utilities
 
-- **Build FAISS Index:**
-  ```bash
-  python scripts/build_index.py
-  ```
+**Core Scripts**
 
-- **Run All Unit Tests:**
-  ```bash
-  pytest -v
-  ```
+- **Build FAISS index:** `python scripts/build_index.py --backend faiss --reset`
+- **Run unit tests:** `pytest -v`
+- **Format source:** `black src tests`
+- **Snapshot context:** `bash scripts/generate_context_snapshot.sh --help`
 
-- **Lint and Format:**
-  ```bash
-  black src tests
-  ```
+**Saved Search Admin (`i4g-admin`)**
 
-The `scripts/` directory includes additional CLI helpers (for example `generate_context_snapshot.sh` and `query_kb.py`); run them with `--help` to see available options.
+- `i4g-admin export-saved-searches --owner alice --output alice.json`
+- `i4g-admin import-saved-searches --shared --input team.json`
+- `i4g-admin bulk-update-tags --owner alice --tags urgent wallet --remove legacy`
+- `i4g-admin prune-saved-searches --owner alice --tags legacy`
+
+Install locally with `pip install -e .` to expose `i4g-admin` everywhere; run `i4g-admin --help` to browse each subcommand.
 
 ---
 
