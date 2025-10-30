@@ -1,208 +1,170 @@
-# i4g Developer Guide
+# Developer Guide — Intelligence for Good (i4g)
 
-> Version: 0.1
-> Scope: Storage & Ingestion Subsystem (up to Milestone M4)
-
----
-
-## Overview
-
-The **i4g** platform (Intelligence for Good) analyzes, classifies, and stores scam-related communications — focusing on crypto and romance scams that disproportionately target seniors.
-
-By **Milestone 4 (M4)**, the project provides a robust ingestion and storage foundation:
-
-1. **Entity extraction** and **fraud classification** (M2–M3)
-2. **Validated storage** across structured and semantic vector databases (M4)
-3. A unified **ingestion pipeline** connecting the flow from extraction to retrieval
-
-This guide explains how developers can understand, extend, and test the ingestion layer.
+This Developer Guide explains how to set up, run, and extend the i4g platform — an experimental system for detecting, analyzing, and reporting online scams (especially crypto and romance scams targeting seniors).
 
 ---
 
-## Architecture at a Glance
+## System Overview
+
+i4g combines OCR, language models, semantic entity extraction, classification, and human-in-the-loop review to support law enforcement and victim assistance workflows.
+
+### Core Data Flow
 
 ```mermaid
-flowchart TD
-    A["Raw chat / screenshots"] --> B["OCR (Tesseract)"]
-    B --> C["Semantic NER (LangChain + Ollama)"]
-    C --> D["Fraud Classifier (rule-based / hybrid)"]
-    D --> E["IngestPipeline"]
-    E --> F["StructuredStore (SQLite)"]
-    E --> G["VectorStore (Chroma / FAISS)"]
-    F --> H["Analyst Dashboard / Search"]
-    G --> H
-    H --> I["RAG / Report Generation (M5)"]
+graph TD
+A[Chat Screenshots] --> B[OCR (Tesseract)]
+B --> C[Semantic Extraction (LangChain + Ollama)]
+C --> D[Classification (Rule + LLM)]
+D --> E[Ingestion to Knowledge Base]
+E --> F[Analyst Review API / Dashboard]
+F --> G[Law Enforcement Report Generator]
 ```
 
 ---
 
-## Repository Structure
+## Project Layout
 
 ```
 i4g/
-├── extraction/         # OCR & NER extraction (Tesseract + LangChain)
-├── classification/     # Fraud classification & confidence scoring
-├── store/              # Structured & vector data storage modules
-│   ├── schema.py
-│   ├── structured.py
-│   ├── vector.py
-│   └── ingest.py
-├── rag/                # (Planned) RAG & agentic workflows
-├── tests/              # Unit and adhoc tests
+├── src/i4g/
+│   ├── ocr/                # OCR via Tesseract
+│   ├── extraction/         # NER + Semantic Extraction
+│   ├── classification/     # Fraud classifiers
+│   ├── embedding/          # Vector embeddings
+│   ├── store/              # Vector + Structured + Review DB
+│   ├── rag/                # RAG pipeline & retrieval
+│   ├── reports/            # Report generation & GDoc export
+│   ├── review/             # FastAPI review service
+│   ├── worker/             # Background tasks (report gen)
+│   └── ...
+├── tests/
 │   ├── unit/
 │   └── adhoc/
-├── docs/
-│   ├── prd.md          # Product Requirements Document
-│   ├── dev_guide.md    # Developer Guide
-│   └── (future) tdd.md # Technical Design Document
-└── scripts/            # Production & automation scripts
+├── templates/              # Jinja2 report templates
+└── scripts/                # CLI & dev utilities
 ```
 
 ---
 
-## Technology Stack
+## Setup Instructions
 
-| Layer | Tools / Libraries |
-|-------|--------------------|
-| OCR | **Tesseract OCR** |
-| LLM Framework | **LangChain + Ollama (local models)** |
-| Data Storage | **SQLite + Chroma (FAISS-compatible)** |
-| ML / AI Pipeline | **Python, NumPy, Scikit-learn, LangChain** |
-| Web Interface | *(Planned)* FastAPI + Streamlit |
-| Infrastructure | *(Prototype)* Apple Silicon / Local Dev; *(Production)* Linux Cloud GPU |
+### Prerequisites
 
----
+- macOS or Linux (Apple Silicon M3 tested)
+- Python ≥ 3.11
+- Tesseract OCR installed (`brew install tesseract`)
+- Ollama running locally (`ollama serve`)
+- FAISS (for vector store)
+- Optional: Google Cloud SDK (for GDoc export)
 
-## Key Components
-
-### ScamRecord (`i4g/store/schema.py`)
-
-Canonical, JSON-serializable record used across the ingestion pipeline.
-
-```python
-ScamRecord(
-    case_id="case-001",
-    text="Hi I'm Anna from TrustWallet...",
-    entities={"people": ["Anna"], "wallet_addresses": ["0x..."]},
-    classification="crypto_investment",
-    confidence=0.91,
-)
-```
-
-- Methods: `.to_dict()`, `.from_dict()` for persistence.
-
-
-### StructuredStore (`i4g/store/structured.py`)
-
-SQLite-backed store for structured fields and JSON entities.
-
-**Responsibilities**
-- CRUD operations on `ScamRecord`
-- Search by field (case_id, classification, confidence, entity keys)
-- List recent records (sorted)
-
-**Example**
-```python
-from i4g.store.structured import StructuredStore
-
-db = StructuredStore("data/i4g_store.db")
-records = db.list_recent()
-```
-
-### VectorStore (`i4g/store/vector.py`)
-
-Chroma-backed vector store for semantic search. Uses Ollama or other local embedding models.
-
-**Responsibilities**
-- Convert text to embeddings
-- Add records with metadata
-- Semantic similarity queries
-
-**Example**
-```python
-from i4g.store.vector import VectorStore
-
-vs = VectorStore()
-results = vs.query_similar("TrustWallet scam", top_k=3)
-```
-
-### IngestPipeline (`i4g/store/ingest.py`)
-
-Bridges classification outputs into both stores.
-
-**Responsibilities**
-- Build a `ScamRecord` from classifier output
-- Persist to `StructuredStore` and `VectorStore`
-- Expose `query_similar_cases(text, top_k)` for quick retrieval
-
-**Example**
-```python
-from i4g.store.ingest import IngestPipeline
-
-pipeline = IngestPipeline()
-case_id = pipeline.ingest_classified_case({
-    "text": "Dear John, send BTC to 1FzWL...",
-    "fraud_type": "romance_scam",
-    "fraud_confidence": 0.9,
-    "entities": {"people": [{"value": "John"}]},
-})
-```
-
----
-
-## Development Workflow
-
-This project uses `conda` for environment management and `pip-compile` to lock dependencies.
-
-### 1. Environment Setup
-
-Create and activate a `conda` environment.
+### Environment Setup
 
 ```bash
-# Create a new conda environment
-conda create -n i4g python=3.11
-
-# Activate the environment
-conda activate i4g
+git clone https://github.com/jsoung/i4g.git
+cd i4g
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -e .
 ```
 
-### 2. Dependency Management
-
-Project dependencies are defined in `pyproject.toml`. A `requirements.txt` "lock file" is generated from this file to ensure reproducible builds.
+To test your setup:
 
 ```bash
-# After activating the conda environment, install dependencies
-pip install -r requirements.txt
-
-# If you add a new dependency to pyproject.toml, regenerate the lock file
-pip-compile -o requirements.txt pyproject.toml --extra test
+pytest -q
 ```
 
-### 3. Running Tests
 
-The project uses `pytest`. Unit tests are located in `tests/unit/`.
+## Running the Core Pipelines
+
+There are also targeted demos under `tests/adhoc/` if you want to exercise a single feature (OCR, extraction, reporting, etc.); check the README in that folder for usage details.
+
+### OCR + Extraction
 
 ```bash
-# Run all unit tests
-pytest
+python scripts/run_ocr_pipeline.py --input ./samples/chat_001.png
 ```
 
-Ad-hoc and experimental scripts are located in `tests/adhoc/`. See the `tests/adhoc/README.md` for details on how to run them.
+### Semantic NER + Classification
+
+```bash
+python scripts/run_semantic_extraction.py --input ./samples/text/
+python scripts/classify_text.py "This looks like a scam."
+```
+
+### Scam Detection RAG Query
+
+```bash
+python scripts/scam_detection_cli.py "Is this a crypto scam?"
+```
 
 ---
 
-## Next Steps (M5 Preview)
+## Analyst Review System
 
-Milestone 5 will build on M4 and focus on:
+### Backend API
 
-- Hybrid retrieval (combine structured + semantic search)
-- RAG integration for automated report generation
-- Analyst dashboard and case-linking utilities
+Run the review backend:
 
-This current architecture is designed to make the transition smooth.
+```bash
+uvicorn i4g.review.api:app --reload
+```
+
+Check endpoint:
+```
+http://localhost:8000/docs
+```
+
+### Streamlit Analyst Dashboard
+
+```bash
+streamlit run tests/adhoc/analyst_dashboard_demo.py
+```
+
+Allows analysts to claim, review, and approve or reject fraud cases.
 
 ---
 
-## Reporting Updates
+## Report Generation
 
-As of Milestone 5, reports are exported as `.docx` files instead of Google Docs. This change improves compatibility and removes the dependency on Google Cloud credentials.
+### Manual Report Preview
+
+```bash
+python tests/adhoc/manual_report_demo.py
+```
+
+### GDoc Export (if Google API configured)
+
+```bash
+python scripts/export_report_gdoc.py --case-id CASE123
+```
+
+---
+
+## Developer Utilities
+
+- **Build FAISS Index:**
+  ```bash
+  python scripts/build_index.py
+  ```
+
+- **Run All Unit Tests:**
+  ```bash
+  pytest -v
+  ```
+
+- **Lint and Format:**
+  ```bash
+  black src tests
+  ```
+
+The `scripts/` directory includes additional CLI helpers (for example `generate_context_snapshot.sh` and `query_kb.py`); run them with `--help` to see available options.
+
+---
+
+## Notes for Cloud Deployment
+
+- Production environment expected to run on Linux (GCP or AWS).
+- Review API and worker tasks should run as services.
+- GDoc exporter requires Google service account credentials.
+- Use `docker/` folder for containerized deployment (optional).
