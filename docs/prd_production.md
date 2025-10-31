@@ -303,7 +303,7 @@ gcloud run deploy i4g-api \
 │ Assigned Cases (12)                     │
 │                                         │
 │ ┌─────────────────────────────────────┐ │
-│ │ Case #1234 - Romance Scam         │ │
+│ │ Case \#1234 - Romance Scam          │ │
 │ │ Victim: ███████ (@gmail.com)        │ │
 │ │ Amount Lost: $10,000                │ │
 │ │ Status: Pending Review              │ │
@@ -311,7 +311,7 @@ gcloud run deploy i4g-api \
 │ └─────────────────────────────────────┘ │
 │                                         │
 │ ┌─────────────────────────────────────┐ │
-│ │ Case #1235 - Crypto Scam          │ │
+│ │ Case \#1235 - Crypto Scam           │ │
 │ │ Victim: ███████ (@outlook.com)      │ │
 │ │ Amount Lost: $5,000                 │ │
 │ │ Status: In Progress                 │ │
@@ -757,10 +757,10 @@ graph TB
 
 ## Appendix B: Contact Information
 
-**Project Lead**: Jerry Soung
-**Email**: jerry@i4g.org
-**GitHub**: https://github.com/jsoung/i4g
-**Documentation**: https://github.com/jsoung/i4g/tree/main/docs
+- Maintainer: Jerry Soung
+- Email: jerry.soung@gmail.com
+- GitHub: https://github.com/jsoung/i4g
+- Documentation: https://github.com/jsoung/i4g/tree/main/docs
 
 ---
 

@@ -38,42 +38,42 @@ We welcome contributions from:
 - Ollama (for local LLM testing)
 
 **Clone the Repository**:
-\`\`\`bash
+```bash
 git clone https://github.com/jsoung/i4g.git
 cd i4g
-\`\`\`
+```
 
 **Install Dependencies**:
-\`\`\`bash
+```bash
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\\Scripts\\activate
 
 # Install dev dependencies
 pip install -e ".[dev]"
-\`\`\`
+```
 
 **Run Tests**:
-\`\`\`bash
+```bash
 pytest tests/ -v
-\`\`\`
+```
 
 **Start Local API**:
-\`\`\`bash
+```bash
 # In terminal 1: Start Ollama
 ollama serve
 
 # In terminal 2: Start FastAPI
 python -m i4g.api.app
 # API runs at http://localhost:8000
-\`\`\`
+```
 
 **Start Dashboard**:
-\`\`\`bash
+```bash
 cd src/i4g/dashboard
 streamlit run app.py
 # Dashboard runs at http://localhost:8501
-\`\`\`
+```
 
 ---
 
@@ -81,10 +81,10 @@ streamlit run app.py
 
 Browse our [GitHub Issues](https://github.com/jsoung/i4g/issues) for tasks labeled:
 
-- \`good first issue\`: Beginner-friendly tasks (documentation, bug fixes)
-- \`help wanted\`: Features we need assistance with
-- \`bug\`: Something isn't working correctly
-- \`enhancement\`: New feature or improvement
+- `good first issue`: Beginner-friendly tasks (documentation, bug fixes)
+- `help wanted`: Features we need assistance with
+- `bug`: Something isn't working correctly
+- `enhancement`: New feature or improvement
 
 **Claim an Issue**:
 1. Comment: "I'd like to work on this!"
@@ -95,7 +95,7 @@ Browse our [GitHub Issues](https://github.com/jsoung/i4g/issues) for tasks label
 
 ### 3. **Create a Feature Branch**
 
-\`\`\`bash
+```bash
 # Always branch from main
 git checkout main
 git pull origin main
@@ -104,14 +104,14 @@ git pull origin main
 git checkout -b feature/add-spanish-translation
 # or
 git checkout -b bugfix/fix-pdf-encoding
-\`\`\`
+```
 
 **Branch Naming Convention**:
-- \`feature/description\`: New functionality
-- \`bugfix/description\`: Fixing a bug
-- \`docs/description\`: Documentation updates
-- \`test/description\`: Adding/improving tests
-- \`refactor/description\`: Code cleanup
+- `feature/description`: New functionality
+- `bugfix/description`: Fixing a bug
+- `docs/description`: Documentation updates
+- `test/description`: Adding/improving tests
+- `refactor/description`: Code cleanup
 
 ---
 
@@ -121,14 +121,14 @@ git checkout -b bugfix/fix-pdf-encoding
 
 We follow **PEP 8** with some modifications:
 
-\`\`\`python
+```python
 # Good
 def tokenize_pii(text: str) -> dict[str, str]:
     """Extract and tokenize PII from raw text.
-    
+
     Args:
         text: Input string potentially containing PII
-        
+
     Returns:
         Mapping of PII type to token ID
     """
@@ -139,10 +139,10 @@ def tokenize_pii(text: str) -> dict[str, str]:
             token_id = generate_token()
             tokens[pattern_name] = token_id
     return tokens
-\`\`\`
+```
 
 **Formatting Tools**:
-\`\`\`bash
+```bash
 # Auto-format code
 black src/ tests/
 
@@ -151,7 +151,7 @@ isort src/ tests/
 
 # Type checking
 mypy src/
-\`\`\`
+```
 
 ---
 
@@ -165,7 +165,7 @@ mypy src/
 - E2E tests: Happy path + 1 error case
 
 **Run Tests Before Committing**:
-\`\`\`bash
+```bash
 # Run all tests
 pytest tests/ -v
 
@@ -175,7 +175,7 @@ pytest tests/unit/test_pii_tokenizer.py
 # Check coverage
 pytest --cov=src/i4g --cov-report=html
 open htmlcov/index.html
-\`\`\`
+```
 
 ---
 
@@ -183,16 +183,16 @@ open htmlcov/index.html
 
 Use **Conventional Commits** format:
 
-\`\`\`
+```
 <type>(<scope>): <description>
 
 [optional body]
 
 [optional footer]
-\`\`\`
+```
 
 **Examples**:
-\`\`\`
+```
 feat(pii): add phone number tokenization
 
 Added regex pattern to detect US/international phone numbers.
@@ -208,16 +208,16 @@ Validation was failing when description field was null.
 Now defaults to empty string.
 
 Fixes #89
-\`\`\`
+```
 
 **Types**:
-- \`feat\`: New feature
-- \`fix\`: Bug fix
-- \`docs\`: Documentation changes
-- \`test\`: Adding/updating tests
-- \`refactor\`: Code restructuring (no behavior change)
-- \`perf\`: Performance improvement
-- \`chore\`: Tooling/dependencies
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `test`: Adding/updating tests
+- `refactor`: Code restructuring (no behavior change)
+- `perf`: Performance improvement
+- `chore`: Tooling/dependencies
 
 ---
 
@@ -225,11 +225,11 @@ Fixes #89
 
 ### 1. **Push Your Branch**
 
-\`\`\`bash
+```bash
 git add .
 git commit -m "feat(analytics): add scam trend dashboard"
 git push origin feature/add-scam-trends
-\`\`\`
+```
 
 ---
 
@@ -238,7 +238,7 @@ git push origin feature/add-scam-trends
 Go to [GitHub](https://github.com/jsoung/i4g/pulls) and click **"New Pull Request"**.
 
 **PR Description Template**:
-\`\`\`markdown
+```markdown
 ## Description
 Brief summary of changes (2-3 sentences).
 
@@ -251,19 +251,19 @@ Why is this change needed? Link to issue if applicable.
 - Updated Z documentation
 
 ## Testing
-- [ ] Unit tests pass (\`pytest tests/\`)
+- [ ] Unit tests pass (`pytest tests/`)
 - [ ] Integration tests pass (if applicable)
 - [ ] Manual testing completed
 
 ## Checklist
-- [ ] Code follows style guidelines (\`black\`, \`isort\`)
+- [ ] Code follows style guidelines (`black`, `isort`)
 - [ ] Self-reviewed code
 - [ ] Commented complex logic
 - [ ] Updated documentation
 - [ ] No breaking changes (or clearly documented)
 
 Closes #[issue number]
-\`\`\`
+```
 
 ---
 
@@ -291,7 +291,7 @@ Closes #[issue number]
 - **Categories**: Q&A, Ideas, Show & Tell
 
 ### Email
-- **Project Lead**: jerry@i4g.org
+- **Maintainer**: Jerry Soung (jerry.soung@gmail.com)
 - **Use for**: Security issues (use PGP if available), partnership inquiries
 
 ---
@@ -299,7 +299,7 @@ Closes #[issue number]
 ## Recognition & Credits
 
 ### Contributors Hall of Fame
-All contributors are listed in [CONTRIBUTORS.md](./CONTRIBUTORS.md) with their contributions.
+All contributors are listed in [contributors.md](./contributors.md) with their contributions.
 
 ### Academic Credit
 Graduate students can receive:
@@ -320,13 +320,13 @@ If you're a grad student joining through a university partnership:
 
 ### Week 1: Setup & Training
 - [ ] Complete development environment setup
-- [ ] Read [Data Compliance Guide](./COMPLIANCE.md)
+- [ ] Read [Data Compliance Guide](./compliance.md)
 - [ ] Sign FERPA Data Use Agreement (DUA)
 - [ ] Complete PII handling quiz (80% passing score)
 - [ ] Attend onboarding session (schedule via email)
 
 ### Week 2-3: First Contribution
-- [ ] Pick a \`good first issue\`
+- [ ] Pick a `good first issue`
 - [ ] Submit first PR
 - [ ] Attend code review session
 
@@ -348,7 +348,7 @@ If you're a grad student joining through a university partnership:
 
 ### Non-Disclosure
 All contributors must sign a confidentiality agreement:
-- Available at: [CONFIDENTIALITY_AGREEMENT.pdf](./CONFIDENTIALITY_AGREEMENT.pdf)
+- Available at: [confidentiality_agreement.md](./confidentiality_agreement.md)
 - Submit signed copy to: legal@i4g.org
 - Renewal: Annually
 
@@ -356,26 +356,26 @@ All contributors must sign a confidentiality agreement:
 
 ## FAQ
 
-**Q: I'm new to open source. Where should I start?**  
-A: Check issues labeled \`good first issue\`. These are intentionally simple tasks like fixing typos, adding tests, or updating documentation.
+**Q: I'm new to open source. Where should I start?**
+A: Check issues labeled `good first issue`. These are intentionally simple tasks like fixing typos, adding tests, or updating documentation.
 
-**Q: How long does PR review take?**  
+**Q: How long does PR review take?**
 A: Initial review within 48 hours. If urgent, comment "@jsoung PTAL" (Please Take A Look).
 
-**Q: Can I work on multiple issues at once?**  
+**Q: Can I work on multiple issues at once?**
 A: Please limit to 1-2 active issues at a time to ensure quality and avoid blocking others.
 
-**Q: I found a security vulnerability. What do I do?**  
+**Q: I found a security vulnerability. What do I do?**
 A: **DO NOT open a public issue.** Email security@i4g.org with details. We'll respond within 24 hours.
 
-**Q: Can I use i4g code in my research paper?**  
-A: Yes! The project is MIT licensed. Please cite:  
-\`\`\`
-Soung, J. (2025). i4g: AI-Powered Scam Reporting Platform. 
+**Q: Can I use i4g code in my research paper?**
+A: Yes! The project is MIT licensed. Please cite:
+```
+Soung, J. (2025). i4g: AI-Powered Scam Reporting Platform.
 GitHub repository: https://github.com/jsoung/i4g
-\`\`\`
+```
 
-**Q: What if I can't finish an issue I claimed?**  
+**Q: What if I can't finish an issue I claimed?**
 A: No problem! Just comment on the issue: "I'm unable to continue, feel free to reassign." Life happens!
 
 ---
@@ -401,8 +401,8 @@ We are committed to providing a welcoming, inclusive, and harassment-free enviro
 Email conduct@i4g.org with details. All reports are confidential.
 
 **Enforcement**:
-1st offense: Warning  
-2nd offense: 2-week suspension  
+1st offense: Warning
+2nd offense: 2-week suspension
 3rd offense: Permanent ban
 
 ---
@@ -417,9 +417,9 @@ By contributing to i4g, you agree that your contributions will be licensed under
 
 Every contribution—no matter how small—makes a difference in helping scam victims. We're grateful for your time and expertise.
 
-**Questions?** Reach out to jerry@i4g.org or open a discussion on GitHub.
+**Questions?** Reach out to jerry.soung@gmail.com or open a discussion on GitHub.
 
 ---
 
-**Last Updated**: 2025-10-30  
+**Last Updated**: 2025-10-30<br/>
 **Maintainer**: Jerry Soung (@jsoung)

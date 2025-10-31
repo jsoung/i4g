@@ -12,12 +12,12 @@ i4g combines OCR, language models, semantic entity extraction, classification, a
 
 ```mermaid
 graph TD
-A[Chat Screenshots] --> B[OCR (Tesseract)]
-B --> C[Semantic Extraction (LangChain + Ollama)]
-C --> D[Classification (Rule + LLM)]
-D --> E[Ingestion to Knowledge Base]
-E --> F[Analyst Review API / Dashboard]
-F --> G[Law Enforcement Report Generator]
+    A[Chat Screenshots] --> B[OCR (Tesseract)]
+    B --> C[Semantic Extraction (LangChain + Ollama)]
+    C --> D[Classification (Rule + LLM)]
+    D --> E[Ingestion to Knowledge Base]
+    E --> F[Analyst Review API / Dashboard]
+    F --> G[Law Enforcement Report Generator]
 ```
 
 ---
@@ -94,20 +94,24 @@ There are also targeted demos under `tests/adhoc/` if you want to exercise a sin
 ### OCR + Extraction
 
 ```bash
-python scripts/run_ocr_pipeline.py --input ./samples/chat_001.png
+python scripts/run_ocr.py --input /path/to/chat_screenshots
 ```
+
+Replace `/path/to/chat_screenshots` with the directory containing PNG/JPG evidence.
 
 ### Semantic NER + Classification
 
 ```bash
-python scripts/run_semantic_extraction.py --input ./samples/text/
-python scripts/classify_text.py "This looks like a scam."
+python scripts/run_semantic_extraction.py
+python tests/adhoc/classify_text.py "This looks like a scam."
 ```
+
+`run_semantic_extraction.py` reads the OCR output saved to `data/ocr_output.json` by the previous step and writes enriched entities to `data/entities_semantic.json`.
 
 ### Scam Detection RAG Query
 
 ```bash
-python scripts/scam_detection_cli.py "Is this a crypto scam?"
+i4g-admin query --question "Is this a crypto scam?"
 ```
 
 ---
@@ -153,7 +157,7 @@ python tests/adhoc/manual_report_demo.py
 ### GDoc Export (if Google API configured)
 
 ```bash
-python scripts/export_report_gdoc.py --case-id CASE123
+python tests/adhoc/manual_report_export_demo.py
 ```
 
 ---

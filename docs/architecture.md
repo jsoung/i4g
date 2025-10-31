@@ -554,11 +554,11 @@ gcloud run services update i4g-api --traffic
 
 ## Questions & Support
 
-**Architect**: Jerry Soung (jerry@i4g.org)
-**Documentation**: https://github.com/jsoung/i4g/tree/main/docs
-**API Docs**: https://api.i4g.org/docs
+- Maintainer: Jerry Soung (jerry.soung@gmail.com)
+- Documentation: https://github.com/jsoung/i4g/tree/main/docs
+- API Docs: https://api.i4g.org/docs
 
 ---
 
-**Last Updated**: 2025-10-30
+**Last Updated**: 2025-10-30<br/>
 **Next Review**: 2026-01-30

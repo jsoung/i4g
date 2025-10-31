@@ -1,8 +1,8 @@
 # Technical Design Document: i4g Production System
 
-> **Version**: 1.0  
-> **Last Updated**: October 30, 2025  
-> **Owner**: Jerry Soung  
+> **Version**: 1.0
+> **Last Updated**: October 30, 2025
+> **Owner**: Jerry Soung
 > **Status**: Design → Implementation
 
 ---
@@ -26,17 +26,17 @@ C4Context
     Person(victim, "Scam Victim", "Submits evidence")
     Person(analyst, "Volunteer Analyst", "Reviews cases")
     Person(leo, "Law Enforcement", "Downloads reports")
-    
+
     System(i4g, "i4g Platform", "AI-powered scam reporting")
-    
+
     System_Ext(ollama, "Ollama LLM", "llama3.1 inference")
     System_Ext(gcp, "Google Cloud Platform", "Firestore, Cloud Run, Storage")
     System_Ext(email, "SendGrid", "Email notifications")
-    
+
     Rel(victim, i4g, "Uploads evidence", "HTTPS")
     Rel(analyst, i4g, "Reviews cases", "HTTPS + OAuth")
     Rel(leo, i4g, "Requests reports", "HTTPS")
-    
+
     Rel(i4g, ollama, "Classifies scams", "HTTP")
     Rel(i4g, gcp, "Stores data", "Firestore API")
     Rel(i4g, email, "Sends notifications", "SMTP")
@@ -53,11 +53,11 @@ C4Container
     Container(web, "Streamlit Dashboard", "Python", "Analyst UI")
     Container(api, "FastAPI Backend", "Python + LangChain", "REST API")
     Container(ollama_c, "Ollama", "Docker", "LLM inference")
-    
+
     ContainerDb(firestore, "Firestore", "NoSQL", "Case data + PII vault")
     ContainerDb(chroma, "ChromaDB", "Vector DB", "RAG embeddings")
     ContainerDb(gcs, "Cloud Storage", "Blob", "Evidence files")
-    
+
     Rel(web, api, "API calls", "HTTPS/JSON")
     Rel(api, firestore, "CRUD", "Firestore SDK")
     Rel(api, chroma, "Vector search", "HTTP")
@@ -465,16 +465,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         # Verify JWT
         idinfo = id_token.verify_oauth2_token(
-            token, 
-            requests.Request(), 
+            token,
+            requests.Request(),
             os.getenv("GOOGLE_CLIENT_ID")
         )
-        
+
         # Check if user is approved analyst
         user_doc = db.collection("analysts").document(idinfo['sub']).get()
         if not user_doc.exists or not user_doc.to_dict().get('approved'):
             raise HTTPException(status_code=403, detail="Not an approved analyst")
-        
+
         return {
             "uid": idinfo['sub'],
             "email": idinfo['email'],
@@ -501,23 +501,23 @@ interface Case {
   case_id: string;  // Firestore document ID
   created_at: Timestamp;
   updated_at: Timestamp;
-  
+
   // Victim info
   victim_email: string;
   title: string;
   description: string;  // Contains PII tokens: <PII:SSN:7a8f2e>
-  
+
   // Classification
   classification: {
     type: "Romance Scam" | "Crypto Scam" | "Phishing" | "Other";
     confidence: number;  // 0.0 - 1.0
     llm_model: string;   // "llama3.1"
   };
-  
+
   // Status
   status: "pending_review" | "in_progress" | "resolved" | "archived";
   assigned_to: string | null;  // analyst UID
-  
+
   // Evidence
   evidence_files: Array<{
     filename: string;
@@ -525,7 +525,7 @@ interface Case {
     mime_type: string;
     size_bytes: number;
   }>;
-  
+
   // Analyst notes
   notes: Array<{
     author: string;  // analyst UID
@@ -533,7 +533,7 @@ interface Case {
     text: string;
     timestamp: Timestamp;
   }>;
-  
+
   // Lifecycle
   resolved_at: Timestamp | null;
   archived: boolean;
@@ -618,21 +618,21 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Analysts can only read assigned cases
     match /cases/{case_id} {
-      allow read: if request.auth != null && 
-                     (resource.data.assigned_to == request.auth.uid || 
+      allow read: if request.auth != null &&
+                     (resource.data.assigned_to == request.auth.uid ||
                       get(/databases/$(database)/documents/analysts/$(request.auth.uid)).data.role == 'admin');
-      
+
       allow update: if request.auth != null &&
                        resource.data.assigned_to == request.auth.uid;
     }
-    
+
     // Analysts collection is read-only for analysts
     match /analysts/{uid} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && 
+      allow write: if request.auth != null &&
                       get(/databases/$(database)/documents/analysts/$(request.auth.uid)).data.role == 'admin';
     }
-    
+
     // PII vault is locked to backend service account
     match /pii_vault/{token} {
       allow read, write: if request.auth.token.email == 'i4g-backend@i4g-prod.iam.gserviceaccount.com';
@@ -711,11 +711,11 @@ def record_pii_vault_access(case_id: str):
     series = monitoring_v3.TimeSeries()
     series.metric.type = "custom.googleapis.com/i4g/pii_vault_access"
     series.resource.type = "global"
-    
+
     point = monitoring_v3.Point()
     point.value.int64_value = 1
     point.interval.end_time = datetime.utcnow()
-    
+
     series.points = [point]
     client.create_time_series(name=project_name, time_series=[series])
 ```
@@ -757,25 +757,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev]"
-      
+
       - name: Run linters
         run: |
           black --check src/ tests/
           isort --check src/ tests/
           mypy src/
-      
+
       - name: Run tests
         run: |
           pytest tests/ --cov=src/i4g --cov-report=xml
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
@@ -787,23 +787,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - uses: google-github-actions/setup-gcloud@v1
         with:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: i4g-prod
-      
+
       - name: Build Docker image
         run: |
           docker build -t gcr.io/i4g-prod/api:${{ github.sha }} .
           docker tag gcr.io/i4g-prod/api:${{ github.sha }} gcr.io/i4g-prod/api:latest
-      
+
       - name: Push to GCR
         run: |
           gcloud auth configure-docker
           docker push gcr.io/i4g-prod/api:${{ github.sha }}
           docker push gcr.io/i4g-prod/api:latest
-      
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy i4g-api \
@@ -898,7 +898,7 @@ from i4g.security.pii import tokenize_pii, decrypt_token
 def test_ssn_tokenization():
     text = "My SSN is 123-45-6789"
     result = tokenize_pii(text)
-    
+
     assert "ssn" in result["tokens"]
     assert "123-45-6789" not in result["tokenized_text"]
     assert "<PII:SSN:" in result["tokenized_text"]
@@ -906,14 +906,14 @@ def test_ssn_tokenization():
 def test_email_tokenization():
     text = "Contact me at victim@example.com"
     result = tokenize_pii(text)
-    
+
     assert "email" in result["tokens"]
     assert "victim@example.com" not in result["tokenized_text"]
 
 def test_multiple_pii_types():
     text = "SSN: 123-45-6789, Email: victim@example.com, Phone: (555) 123-4567"
     result = tokenize_pii(text)
-    
+
     assert len(result["tokens"]) == 3
     assert "ssn" in result["tokens"]
     assert "email" in result["tokens"]
@@ -941,7 +941,7 @@ def test_case_submission_to_approval():
     })
     assert response.status_code == 201
     case_id = response.json()["case_id"]
-    
+
     # 2. Analyst retrieves case (PII should be masked)
     analyst_token = get_test_jwt(role="analyst")
     response = client.get(
@@ -951,7 +951,7 @@ def test_case_submission_to_approval():
     assert response.status_code == 200
     assert "███████" in response.json()["description"]
     assert "123-45-6789" not in response.json()["description"]
-    
+
     # 3. Analyst approves case
     response = client.post(
         f"/api/cases/{case_id}/approve",
@@ -974,15 +974,15 @@ from locust import HttpUser, task, between
 
 class I4GUser(HttpUser):
     wait_time = between(1, 3)
-    
+
     @task(3)
     def list_cases(self):
         self.client.get("/api/cases", headers={"Authorization": f"Bearer {self.token}"})
-    
+
     @task(1)
     def view_case(self):
         self.client.get(f"/api/cases/{self.case_id}", headers={"Authorization": f"Bearer {self.token}"})
-    
+
     def on_start(self):
         # Authenticate
         response = self.client.post("/auth/login", json={...})
@@ -1075,11 +1075,11 @@ LOG_LEVEL=INFO
 
 ## Contact
 
-**Technical Lead**: Jerry Soung (jerry@i4g.org)  
-**Repository**: https://github.com/jsoung/i4g  
-**Documentation**: https://github.com/jsoung/i4g/tree/main/docs
+- Maintainer: Jerry Soung (jerry.soung@gmail.com)
+- Repository: https://github.com/jsoung/i4g
+- Documentation: https://github.com/jsoung/i4g/tree/main/docs
 
 ---
 
-**Last Updated**: 2025-10-30  
+**Last Updated**: 2025-10-30<br/>
 **Next Review**: 2025-11-30

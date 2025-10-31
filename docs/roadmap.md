@@ -1,7 +1,8 @@
 # Development Roadmap: i4g Production System
 
-> **Last Updated**: October 30, 2025  
-> **Owner**: Jerry Soung  
+> **Last Updated**: October 30, 2025<br/>
+> **Owner**: Jerry Soung<br/>
+> **Status**: Planning → MVP Development<br/>
 > **Timeline**: 8 weeks @ 10 hours/week = 80 hours total
 
 ---
@@ -150,11 +151,11 @@ This roadmap outlines the path from prototype to production-ready deployment, pr
 
 ## Contact
 
-**Project Lead**: Jerry Soung (jerry@i4g.org)  
-**GitHub**: https://github.com/jsoung/i4g  
-**Documentation**: https://github.com/jsoung/i4g/tree/main/docs
+- Maintainer: Jerry Soung (jerry.soung@gmail.com)
+- GitHub: https://github.com/jsoung/i4g
+- Documentation: https://github.com/jsoung/i4g/tree/main/docs
 
 ---
 
-**Last Updated**: 2025-10-30  
-**Next Review**: 2025-11-06 (weekly)
+**Last Updated**: 2025-10-30<br/>
+**Next Review**: 2025-11-06 (weekly)<br/>
