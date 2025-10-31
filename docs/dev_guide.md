@@ -12,12 +12,12 @@ i4g combines OCR, language models, semantic entity extraction, classification, a
 
 ```mermaid
 graph TD
-    A[Chat Screenshots] --> B[OCR (Tesseract)]
-    B --> C[Semantic Extraction (LangChain + Ollama)]
-    C --> D[Classification (Rule + LLM)]
-    D --> E[Ingestion to Knowledge Base]
-    E --> F[Analyst Review API / Dashboard]
-    F --> G[Law Enforcement Report Generator]
+    A["Chat Screenshots"] --> B["OCR (Tesseract)"]
+    B --> C["Semantic Extraction<br/>(LangChain + Ollama)"]
+    C --> D["Classification<br/>(Rule + LLM)"]
+    D --> E["Ingestion to Knowledge Base"]
+    E --> F["Analyst Review API / Dashboard"]
+    F --> G["Law Enforcement Report Generator"]
 ```
 
 ---
