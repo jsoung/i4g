@@ -48,15 +48,15 @@ flowchart LR
 ### Planning & Strategy
 - 📋 **[Prototype PRD](./docs/prd_prototype.md)** - Original product vision and milestones (M1-M6)
 - 🚀 **[Production PRD](./docs/prd_production.md)** - Zero-budget production roadmap with GCP free tier strategy
-- 🗺️ **[Development Roadmap](./docs/ROADMAP.md)** - 8-week task breakdown from prototype to production
+- 🗺️ **[Development Roadmap](./docs/roadmap.md)** - 8-week task breakdown from prototype to production
 
 ### Technical Documentation
-- 🏗️ **[System Architecture](./docs/ARCHITECTURE.md)** - High-level system design, deployment, and data flow
+- 🏗️ **[System Architecture](./docs/architecture.md)** - High-level system design, deployment, and data flow
 - 🔧 **[Technical Design Document](./docs/tdd.md)** - Detailed implementation specs, APIs, and security design
 - 💻 **[Developer Guide](./docs/dev_guide.md)** - Setup instructions, development workflow
 
 ### Governance & Compliance
-- 🔒 **[Data Compliance Guide](./docs/COMPLIANCE.md)** - PII handling, FERPA/GDPR compliance, incident response
+- 🔒 **[Data Compliance Guide](./docs/compliance.md)** - PII handling, FERPA/GDPR compliance, incident response
 
 ---
 
