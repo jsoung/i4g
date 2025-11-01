@@ -13,11 +13,13 @@ else
   }
 fi
 
-# Run formatting/lint hooks via pre-commit (if available)
-if "${PYTHON_BIN}" -m pre_commit --version >/dev/null 2>&1; then
+# Run formatting/lint hooks conditionally
+if command -v pre-commit >/dev/null 2>&1; then
+  pre-commit run --hook-stage commit
+elif "${PYTHON_BIN}" -m pre_commit --version >/dev/null 2>&1; then
   "${PYTHON_BIN}" -m pre_commit run --hook-stage commit
 else
-  echo "[pre-commit] pre-commit module not installed in ${PYTHON_BIN}; skipping formatters." >&2
+  echo "[pre-commit] pre-commit CLI/module not available; skipping formatters." >&2
 fi
 
 # Run fast unit test suite
