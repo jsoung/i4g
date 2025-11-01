@@ -252,6 +252,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--outdir", default="outputs", help="output directory")
     parser.add_argument("--chunk_chars", type=int, default=800, help="max chars per chunk")
-    parser.add_argument("--force-zenodo-download", action="store_true", help="force download zenodo file")
+    parser.add_argument(
+        "--force-zenodo-download",
+        action="store_true",
+        help="force download zenodo file",
+    )
     args = parser.parse_args()
-    main(outdir=args.outdir, chunk_chars=args.chunk_chars, force_zenodo_download=args.force_zenodo_download)
+    main(
+        outdir=args.outdir,
+        chunk_chars=args.chunk_chars,
+        force_zenodo_download=args.force_zenodo_download,
+    )

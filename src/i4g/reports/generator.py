@@ -12,17 +12,18 @@ The Google Docs upload is left as a stub in `gdoc_exporter.upload_to_gdocs`.
 
 from __future__ import annotations
 
-import os
 import json
+import os
 import uuid
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from langchain_ollama import OllamaLLM
+
+from i4g.reports.gdoc_exporter import export_report
+from i4g.reports.template_engine import TemplateEngine
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
-from i4g.reports.template_engine import TemplateEngine
-from i4g.reports.gdoc_exporter import export_report
-from langchain_ollama import OllamaLLM
 
 DEFAULT_REPORTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "data", "reports"))
 
@@ -52,7 +53,12 @@ class ReportGenerator:
         self.llm = OllamaLLM(model=llm_model)
 
     # ---- Retrieval helpers ----
-    def _fetch_related_cases(self, case_id: Optional[str] = None, text_query: Optional[str] = None, top_k: int = 8) -> List[Dict[str, Any]]:
+    def _fetch_related_cases(
+        self,
+        case_id: Optional[str] = None,
+        text_query: Optional[str] = None,
+        top_k: int = 8,
+    ) -> List[Dict[str, Any]]:
         """Fetch related cases using vector similarity or structured lookup.
 
         Priority:
@@ -196,7 +202,7 @@ class ReportGenerator:
 
         return {
             "report_path": export_result.get("local_path"),
-            "gdoc_url": None, # No longer supported
+            "gdoc_url": None,  # No longer supported
             "summary": summary,
             "aggregated_entities": aggregated,
         }

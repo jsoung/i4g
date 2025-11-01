@@ -8,7 +8,8 @@ and probabilistic entity linking.
 """
 
 from typing import Dict, List
-from i4g.normalization.reference_data import KNOWN_ORGS, KNOWN_ASSETS, KNOWN_LOCATIONS
+
+from i4g.normalization.reference_data import KNOWN_ASSETS, KNOWN_LOCATIONS, KNOWN_ORGS
 
 
 def normalize_entities(entities: Dict[str, List[str]]) -> Dict[str, List[str]]:

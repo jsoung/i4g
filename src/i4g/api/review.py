@@ -10,15 +10,15 @@ Endpoints:
 - GET /reviews/{review_id}/actions
 """
 
-from typing import Any, Dict, List, Optional
 import uuid
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from i4g.api.auth import require_token
-from i4g.store.review_store import ReviewStore
 from i4g.store.retriever import HybridRetriever
+from i4g.store.review_store import ReviewStore
 
 # Import the worker task — will be scheduled in background on "accepted"
 from i4g.worker.tasks import generate_report_for_case
@@ -99,16 +99,29 @@ def get_retriever() -> HybridRetriever:
 
 
 @router.post("/", summary="Enqueue a case for review")
-def enqueue_case(payload: EnqueueRequest, user=Depends(require_token), store: ReviewStore = Depends(get_store)):
+def enqueue_case(
+    payload: EnqueueRequest,
+    user=Depends(require_token),
+    store: ReviewStore = Depends(get_store),
+):
     """Add a case to the review queue."""
     review_id = store.enqueue_case(case_id=payload.case_id, priority=payload.priority)
     # Optionally log that user enqueued it
-    store.log_action(review_id, actor=user["username"], action="enqueued", payload={"text": payload.text or ""})
+    store.log_action(
+        review_id,
+        actor=user["username"],
+        action="enqueued",
+        payload={"text": payload.text or ""},
+    )
     return {"review_id": review_id, "case_id": payload.case_id}
 
 
 @router.get("/queue", summary="List queued cases")
-def list_queue(status: str = Query("queued"), limit: int = Query(25), store: ReviewStore = Depends(get_store)):
+def list_queue(
+    status: str = Query("queued"),
+    limit: int = Query(25),
+    store: ReviewStore = Depends(get_store),
+):
     """List queued cases by status."""
     items = store.get_queue(status=status, limit=limit)
     return {"items": items, "count": len(items)}
@@ -209,7 +222,10 @@ def save_search(
             if ":" in msg:
                 owner_val = msg.split(":", 1)[1]
                 owner = owner_val or "shared"
-            raise HTTPException(status_code=409, detail=f"Saved search name already exists (owner={owner})")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Saved search name already exists (owner={owner})",
+            )
         raise
     return {"search_id": search_id}
 
@@ -291,7 +307,10 @@ def patch_saved_search(
             if ":" in msg:
                 owner_val = msg.split(":", 1)[1]
                 owner = owner_val or "shared"
-            raise HTTPException(status_code=409, detail=f"Saved search name already exists (owner={owner})")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Saved search name already exists (owner={owner})",
+            )
         raise
     if not updated:
         raise HTTPException(status_code=404, detail="Saved search not found or nothing to update")
@@ -315,7 +334,10 @@ def share_saved_search(
             if ":" in msg:
                 owner_val = msg.split(":", 1)[1]
                 owner = owner_val or "shared"
-            raise HTTPException(status_code=409, detail=f"Shared search name already exists (owner={owner})")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Shared search name already exists (owner={owner})",
+            )
         raise
     return {"search_id": shared_id}
 
@@ -347,7 +369,10 @@ def import_saved_search(
             if ":" in msg:
                 owner_val = msg.split(":", 1)[1]
                 owner = owner_val or "shared"
-            raise HTTPException(status_code=409, detail=f"Saved search name already exists (owner={owner})")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Saved search name already exists (owner={owner})",
+            )
         raise HTTPException(status_code=400, detail="Invalid saved search payload")
     return {"search_id": search_id}
 
@@ -383,7 +408,10 @@ def claim_review(review_id: str, user=Depends(require_token), store: ReviewStore
 
 @router.post("/{review_id}/annotate", summary="Annotate a review item")
 def annotate_review(
-    review_id: str, payload: AnnotateRequest, user=Depends(require_token), store: ReviewStore = Depends(get_store)
+    review_id: str,
+    payload: AnnotateRequest,
+    user=Depends(require_token),
+    store: ReviewStore = Depends(get_store),
 ):
     """Attach annotations and notes to a review; logs action."""
     # Save annotation into actions for now

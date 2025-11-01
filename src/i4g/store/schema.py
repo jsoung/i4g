@@ -5,10 +5,10 @@ structured store and vectors. This dataclass is intended to be simple and
 JSON-serializable so it can be stored in SQLite without additional DB layers.
 """
 
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
-from typing import Dict, List, Optional, Any
 import json
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

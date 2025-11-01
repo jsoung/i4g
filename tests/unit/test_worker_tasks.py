@@ -12,7 +12,11 @@ from i4g.worker.tasks import generate_report_for_case
 def test_generate_report_success(mock_report_generator_cls, mock_store_cls):
     """Ensure successful report creation and export are logged correctly."""
     mock_store = MagicMock()
-    mock_store.get_review.return_value = {"review_id": "rev-1", "case_id": "CASE1", "status": "accepted"}
+    mock_store.get_review.return_value = {
+        "review_id": "rev-1",
+        "case_id": "CASE1",
+        "status": "accepted",
+    }
     mock_store_cls.return_value = mock_store
 
     mock_generator_instance = MagicMock()
@@ -26,7 +30,10 @@ def test_generate_report_success(mock_report_generator_cls, mock_store_cls):
     mock_report_generator_cls.assert_called_once()
     mock_generator_instance.generate_report.assert_called_once_with(case_id="CASE1", upload_to_gdocs_flag=True)
     mock_store.log_action.assert_called_once_with(
-        "rev-1", actor="worker", action="report_generated", payload={"gdoc_id": "doc-123"}
+        "rev-1",
+        actor="worker",
+        action="report_generated",
+        payload={"gdoc_id": "doc-123"},
     )
 
 
@@ -57,7 +64,11 @@ def test_generate_report_handles_missing_case(mock_store_cls):
 def test_generate_report_success(mock_report_generator_cls, mock_store_cls):
     """Ensure successful report creation and export are logged correctly."""
     mock_store = MagicMock()
-    mock_store.get_review.return_value = {"review_id": "rev-1", "case_id": "CASE1", "status": "accepted"}
+    mock_store.get_review.return_value = {
+        "review_id": "rev-1",
+        "case_id": "CASE1",
+        "status": "accepted",
+    }
     mock_store_cls.return_value = mock_store
 
     mock_generator_instance = MagicMock()
@@ -71,5 +82,8 @@ def test_generate_report_success(mock_report_generator_cls, mock_store_cls):
     mock_report_generator_cls.assert_called_once()
     mock_generator_instance.generate_report.assert_called_once_with(case_id="CASE1")
     mock_store.log_action.assert_called_once_with(
-        "rev-1", actor="worker", action="report_generated", payload={"report_path": "/path/to/report.docx"}
+        "rev-1",
+        actor="worker",
+        action="report_generated",
+        payload={"report_path": "/path/to/report.docx"},
     )

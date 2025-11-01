@@ -11,8 +11,8 @@ semantically for related-case detection.
 from __future__ import annotations
 
 import uuid
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from i4g.store.schema import ScamRecord
 from i4g.store.structured import StructuredStore

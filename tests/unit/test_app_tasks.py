@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from i4g.api.app import app
 
 client = TestClient(app)

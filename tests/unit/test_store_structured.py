@@ -11,8 +11,9 @@ tests run on an in-memory SQLite database for full isolation.
 """
 
 import json
-import pytest
 from datetime import datetime
+
+import pytest
 
 from i4g.store.schema import ScamRecord
 from i4g.store.structured import StructuredStore

@@ -8,12 +8,20 @@ Usage:
     # For local export
     python tests/adhoc/manual_report_export_demo.py
 """
+
 import argparse
+
 from i4g.reports.generator import ReportGenerator
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--query", type=str, default="TrustWallet verification fee", help="Text query to seed the report.")
+    parser.add_argument(
+        "--query",
+        type=str,
+        default="TrustWallet verification fee",
+        help="Text query to seed the report.",
+    )
     args = parser.parse_args()
 
     print("Initializing report generator...")
@@ -21,9 +29,7 @@ def main():
 
     print(f"Generating report based on query: '{args.query}'")
 
-    result = generator.generate_report(
-        text_query=args.query
-    )
+    result = generator.generate_report(text_query=args.query)
 
     print("\n=== Report Generation Complete ===")
     if result.get("report_path"):
@@ -31,6 +37,7 @@ def main():
     print("\nSummary:")
     print(result.get("summary"))
     print("\n---")
+
 
 if __name__ == "__main__":
     main()

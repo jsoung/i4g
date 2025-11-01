@@ -4,8 +4,11 @@ Batch semantic extraction using the chat-style semantic_ner module.
 
 import json
 from pathlib import Path
+
 from tqdm import tqdm
+
 from i4g.extraction.semantic_ner import build_llm, extract_semantic_entities
+
 
 def main():
     input_path = Path("data/ocr_output.json")
@@ -35,6 +38,7 @@ def main():
         json.dump(output, f, indent=2)
 
     print(f"\n✅ Semantic extraction saved to {output_path}")
+
 
 if __name__ == "__main__":
     main()

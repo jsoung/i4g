@@ -12,9 +12,9 @@ from typing import Dict, List
 def extract_wallets(text: str) -> List[str]:
     """Find crypto wallet addresses (Ethereum, BTC, etc.)."""
     patterns = [
-        r"0x[a-fA-F0-9]{40}",                     # Ethereum
-        r"bc1[a-zA-HJ-NP-Z0-9]{25,39}",           # Bitcoin bech32
-        r"[13][a-km-zA-HJ-NP-Z1-9]{25,34}"        # Bitcoin legacy
+        r"0x[a-fA-F0-9]{40}",  # Ethereum
+        r"bc1[a-zA-HJ-NP-Z0-9]{25,39}",  # Bitcoin bech32
+        r"[13][a-km-zA-HJ-NP-Z1-9]{25,34}",  # Bitcoin legacy
     ]
     wallets = []
     for pat in patterns:
@@ -46,7 +46,16 @@ def extract_names(text: str) -> List[str]:
 
 def extract_crypto_keywords(text: str) -> List[str]:
     """Detect crypto-related terms."""
-    keywords = ["bitcoin", "btc", "eth", "ethereum", "usdt", "bnb", "wallet", "metamask"]
+    keywords = [
+        "bitcoin",
+        "btc",
+        "eth",
+        "ethereum",
+        "usdt",
+        "bnb",
+        "wallet",
+        "metamask",
+    ]
     found = [kw for kw in keywords if kw.lower() in text.lower()]
     return list(set(found))
 

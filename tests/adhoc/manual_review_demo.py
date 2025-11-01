@@ -12,9 +12,11 @@ Then in another terminal:
 """
 
 import json
+
 import requests
 
 BASE_URL = "http://127.0.0.1:8000"
+
 
 def pretty(obj):
     """Pretty-print JSON for better readability."""
@@ -33,12 +35,9 @@ def run_demo():
             "wallet_addresses": [],
             "contact_channels": [],
             "locations": [],
-            "scam_indicators": ["verification fee", "send to verify"]
+            "scam_indicators": ["verification fee", "send to verify"],
         },
-        "classification": {
-            "label": "crypto_scam",
-            "confidence": 0.93
-        }
+        "classification": {"label": "crypto_scam", "confidence": 0.93},
     }
     r = requests.post(f"{BASE_URL}/reviews", json=payload)
     r.raise_for_status()

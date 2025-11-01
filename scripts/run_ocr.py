@@ -2,11 +2,11 @@
 CLI script to OCR a folder of images using Tesseract.
 """
 
-from i4g.ocr.tesseract import batch_extract_text
-import json
 import argparse
+import json
 from pathlib import Path
 
+from i4g.ocr.tesseract import batch_extract_text
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run OCR on screenshots.")

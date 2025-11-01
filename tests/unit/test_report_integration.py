@@ -1,10 +1,10 @@
 """Integration-style unit tests for i4g.reports.generator.ReportGenerator."""
 
-import pytest
 from unittest import mock
 
-from i4g.reports.generator import ReportGenerator
+import pytest
 
+from i4g.reports.generator import ReportGenerator
 
 pytestmark = pytest.mark.integration
 
@@ -29,7 +29,10 @@ def mock_dependencies():
         mock_vector_instance.query_similar.return_value = [{"text": "related case 1"}]
         mock_llm_instance.invoke.return_value = "This is an LLM summary."
         mock_template_instance.render.return_value = "# Rendered Report Content"
-        mock_export.return_value = {"local_path": "/path/to/report.docx", "mode": "docx"}
+        mock_export.return_value = {
+            "local_path": "/path/to/report.docx",
+            "mode": "docx",
+        }
 
         yield {
             "structured": mock_structured_instance,
@@ -46,17 +49,12 @@ def test_generate_report_integration(mock_dependencies):
     generator = ReportGenerator()
 
     # 2. Run the report generation
-    result = generator.generate_report(
-        text_query="test query"
-    )
+    result = generator.generate_report(text_query="test query")
 
     # 3. Assertions
     mock_dependencies["vector"].query_similar.assert_called_with("test query", top_k=8)
     mock_dependencies["llm"].invoke.assert_called_once()
     mock_dependencies["template"].render.assert_called_with("base_template.md.j2", mock.ANY)
-    mock_dependencies["export"].assert_called_once_with(
-        title=mock.ANY,
-        content="# Rendered Report Content"
-    )
+    mock_dependencies["export"].assert_called_once_with(title=mock.ANY, content="# Rendered Report Content")
     assert result["report_path"] == "/path/to/report.docx"
     assert result["summary"] == "This is an LLM summary."

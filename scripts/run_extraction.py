@@ -4,7 +4,9 @@ Batch extraction of structured entities from OCR output.
 
 import json
 from pathlib import Path
+
 from tqdm import tqdm
+
 from i4g.extraction.ner_rules import extract_entities
 
 
@@ -23,10 +25,7 @@ def main():
     for item in tqdm(ocr_results, desc="Extracting entities"):
         text = item.get("text", "")
         entities = extract_entities(text)
-        structured.append({
-            "file": item.get("file"),
-            "entities": entities
-        })
+        structured.append({"file": item.get("file"), "entities": entities})
 
     output_path.parent.mkdir(exist_ok=True, parents=True)
     with open(output_path, "w") as f:

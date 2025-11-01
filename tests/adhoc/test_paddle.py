@@ -3,7 +3,8 @@ from paddleocr import PaddleOCR
 ocr = PaddleOCR(
     use_doc_orientation_classify=False,
     use_doc_unwarping=False,
-    use_textline_orientation=False) # text detection + text recognition
+    use_textline_orientation=False,
+)  # text detection + text recognition
 # ocr = PaddleOCR(use_doc_orientation_classify=True, use_doc_unwarping=True) # text image preprocessing + text detection + textline orientation classification + text recognition
 # ocr = PaddleOCR(use_doc_orientation_classify=False, use_doc_unwarping=False) # text detection + textline orientation classification + text recognition
 # ocr = PaddleOCR(

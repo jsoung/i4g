@@ -5,8 +5,8 @@ Run manually to simulate the background report generation process:
     poetry run python tests/adhoc/manual_task_demo.py
 """
 
-from i4g.worker.tasks import generate_report_for_case
 from i4g.store.review_store import ReviewStore
+from i4g.worker.tasks import generate_report_for_case
 
 
 def main():

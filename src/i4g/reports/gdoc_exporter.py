@@ -4,11 +4,13 @@ Supports local file export to .docx format.
 """
 
 from __future__ import annotations
+
 import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
 import docx
+
 
 def export_report(
     title: str,

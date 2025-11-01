@@ -8,9 +8,9 @@ simple rendering utilities and a small stub for future template-learning.
 from __future__ import annotations
 
 import os
-from typing import Dict, Any, List, Optional
-from jinja2 import Environment, FileSystemLoader, select_autoescape, TemplateNotFound
+from typing import Any, Dict, List, Optional
 
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound, select_autoescape
 
 DEFAULT_TEMPLATES_DIR = os.path.abspath(os.path.join(os.getcwd(), "templates"))
 

@@ -14,12 +14,11 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Optional, List, Dict, Any
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from i4g.store.schema import ScamRecord
-
 
 DEFAULT_DB_PATH = "data/i4g_store.db"
 
@@ -160,7 +159,7 @@ class StructuredStore:
             text=row["text"],
             entities=entities,
             classification=row["classification"],
-            confidence=float(row["confidence"]) if row["confidence"] is not None else 0.0,
+            confidence=(float(row["confidence"]) if row["confidence"] is not None else 0.0),
             created_at=created_at,
             embedding=embedding,
             metadata=metadata,
@@ -209,7 +208,10 @@ class StructuredStore:
             elif value.startswith("<="):
                 op = "<="
                 num = float(value[2:])
-            cur.execute(f"SELECT * FROM scam_records WHERE confidence {op} ? ORDER BY confidence DESC LIMIT ?", (num, top_k))
+            cur.execute(
+                f"SELECT * FROM scam_records WHERE confidence {op} ? ORDER BY confidence DESC LIMIT ?",
+                (num, top_k),
+            )
             rows = cur.fetchall()
             return [self._row_to_record(r) for r in rows]
 

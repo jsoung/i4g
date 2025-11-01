@@ -54,7 +54,10 @@ class HybridRetriever:
         for item in results:
             if isinstance(item.get("sources"), set):
                 item["sources"] = sorted(item["sources"])
-        results.sort(key=lambda item: (item["score"] is not None, item["score"] or 0.0), reverse=True)
+        results.sort(
+            key=lambda item: (item["score"] is not None, item["score"] or 0.0),
+            reverse=True,
+        )
 
         total_before_slice = len(results)
         if offset:

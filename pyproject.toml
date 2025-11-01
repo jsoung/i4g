@@ -23,6 +23,7 @@ dependencies = [
     "ollama",
     "paddleocr[all]",
     "Pillow",
+    "fastapi",
     "huggingface-hub>=0.34.0,<1.0",
     "pytesseract",
     "python-docx",
@@ -40,6 +41,7 @@ test = [
     "pytest-mock",
     "pytest-anyio",
     "pip-tools",
+    "pre-commit",
 ]
 
 [project.scripts]
@@ -54,3 +56,10 @@ pattern = "(?P<version>.+)"
 markers = [
     "integration: marks tests as integration tests (slower)",
 ]
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120

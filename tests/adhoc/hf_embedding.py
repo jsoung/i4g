@@ -18,9 +18,7 @@ API_URL = "https://api-inference.huggingface.co/models/BAAI/bge-small-en-v1.5"
 def _read_token() -> str:
     token = os.environ.get("HF_API_TOKEN")
     if not token:
-        raise SystemExit(
-            "Set HF_API_TOKEN in your environment (https://huggingface.co/settings/tokens)."
-        )
+        raise SystemExit("Set HF_API_TOKEN in your environment (https://huggingface.co/settings/tokens).")
     return token
 
 

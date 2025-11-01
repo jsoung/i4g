@@ -21,9 +21,10 @@ Requirements:
 
 import pprint
 from pathlib import Path
+
+from i4g.store.ingest import IngestPipeline
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
-from i4g.store.ingest import IngestPipeline
 
 
 def main() -> None:

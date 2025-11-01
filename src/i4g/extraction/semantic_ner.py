@@ -277,6 +277,9 @@ def extract_semantic_entities(text: str, llm: OllamaLLM) -> Dict[str, Any]:
     scored = _add_confidence_scores(merged)
 
     if fallback_reason:
-        scored["fallback_info"] = {"reason": fallback_reason, "raw_output": parsed.get("raw_output")}
+        scored["fallback_info"] = {
+            "reason": fallback_reason,
+            "raw_output": parsed.get("raw_output"),
+        }
 
     return scored

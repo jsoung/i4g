@@ -10,10 +10,10 @@ The design is modular and composable:
 - Retriever → Prompt → LLM → Output Parser
 """
 
-from langchain_ollama import ChatOllama
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
+from langchain_ollama import ChatOllama
 
 
 def build_scam_detection_chain(vectorstore):
@@ -43,7 +43,8 @@ def build_scam_detection_chain(vectorstore):
     # LCEL chain composition
     chain = (
         {
-            "context": RunnablePassthrough() | (lambda inp: retriever.invoke(inp["question"]))
+            "context": RunnablePassthrough()
+            | (lambda inp: retriever.invoke(inp["question"]))
             | (lambda docs: "\n\n".join(d.page_content for d in docs)),
             "question": RunnablePassthrough() | (lambda inp: inp["question"]),
         }

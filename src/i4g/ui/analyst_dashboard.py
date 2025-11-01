@@ -14,9 +14,9 @@ It supports:
 
 from __future__ import annotations
 
-import os
 import json
-from typing import Dict, Any, List, Optional
+import os
+from typing import Any, Dict, List, Optional
 
 import httpx
 import streamlit as st
@@ -120,7 +120,13 @@ st.session_state["search_page_size_value"] = st.session_state["search_page_size_
 st.session_state["preview_enabled"] = preview_enabled
 
 with st.sidebar.expander("Recent search history", expanded=False):
-    history_limit = st.slider("Entries to load", 5, 50, st.session_state["history_limit"], key="history_limit_slider")
+    history_limit = st.slider(
+        "Entries to load",
+        5,
+        50,
+        st.session_state["history_limit"],
+        key="history_limit_slider",
+    )
     if st.button("Refresh history", key="refresh_history_btn"):
         try:
             payload = fetch_search_history(limit=history_limit)
@@ -157,7 +163,11 @@ with st.sidebar.expander("Saved searches", expanded=False):
         if not tags_to_share:
             st.warning("Select at least one tag filter before sharing.")
         else:
-            preset_payload = {"name": ", ".join(tags_to_share) or "Preset", "params": {}, "tags": tags_to_share}
+            preset_payload = {
+                "name": ", ".join(tags_to_share) or "Preset",
+                "params": {},
+                "tags": tags_to_share,
+            }
             try:
                 import_saved_search_api(preset_payload)
                 st.success("Tag filter saved as shared preset via saved searches.")
@@ -284,11 +294,7 @@ with st.sidebar.expander("Saved searches", expanded=False):
 
     if selected_ids:
         with st.expander(f"Bulk tag update ({len(selected_ids)} selected)", expanded=True):
-            st.caption(
-                "IDs: "
-                + ", ".join(list(selected_ids)[:5])
-                + ("..." if len(selected_ids) > 5 else "")
-            )
+            st.caption("IDs: " + ", ".join(list(selected_ids)[:5]) + ("..." if len(selected_ids) > 5 else ""))
             add_tags_raw = st.text_input("Add tags (comma separated)", key="bulk_tags_add")
             remove_tags_raw = st.text_input("Remove tags", key="bulk_tags_remove")
             replace_tags_raw = st.text_input(
@@ -349,9 +355,15 @@ with st.sidebar.expander("Saved searches", expanded=False):
             tag_badge = " ".join(_tag_badge(t) for t in (saved.get("tags") or []))
             owner_badge = "(shared)" if saved.get("owner") is None else f"(owner: {saved.get('owner')})"
             st.markdown(f"**{name}** {owner_badge} {tag_badge}", unsafe_allow_html=True)
-            col_select, col_fav, col_load, col_info, col_share, col_download, col_delete = st.columns(
-                [0.6, 0.5, 1, 1, 1, 1, 1]
-            )
+            (
+                col_select,
+                col_fav,
+                col_load,
+                col_info,
+                col_share,
+                col_download,
+                col_delete,
+            ) = st.columns([0.6, 0.5, 1, 1, 1, 1, 1])
             is_selected = saved_id in selected_ids
             new_selected = col_select.checkbox(
                 "Select",
@@ -446,6 +458,7 @@ with st.sidebar.expander("Saved searches", expanded=False):
 
 st.session_state["history_limit"] = st.session_state.get("history_limit_slider", st.session_state["history_limit"])
 
+
 def run_search(params: Dict[str, Any], offset: int) -> None:
     try:
         st.session_state["case_reviews"] = {}
@@ -492,7 +505,7 @@ def run_search(params: Dict[str, Any], offset: int) -> None:
 if search_submitted:
     params = {
         "text": (search_text.strip() or None) if search_text else None,
-        "classification": (search_classification.strip() or None) if search_classification else None,
+        "classification": ((search_classification.strip() or None) if search_classification else None),
         "case_id": (search_case_id.strip() or None) if search_case_id else None,
         "vector_limit": st.session_state["search_vector_limit_value"],
         "structured_limit": st.session_state["search_structured_limit_value"],
@@ -512,7 +525,12 @@ if search_submitted:
                     if item.get("search_id") == active_id:
                         current_favorite = bool(item.get("favorite"))
                         break
-            response = save_search(save_name.strip(), params, search_id=active_id, favorite=current_favorite)
+            response = save_search(
+                save_name.strip(),
+                params,
+                search_id=active_id,
+                favorite=current_favorite,
+            )
             st.success(f"Saved search '{save_name.strip()}'")
             payload = fetch_saved_searches(limit=25)
             st.session_state["saved_searches"] = payload.get("items", [])
@@ -526,6 +544,8 @@ if search_submitted:
                 st.error(f"Failed to save search: {message}")
     elif not update_existing:
         st.session_state["active_saved_search_id"] = None
+
+
 # Helper helpers
 def api_client() -> httpx.Client:
     base = st.session_state.get("api_base", API_BASE_URL)
@@ -580,7 +600,11 @@ def search_cases_api(
     offset: int,
 ) -> Dict[str, Any]:
     limit_param = max(vector_limit, structured_limit, page_size)
-    params: Dict[str, Any] = {"limit": limit_param, "offset": offset, "page_size": page_size}
+    params: Dict[str, Any] = {
+        "limit": limit_param,
+        "offset": offset,
+        "page_size": page_size,
+    }
     if text:
         params["text"] = text
     if classification:
@@ -617,7 +641,12 @@ def fetch_saved_searches(limit: int = 25, owner_only: bool = False) -> Dict[str,
     return resp.json()
 
 
-def save_search(name: str, params: Dict[str, Any], search_id: Optional[str] = None, favorite: Optional[bool] = None) -> Dict[str, Any]:
+def save_search(
+    name: str,
+    params: Dict[str, Any],
+    search_id: Optional[str] = None,
+    favorite: Optional[bool] = None,
+) -> Dict[str, Any]:
     client = reviews_client()
     payload_params = dict(params)
     payload_params.pop("search_id", None)
@@ -919,7 +948,11 @@ if search_results:
                     try:
                         post_action(
                             f"/{review_id}/decision",
-                            {"decision": "accepted", "notes": "Accepted from search panel", "auto_generate_report": False},
+                            {
+                                "decision": "accepted",
+                                "notes": "Accepted from search panel",
+                                "auto_generate_report": False,
+                            },
                         )
                         st.success(f"Review {review_id} accepted.")
                         st.experimental_rerun()
@@ -930,7 +963,10 @@ if search_results:
                     try:
                         post_action(
                             f"/{review_id}/decision",
-                            {"decision": "rejected", "notes": "Rejected from search panel"},
+                            {
+                                "decision": "rejected",
+                                "notes": "Rejected from search panel",
+                            },
                         )
                         st.warning(f"Review {review_id} rejected.")
                         st.experimental_rerun()
@@ -965,7 +1001,10 @@ if history_events:
                 "classification": payload.get("classification"),
                 "case_id": payload.get("case_id"),
                 "vector_limit": payload.get("vector_limit", st.session_state["search_vector_limit_value"]),
-                "structured_limit": payload.get("structured_limit", st.session_state["search_structured_limit_value"]),
+                "structured_limit": payload.get(
+                    "structured_limit",
+                    st.session_state["search_structured_limit_value"],
+                ),
                 "page_size": payload.get("page_size", st.session_state["search_page_size_value"]),
             }
             if st.session_state.get("preview_enabled", True):
@@ -1007,7 +1046,11 @@ for case in queue:
         auto_report = cols[1].checkbox("Auto report", key=f"auto_{case['review_id']}")
         if cols[1].button("✅ Accept", key=f"accept_{case['review_id']}"):
             try:
-                payload = {"decision": "accepted", "notes": "Accepted via dashboard", "auto_generate_report": bool(auto_report)}
+                payload = {
+                    "decision": "accepted",
+                    "notes": "Accepted via dashboard",
+                    "auto_generate_report": bool(auto_report),
+                }
                 resp = post_action(f"/{case['review_id']}/decision", payload)
                 st.success("Accepted")
                 st.experimental_rerun()
@@ -1030,7 +1073,11 @@ for case in queue:
                 # Ensure the case is marked accepted before triggering report generation
                 post_action(
                     f"/{case['review_id']}/decision",
-                    {"decision": "accepted", "notes": "Manual report generation", "auto_generate_report": False},
+                    {
+                        "decision": "accepted",
+                        "notes": "Manual report generation",
+                        "auto_generate_report": False,
+                    },
                 )
 
                 client = api_client()
@@ -1079,6 +1126,7 @@ def _parse_tags(raw: Optional[Any]) -> List[str]:
     else:
         candidates = str(raw).split(",")
     return [item.strip() for item in candidates if item and item.strip()]
+
 
 def _tag_badge(tag: str) -> str:
     color = TAG_PAL[hash(tag) % len(TAG_PAL)]

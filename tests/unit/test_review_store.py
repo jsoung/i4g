@@ -7,6 +7,7 @@ action logging behaviors.
 """
 
 import sqlite3
+
 from i4g.store.review_store import ReviewStore
 
 

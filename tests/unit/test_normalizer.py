@@ -6,8 +6,8 @@ and entity merging logic for Phase M3.
 
 import pytest
 
-from i4g.normalization.normalizer import normalize_entities, merge_entities
-from i4g.normalization.reference_data import KNOWN_ORGS, KNOWN_ASSETS
+from i4g.normalization.normalizer import merge_entities, normalize_entities
+from i4g.normalization.reference_data import KNOWN_ASSETS, KNOWN_ORGS
 
 
 @pytest.mark.parametrize(

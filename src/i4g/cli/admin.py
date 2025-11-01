@@ -33,8 +33,8 @@ def ensure_ollama_running() -> bool:
 
 
 def run_query(args: argparse.Namespace) -> None:
-    from i4g.store.vector import VectorStore
     from i4g.rag.pipeline import build_scam_detection_chain
+    from i4g.store.vector import VectorStore
 
     if not ensure_ollama_running():
         console.print("[red]❌ Ollama is not running. Start it first with:[/red]")
@@ -172,9 +172,7 @@ def bulk_update_saved_search_tags(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     if args.replace is not None and (args.add or args.remove):
-        console.print(
-            "[yellow]⚠️ --replace overrides --add/--remove; add/remove values will be ignored.[/yellow]"
-        )
+        console.print("[yellow]⚠️ --replace overrides --add/--remove; add/remove values will be ignored.[/yellow]")
 
     store = ReviewStore()
     normalized_add = [t.strip() for t in (args.add or []) if t.strip()]
@@ -194,11 +192,7 @@ def bulk_update_saved_search_tags(args: argparse.Namespace) -> None:
         records = store.list_saved_searches(owner=args.owner, limit=args.limit)
         tags_filter = {t.strip().lower() for t in (args.tags or []) if t.strip()}
         if tags_filter:
-            records = [
-                r
-                for r in records
-                if tags_filter.intersection({t.lower() for t in (r.get("tags") or [])})
-            ]
+            records = [r for r in records if tags_filter.intersection({t.lower() for t in (r.get("tags") or [])})]
         summary_records = records
         target_ids = [r["search_id"] for r in records]
 
@@ -291,10 +285,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     export = sub.add_parser("export-saved-searches", help="Export saved searches to JSON.")
     export.add_argument("--limit", type=int, default=100, help="Max entries to export.")
-    export.add_argument("--all", action="store_true", help="Include shared searches along with personal ones.")
+    export.add_argument(
+        "--all",
+        action="store_true",
+        help="Include shared searches along with personal ones.",
+    )
     export.add_argument("--owner", help="Filter by owner username (ignored if --all).")
     export.add_argument("--output", help="Output file; omit for stdout.")
-    export.add_argument("--split", action="store_true", help="When writing to a folder, create one file per owner.")
+    export.add_argument(
+        "--split",
+        action="store_true",
+        help="When writing to a folder, create one file per owner.",
+    )
     export.add_argument(
         "--include-tags",
         nargs="*",
@@ -304,7 +306,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     imp = sub.add_parser("import-saved-searches", help="Import saved searches from JSON.")
     imp.add_argument("--input", help="JSON file path (defaults to stdin).")
-    imp.add_argument("--owner", default=None, help="Owner username for imported searches (default: current user).")
+    imp.add_argument(
+        "--owner",
+        default=None,
+        help="Owner username for imported searches (default: current user).",
+    )
     imp.add_argument("--shared", action="store_true", help="Import into shared scope (owner=NULL).")
     imp.add_argument(
         "--include-tags",
@@ -314,9 +320,20 @@ def build_parser() -> argparse.ArgumentParser:
     imp.set_defaults(func=import_saved_searches)
 
     prune = sub.add_parser("prune-saved-searches", help="Delete saved searches by owner/tag filters.")
-    prune.add_argument("--owner", help="Delete saved searches belonging to this owner (omit for shared).")
-    prune.add_argument("--tags", nargs="*", help="Only delete saved searches containing any of these tags.")
-    prune.add_argument("--dry-run", action="store_true", help="Preview deletions without applying them.")
+    prune.add_argument(
+        "--owner",
+        help="Delete saved searches belonging to this owner (omit for shared).",
+    )
+    prune.add_argument(
+        "--tags",
+        nargs="*",
+        help="Only delete saved searches containing any of these tags.",
+    )
+    prune.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview deletions without applying them.",
+    )
     prune.set_defaults(func=prune_saved_searches)
 
     bulk = sub.add_parser(
@@ -324,8 +341,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Add, remove, or replace saved-search tags in bulk.",
     )
     bulk.add_argument("--owner", help="Filter saved searches to this owner (default: all owners).")
-    bulk.add_argument("--tags", nargs="*", help="Only target saved searches containing these tags (any match).")
-    bulk.add_argument("--search-id", nargs="*", help="Explicit saved search IDs to update (skips owner/tag filters).")
+    bulk.add_argument(
+        "--tags",
+        nargs="*",
+        help="Only target saved searches containing these tags (any match).",
+    )
+    bulk.add_argument(
+        "--search-id",
+        nargs="*",
+        help="Explicit saved search IDs to update (skips owner/tag filters).",
+    )
     bulk.add_argument("--add", nargs="+", help="Tags to add to each matched saved search.")
     bulk.add_argument("--remove", nargs="+", help="Tags to remove from each matched saved search.")
     bulk.add_argument(
@@ -333,8 +358,17 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="+",
         help="Replace the existing tag set with this list (overrides --add/--remove).",
     )
-    bulk.add_argument("--limit", type=int, default=200, help="Max saved searches to inspect when filtering.")
-    bulk.add_argument("--dry-run", action="store_true", help="Preview the changes without persisting them.")
+    bulk.add_argument(
+        "--limit",
+        type=int,
+        default=200,
+        help="Max saved searches to inspect when filtering.",
+    )
+    bulk.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview the changes without persisting them.",
+    )
     bulk.set_defaults(func=bulk_update_saved_search_tags)
 
     export_tags = sub.add_parser("export-tag-presets", help="Export tag presets derived from saved searches.")
@@ -360,4 +394,3 @@ __all__ = [
     "main",
     "run_query",
 ]
-

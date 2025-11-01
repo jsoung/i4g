@@ -14,11 +14,10 @@ from typing import Any, Dict, List, Optional, Sequence
 from uuid import uuid4
 
 from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_ollama import OllamaEmbeddings
 
 from i4g.store.schema import ScamRecord
-
 
 DEFAULT_VECTOR_DIR = "data/chroma_store"
 DEFAULT_FAISS_DIR = "data/faiss_store"
@@ -54,7 +53,12 @@ class _ChromaBackend:
             persist_directory=persist_dir,
         )
 
-    def add_texts(self, texts: Sequence[str], metadatas: Sequence[Dict[str, Any]], ids: Sequence[str]) -> List[str]:
+    def add_texts(
+        self,
+        texts: Sequence[str],
+        metadatas: Sequence[Dict[str, Any]],
+        ids: Sequence[str],
+    ) -> List[str]:
         self.store.add_texts(texts=texts, metadatas=metadatas, ids=ids)
         self.persist()
         return list(ids)
@@ -104,7 +108,12 @@ class _FaissBackend:
                 allow_dangerous_deserialization=True,
             )
 
-    def add_texts(self, texts: Sequence[str], metadatas: Sequence[Dict[str, Any]], ids: Sequence[str]) -> List[str]:
+    def add_texts(
+        self,
+        texts: Sequence[str],
+        metadatas: Sequence[Dict[str, Any]],
+        ids: Sequence[str],
+    ) -> List[str]:
         if not texts:
             return []
         if self.store is None:

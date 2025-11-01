@@ -44,6 +44,7 @@ def update_task_status(task_id: str, payload: Dict[str, str]):
     TASK_STATUS[task_id] = payload
     return {"task_id": task_id, "updated": True}
 
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -94,11 +95,13 @@ async def rate_limit_middleware(request: Request, call_next):
     response = await call_next(request)
     return response
 
+
 # ----------------------------------------
 # Simple Queue Lock for Report Generation
 # ----------------------------------------
 
 report_lock = Lock()
+
 
 @app.post("/reports/generate")
 def generate_report_trigger():
@@ -113,9 +116,15 @@ def generate_report_trigger():
 
     def _run_report():
         try:
-            TASK_STATUS[task_id] = {"status": "in_progress", "message": "Generating report..."}
+            TASK_STATUS[task_id] = {
+                "status": "in_progress",
+                "message": "Generating report...",
+            }
             time.sleep(5)  # Simulate work
-            TASK_STATUS[task_id] = {"status": "done", "message": "Report generated successfully."}
+            TASK_STATUS[task_id] = {
+                "status": "done",
+                "message": "Report generated successfully.",
+            }
         finally:
             report_lock.release()  # Release lock when thread is done
 
@@ -123,6 +132,7 @@ def generate_report_trigger():
     thread.start()
 
     return {"status": "started", "task_id": task_id}
+
 
 # Expose REQUEST_LOG for testing purposes
 __all__ = ["app", "REQUEST_LOG"]

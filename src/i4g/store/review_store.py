@@ -140,14 +140,10 @@ class ReviewStore:
     def get_review(self, review_id: str) -> Optional[Dict[str, Any]]:
         """Return a single review entry by ID."""
         with self._connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM review_queue WHERE review_id = ?", (review_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM review_queue WHERE review_id = ?", (review_id,)).fetchone()
         return dict(row) if row else None
 
-    def update_status(
-        self, review_id: str, status: str, notes: Optional[str] = None
-    ) -> None:
+    def update_status(self, review_id: str, status: str, notes: Optional[str] = None) -> None:
         """Update the status (accepted/rejected/etc.) and optional notes."""
         now = datetime.now(timezone.utc).isoformat()
         with self._connect() as conn:
@@ -276,7 +272,15 @@ class ReviewStore:
                     favorite = excluded.favorite,
                     tags = excluded.tags
                 """,
-                (search_id, name, owner, payload, now, 1 if favorite else 0, json.dumps(tags or [])),
+                (
+                    search_id,
+                    name,
+                    owner,
+                    payload,
+                    now,
+                    1 if favorite else 0,
+                    json.dumps(tags or []),
+                ),
             )
             # Enforce unique name per owner/shared scope
             dup = conn.execute(
@@ -293,6 +297,7 @@ class ReviewStore:
                 dup_owner = dup[1] if isinstance(dup, tuple) else dup["owner"]
                 raise ValueError(f"duplicate_saved_search:{dup_owner or ''}")
         return search_id
+
     def clone_saved_search(self, search_id: str, target_owner: Optional[str]) -> str:
         record = self.get_saved_search(search_id)
         if not record:
@@ -471,11 +476,13 @@ class ReviewStore:
                 tag_list = json.loads(tags) if tags else []
             except Exception:
                 tag_list = []
-            presets.append({
-                "search_id": row["search_id"] if isinstance(row, dict) else row[0],
-                "owner": row["owner"] if isinstance(row, dict) else row[1],
-                "tags": tag_list,
-            })
+            presets.append(
+                {
+                    "search_id": row["search_id"] if isinstance(row, dict) else row[0],
+                    "owner": row["owner"] if isinstance(row, dict) else row[1],
+                    "tags": tag_list,
+                }
+            )
         return presets
 
     def bulk_update_tags(

@@ -7,12 +7,14 @@ These tests verify:
 - Embedding and Chroma components are mocked to avoid heavy dependencies.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
+from i4g.store.ingest import IngestPipeline
 from i4g.store.schema import ScamRecord
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
-from i4g.store.ingest import IngestPipeline
 
 
 @pytest.fixture
@@ -32,7 +34,13 @@ def mock_chroma(monkeypatch):
     store_instance = MockChroma.return_value
     store_instance.add_texts.return_value = ["mock-id"]
     store_instance.similarity_search_with_score.return_value = [
-        (MagicMock(page_content="Fake doc", metadata={"case_id": "mock-id", "confidence": 0.9}), 0.05)
+        (
+            MagicMock(
+                page_content="Fake doc",
+                metadata={"case_id": "mock-id", "confidence": 0.9},
+            ),
+            0.05,
+        )
     ]
     monkeypatch.setattr("i4g.store.vector.Chroma", MockChroma)
     return store_instance
@@ -68,7 +76,10 @@ def test_add_and_query_vectors(tmp_path, mock_embeddings, mock_chroma):
     rec = ScamRecord(
         case_id="mock-id",
         text="TrustWallet verification fee",
-        entities={"organizations": ["TrustWallet"], "scam_indicators": ["verification fee"]},
+        entities={
+            "organizations": ["TrustWallet"],
+            "scam_indicators": ["verification fee"],
+        },
         classification="crypto_investment",
         confidence=0.9,
     )
@@ -92,7 +103,11 @@ def test_delete_record(mock_embeddings, mock_chroma, tmp_path):
 
 def test_faiss_backend_add_and_query(tmp_path, mock_embeddings, mock_faiss):
     """FAISS backend should initialize via from_texts and allow querying."""
-    store = VectorStore(persist_dir=str(tmp_path / "faiss"), embedding_model="fake-model", backend="faiss")
+    store = VectorStore(
+        persist_dir=str(tmp_path / "faiss"),
+        embedding_model="fake-model",
+        backend="faiss",
+    )
 
     ids = store.add_texts(["doc content"], metadatas=[{"source": "sample"}], ids=["case-1"])
     assert ids == ["case-1"]

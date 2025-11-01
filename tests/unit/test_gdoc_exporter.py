@@ -1,9 +1,11 @@
 """Unit tests for i4g.reports.gdoc_exporter."""
 
 import os
+
 from docx import Document
 
 from i4g.reports import gdoc_exporter
+
 
 def test_export_report_creates_docx_file(tmp_path):
     """Ensure the export_report function creates a valid .docx file."""

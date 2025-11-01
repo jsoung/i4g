@@ -9,12 +9,15 @@ or run directly:
 """
 
 import time
+
 import requests
-from i4g.extraction.semantic_ner import build_llm, extract_semantic_entities
+
 from i4g.classification.classifier import classify
+from i4g.extraction.semantic_ner import build_llm, extract_semantic_entities
 from i4g.store.review_store import ReviewStore
 
 API_URL = "http://localhost:8000"
+
 
 def main():
     print("=== STEP 1: OCR extraction ===")
@@ -51,6 +54,7 @@ def main():
     print("\n=== STEP 7: Verify review record ===")
     case = store.get_review(review_id)
     print("Stored review:", case)
+
 
 if __name__ == "__main__":
     main()

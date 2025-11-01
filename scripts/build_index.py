@@ -26,10 +26,19 @@ def build_ids(sources: List[str]) -> List[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a local vector index from OCR output.")
     parser.add_argument("--input", default="data/ocr_output.json", help="Path to OCR results JSON.")
-    parser.add_argument("--backend", choices=["chroma", "faiss"], default="faiss", help="Vector backend to use.")
+    parser.add_argument(
+        "--backend",
+        choices=["chroma", "faiss"],
+        default="faiss",
+        help="Vector backend to use.",
+    )
     parser.add_argument("--persist-dir", default=None, help="Override persistence directory (optional).")
     parser.add_argument("--model", default="nomic-embed-text", help="Embedding model name.")
-    parser.add_argument("--reset", action="store_true", help="Remove any existing index before building.")
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Remove any existing index before building.",
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input)

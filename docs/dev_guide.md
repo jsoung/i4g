@@ -84,6 +84,11 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
 pip install -e .
+pip install pre-commit
+
+# Optional: install the shared pre-commit hook for formatting + unit tests
+ln -sf ../../scripts/git-hooks/pre-commit .git/hooks/pre-commit
+pre-commit run --all-files  # prime caches on first install
 ```
 
 To test your setup:
@@ -232,6 +237,11 @@ Generated `.docx` files are written to `data/reports/` whether you trigger them 
 - **Run unit tests:** `pytest -v`
 - **Format source:** `black src tests`
 - **Snapshot context:** `bash tests/adhoc/generate_context_snapshot.sh --help`
+- **Install git hook:** `ln -sf ../../scripts/git-hooks/pre-commit .git/hooks/pre-commit`
+- **First hook run:** `pre-commit run --all-files`
+
+> ⚠️ Run commits from an activated `i4g` environment (or set `CONDA_PREFIX`/`VIRTUAL_ENV`) so the hook uses the correct Python when executing unit tests.
+> Formatter line length is set to 120 characters to match team editor settings.
 
 **Saved Search Admin (`i4g-admin`)**
 

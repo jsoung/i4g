@@ -1,8 +1,9 @@
 """Manual demo: Render an FBI-style scam report using template + dummy data."""
 
 import datetime
-from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
+
+from jinja2 import Environment, FileSystemLoader
 
 
 def render_report(template_name: str, data: dict, output_path: Path):

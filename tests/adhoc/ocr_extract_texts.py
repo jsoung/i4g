@@ -6,12 +6,14 @@ Run Tesseract OCR on all PNG chat screenshots in ./data/chat_screens/
 and save recognized text to JSONL for RAGFlow ingestion.
 """
 
-from PIL import Image
-import pytesseract
-from pathlib import Path
 import json
 import uuid
 from datetime import datetime
+from pathlib import Path
+
+import pytesseract
+from PIL import Image
+
 
 def ocr_image_to_doc(image_path):
     text = pytesseract.image_to_string(Image.open(image_path))
@@ -25,6 +27,7 @@ def ocr_image_to_doc(image_path):
         },
     }
 
+
 def main():
     img_dir = Path("data/chat_screens")
     output = Path("outputs/ocr_output.jsonl")
@@ -36,6 +39,7 @@ def main():
             f.write(json.dumps(doc, ensure_ascii=False) + "\n")
 
     print(f"✅ OCR complete: {len(docs)} images processed → {output}")
+
 
 if __name__ == "__main__":
     main()

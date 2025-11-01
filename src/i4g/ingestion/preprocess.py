@@ -3,7 +3,7 @@ Preprocessing and text chunking utilities.
 """
 
 import re
-from typing import List, Dict
+from typing import Dict, List
 
 
 def clean_text(text: str) -> str:
@@ -17,10 +17,7 @@ def clean_text(text: str) -> str:
 def chunk_text(text: str, chunk_size: int = 500) -> List[str]:
     """Split text into chunks for embedding."""
     words = text.split()
-    return [
-        " ".join(words[i:i + chunk_size])
-        for i in range(0, len(words), chunk_size)
-    ]
+    return [" ".join(words[i : i + chunk_size]) for i in range(0, len(words), chunk_size)]
 
 
 def prepare_documents(ocr_results: List[Dict[str, str]]) -> List[Dict[str, str]]:

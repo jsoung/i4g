@@ -6,12 +6,11 @@ API behavior without touching the filesystem.
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
-import pytest
-
 from i4g.api.app import app
-from i4g.api.review import get_store, get_retriever
+from i4g.api.review import get_retriever, get_store
 
 client = TestClient(app)
 
@@ -29,7 +28,11 @@ def make_mock_store():
     ms = MagicMock()
     ms.enqueue_case.return_value = "rev-1"
     ms.get_queue.return_value = [{"review_id": "rev-1", "case_id": "CASE-A", "status": "queued"}]
-    ms.get_review.return_value = {"review_id": "rev-1", "case_id": "CASE-A", "status": "queued"}
+    ms.get_review.return_value = {
+        "review_id": "rev-1",
+        "case_id": "CASE-A",
+        "status": "queued",
+    }
     ms.update_status.return_value = None
     ms.log_action.return_value = "action-1"
     ms.get_actions.return_value = [{"action_id": "action-1", "actor": "analyst"}]
@@ -64,7 +67,7 @@ def test_enqueue_and_list_queue():
     assert r2.status_code == 200
     data = r2.json()
     assert data["count"] == 1
-    
+
     app.dependency_overrides = {}
 
 
@@ -85,7 +88,7 @@ def test_claim_and_decision_and_actions():
     r3 = client.get("/reviews/rev-1/actions", headers=headers)
     assert r3.status_code == 200
     assert len(r3.json()["actions"]) == 1
-    
+
     app.dependency_overrides = {}
 
 
@@ -181,21 +184,39 @@ def test_saved_search_crud():
     app.dependency_overrides[get_store] = lambda: mock_store
 
     headers = {"X-API-KEY": "dev-analyst-token"}
-    payload = {"name": "Wallet scam", "params": {"text": "wallet", "classification": "crypto"}, "tags": ["wallet", "urgent"]}
+    payload = {
+        "name": "Wallet scam",
+        "params": {"text": "wallet", "classification": "crypto"},
+        "tags": ["wallet", "urgent"],
+    }
     mock_store.upsert_saved_search.return_value = "saved:123"
     r = client.post("/reviews/search/saved", json=payload, headers=headers)
     assert r.status_code == 200
     mock_store.upsert_saved_search.assert_called_once_with(
-        payload["name"], payload["params"], owner="analyst_1", search_id=None, favorite=False, tags=payload["tags"]
+        payload["name"],
+        payload["params"],
+        owner="analyst_1",
+        search_id=None,
+        favorite=False,
+        tags=payload["tags"],
     )
 
     r_json = r.json()
     assert "search_id" in r_json
 
     mock_store.list_saved_searches.return_value = [
-        {"search_id": "saved:123", "name": "Wallet scam", "params": payload["params"], "owner": "analyst_1"}
+        {
+            "search_id": "saved:123",
+            "name": "Wallet scam",
+            "params": payload["params"],
+            "owner": "analyst_1",
+        }
     ]
-    r2 = client.get("/reviews/search/saved", params={"limit": 10, "owner_only": True}, headers=headers)
+    r2 = client.get(
+        "/reviews/search/saved",
+        params={"limit": 10, "owner_only": True},
+        headers=headers,
+    )
     assert r2.status_code == 200
     body = r2.json()
     assert body["count"] == 1
@@ -279,7 +300,11 @@ def test_tag_presets_endpoint():
     app.dependency_overrides[get_store] = lambda: mock_store
 
     headers = {"X-API-KEY": "dev-analyst-token"}
-    r = client.get("/reviews/search/tag-presets", params={"limit": 10, "owner_only": True}, headers=headers)
+    r = client.get(
+        "/reviews/search/tag-presets",
+        params={"limit": 10, "owner_only": True},
+        headers=headers,
+    )
     assert r.status_code == 200
     body = r.json()
     assert body["count"] == 1
@@ -361,5 +386,5 @@ def test_decision_triggers_background_report(mock_generate_report):
     # BackgroundTasks runs synchronously in TestClient, so the patched function should have been called
     assert mock_generate_report.called
     mock_generate_report.assert_called_with("rev-1", mock_store)
-    
+
     app.dependency_overrides = {}

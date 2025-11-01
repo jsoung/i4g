@@ -40,15 +40,18 @@ def generate_report_for_case(
 
     try:
         generator = ReportGenerator()
-        report_result = generator.generate_report(
-            case_id=case.get("case_id")
-        )
+        report_result = generator.generate_report(case_id=case.get("case_id"))
 
         report_path = report_result.get("report_path")
         if not report_path:
             raise Exception("Report generated but no local path returned.")
 
-        store.log_action(review_id, actor="worker", action="report_generated", payload={"report_path": report_path})
+        store.log_action(
+            review_id,
+            actor="worker",
+            action="report_generated",
+            payload={"report_path": report_path},
+        )
         logger.info("Generated and exported report for %s → %s", review_id, report_path)
         return report_path
     except Exception as exc:

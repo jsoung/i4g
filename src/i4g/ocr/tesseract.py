@@ -2,10 +2,11 @@
 OCR module using Tesseract for text extraction from screenshots or PDFs.
 """
 
-import pytesseract
-from PIL import Image, ImageOps
 from pathlib import Path
 from typing import Dict, List
+
+import pytesseract
+from PIL import Image, ImageOps
 from tqdm import tqdm
 
 
@@ -19,7 +20,7 @@ def extract_text(image_path: str) -> str:
     """
     img = Image.open(image_path)
     img = ImageOps.exif_transpose(img)  # auto-rotate if needed
-    img = img.convert("L")              # grayscale
+    img = img.convert("L")  # grayscale
     return pytesseract.image_to_string(img, lang="eng")
 
 

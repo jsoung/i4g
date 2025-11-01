@@ -1,12 +1,16 @@
-from i4g.store.structured import StructuredStore
 from i4g.store.schema import ScamRecord
+from i4g.store.structured import StructuredStore
 
 store = StructuredStore("data/test_i4g.db")
 
 record = ScamRecord(
     case_id="case-123",
     text="Hi I'm Anna from TrustWallet. Send 50 USDT to 0xAbC...",
-    entities={"people": ["Anna"], "wallet_addresses": ["0xAbC..."], "scam_indicators": ["verification fee"]},
+    entities={
+        "people": ["Anna"],
+        "wallet_addresses": ["0xAbC..."],
+        "scam_indicators": ["verification fee"],
+    },
     classification="crypto_investment",
     confidence=0.87,
 )

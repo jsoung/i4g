@@ -6,9 +6,9 @@ Usage:
 """
 
 import streamlit as st
+
 from i4g.store.review_store import ReviewStore
 from i4g.worker.tasks import generate_report_for_case
-
 
 st.set_page_config(page_title="i4g Analyst Dashboard", layout="wide")
 
@@ -19,6 +19,7 @@ def rerun_dashboard() -> None:
         st.rerun()
     else:
         st.experimental_rerun()
+
 
 # Initialize or reuse local store
 store = ReviewStore()

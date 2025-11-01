@@ -14,18 +14,29 @@ Assumptions:
   - All components are using open-source/free models by default.
 """
 
-from i4g.extraction.semantic_ner import build_llm, extract_semantic_entities
-from i4g.classification.classifier import classify
 import argparse
 import json
 import pprint
+
+from i4g.classification.classifier import classify
+from i4g.extraction.semantic_ner import build_llm, extract_semantic_entities
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run fraud classification pipeline on input text")
     parser.add_argument("text", type=str, help="Text input to analyze")
-    parser.add_argument("--model", type=str, default="llama3.1", help="Model name for LLM (default: llama3.1)")
-    parser.add_argument("--base_url", type=str, default=None, help="Base URL for Ollama API if not local")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="llama3.1",
+        help="Model name for LLM (default: llama3.1)",
+    )
+    parser.add_argument(
+        "--base_url",
+        type=str,
+        default=None,
+        help="Base URL for Ollama API if not local",
+    )
     args = parser.parse_args()
 
     print("\n=== i4g Fraud Classification CLI ===\n")

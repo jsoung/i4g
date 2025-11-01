@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
+
 from langchain_core.runnables import Runnable
+
 from i4g.rag.pipeline import build_scam_detection_chain
 
 

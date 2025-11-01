@@ -1,7 +1,8 @@
 """Simple token-based auth helpers for i4g API (MVP)."""
 
-from fastapi import Depends, HTTPException, Header, status
-from typing import Optional, Callable
+from typing import Callable, Optional
+
+from fastapi import Depends, Header, HTTPException, status
 
 # Minimal token -> user mapping for prototype.
 # In production, use a proper identity provider.

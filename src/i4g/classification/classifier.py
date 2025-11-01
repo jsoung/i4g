@@ -15,9 +15,9 @@ The heuristics are intentionally simple and explainable; they are intended
 to be a starting point for ML improvements in later phases.
 """
 
-from typing import Dict, Any, List, Tuple
-import statistics
 import re
+import statistics
+from typing import Any, Dict, List, Tuple
 
 # Thresholds and constants (tuneable)
 BASE_CONFIDENCE_FLOOR = 0.05
@@ -29,21 +29,51 @@ CAP_CONFIDENCE = 0.99
 # --- Heuristic Keyword Definitions ---
 HEURISTICS = {
     "romance": {
-        "relationship": ["love", "dear", "miss you", "i love you", "relationship", "meet soon"],
-        "money": ["send", "transfer", "pay", "wire", "bitcoin", "btc", "usdt", "wallet", "$"],
+        "relationship": [
+            "love",
+            "dear",
+            "miss you",
+            "i love you",
+            "relationship",
+            "meet soon",
+        ],
+        "money": [
+            "send",
+            "transfer",
+            "pay",
+            "wire",
+            "bitcoin",
+            "btc",
+            "usdt",
+            "wallet",
+            "$",
+        ],
     },
     "investment": {
-        "keywords": ["investment", "guarantee", "double profit", "high return", "investment club", "investment guarantee"],
+        "keywords": [
+            "investment",
+            "guarantee",
+            "double profit",
+            "high return",
+            "investment club",
+            "investment guarantee",
+        ],
     },
     "phishing": {
-        "keywords": ["verify account", "suspend", "login", "password", "account suspended", "click here"],
+        "keywords": [
+            "verify account",
+            "suspend",
+            "login",
+            "password",
+            "account suspended",
+            "click here",
+        ],
         "url_patterns": [r"(https?://|t\.me/|wa\.me/|@[\w_]+)"],
-    }
+    },
 }
 
 # Pre-compile regex for performance
 HEURISTICS["phishing"]["url_regex"] = [re.compile(p) for p in HEURISTICS["phishing"]["url_patterns"]]
-
 
 
 def _ensure_scored_format(entities: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:

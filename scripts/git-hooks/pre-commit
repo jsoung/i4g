@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PYTHON_BIN=""
+if [[ -n "${CONDA_PREFIX:-}" && -x "${CONDA_PREFIX}/bin/python" ]]; then
+  PYTHON_BIN="${CONDA_PREFIX}/bin/python"
+elif [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
+  PYTHON_BIN="${VIRTUAL_ENV}/bin/python"
+else
+  PYTHON_BIN="$(command -v python)" || {
+    echo "[pre-commit] python interpreter not found." >&2
+    exit 1
+  }
+fi
+
+# Run formatting/lint hooks via pre-commit (if available)
+if "${PYTHON_BIN}" -m pre_commit --version >/dev/null 2>&1; then
+  "${PYTHON_BIN}" -m pre_commit run --hook-stage commit
+else
+  echo "[pre-commit] pre-commit module not installed in ${PYTHON_BIN}; skipping formatters." >&2
+fi
+
+# Run fast unit test suite
+echo "[pre-commit] running unit tests via ${PYTHON_BIN}..."
+"${PYTHON_BIN}" -m pytest tests/unit

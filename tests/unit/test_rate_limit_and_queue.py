@@ -29,7 +29,11 @@ async def test_rate_limiting_direct_call():
     MAX_REQUESTS = 10
     TEST_IP = "127.0.0.1"
 
-    scope = {"type": "http", "client": ("testclient", 123), "headers": [(b"x-forwarded-for", TEST_IP.encode())]}
+    scope = {
+        "type": "http",
+        "client": ("testclient", 123),
+        "headers": [(b"x-forwarded-for", TEST_IP.encode())],
+    }
     request = Request(scope)
 
     with patch("time.time") as mock_time:
@@ -56,7 +60,7 @@ async def test_rate_limiting_direct_call():
 def test_report_generation_lock():
     """Test the report generation lock behavior."""
     from i4g.api.app import report_lock
-    
+
     # Ensure the lock is released before starting the test
     while report_lock.locked():
         try:
@@ -66,9 +70,9 @@ def test_report_generation_lock():
 
     # Save original sleep function to avoid recursion
     original_sleep = time.sleep
-    
+
     # Mock time.sleep with a shorter delay to make the test fast
-    with patch('i4g.api.app.time.sleep', side_effect=lambda x: original_sleep(0.1)):
+    with patch("i4g.api.app.time.sleep", side_effect=lambda x: original_sleep(0.1)):
         # First request should succeed
         response1 = client.post("/reports/generate")
         assert response1.status_code == 200
@@ -83,7 +87,7 @@ def test_report_generation_lock():
     time.sleep(0.3)
 
     # Now a new request should succeed
-    with patch('i4g.api.app.time.sleep', side_effect=lambda x: original_sleep(0.1)):
+    with patch("i4g.api.app.time.sleep", side_effect=lambda x: original_sleep(0.1)):
         response2 = client.post("/reports/generate")
         assert response2.status_code == 200
         assert response2.json()["status"] == "started"
