@@ -8,12 +8,16 @@ This directory contains a collection of ad-hoc scripts for quick testing, demons
 -   **Description:** Demonstrates the analyst dashboard functionality, showcasing how data is visualized and interacted with in the `i4g` project.
 -   **Usage:** `python tests/adhoc/analyst_dashboard_demo.py`
 
+### `synthesize_review_cases.py`
+-   **Description:** Seeds the `ReviewStore` with synthetic queue entries so the analyst dashboard has cases to triage.
+-   **Usage:** `python tests/adhoc/synthesize_review_cases.py --reset --queued 5 --in-review 2 --accepted 1 --rejected 1`
+
 ### `manual_ingest_demo.py`
 -   **Description:** A manual, end-to-end smoke test for the full ingestion and retrieval pipeline. It initializes the stores, ingests two sample scam cases, and then performs a similarity query to verify the results.
 -   **Usage:** `python tests/adhoc/manual_ingest_demo.py`
 
 ### `manual_report_demo.py`
--   **Description:** A manual test for generating reports based on predefined data. It verifies the report generation logic without exporting.
+-   **Description:** A manual test for generating reports based on predefined data. It verifies the report generation logic without exporting and writes the markdown draft to `data/reports/`.
 -   **Usage:** `python tests/adhoc/manual_report_demo.py`
 
 ### `manual_report_export_demo.py`
@@ -27,6 +31,10 @@ This directory contains a collection of ad-hoc scripts for quick testing, demons
 ### `manual_task_demo.py`
 -   **Description:** Demonstrates the manual execution of tasks in the pipeline, useful for debugging and verifying individual components.
 -   **Usage:** `python tests/adhoc/manual_task_demo.py`
+
+### `generate_context_snapshot.sh`
+-   **Description:** Bash helper that zips a lightweight repository snapshot (tree, top modules, metadata) into `/tmp`, handy when sharing context with collaborators.
+-   **Usage:** `bash tests/adhoc/generate_context_snapshot.sh`
 
 ## Core Component Tests
 
@@ -47,7 +55,7 @@ This directory contains a collection of ad-hoc scripts for quick testing, demons
 -   **Usage:** `python tests/adhoc/hf_embedding.py`
 
 ### `ocr_extract_texts.py`
--   **Description:** Runs Tesseract OCR on all PNG images in the `./chat_screens/` directory and saves the recognized text to `outputs/ocr_output.jsonl`.
+-   **Description:** Runs Tesseract OCR on all PNG images in the `./data/chat_screens/` directory and saves the recognized text to `outputs/ocr_output.jsonl`.
 -   **Usage:** `python tests/adhoc/ocr_extract_texts.py`
 
 ### `paddle_vs_tesseract.py`
@@ -75,5 +83,5 @@ This directory contains a collection of ad-hoc scripts for quick testing, demons
 -   **Usage:** `python tests/adhoc/test_store_vector.py`
 
 ### `synthesize_chat_screenshots.py`
--   **Description:** Generates synthetic chat screenshot PNG images from a JSONL file containing text messages. This is useful for creating visual training data for OCR.
+-   **Description:** Generates synthetic chat screenshot PNG images from a JSONL file containing text messages. Output files are written to `data/chat_screens/`, which you can feed into the OCR demos.
 -   **Usage:** `python tests/adhoc/synthesize_chat_screenshots.py --input <path_to_jsonl> --limit 20`

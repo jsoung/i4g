@@ -32,7 +32,6 @@ attrs==25.4.0
     #   jsonschema
     #   outcome
     #   referencing
-    #   streamlit
     #   trio
 backoff==2.2.1
     # via posthog
@@ -71,7 +70,6 @@ click==8.3.0
     #   pip-tools
     #   streamlit
     #   typer
-    #   typer-slim
     #   uvicorn
 coloredlogs==15.0.1
     # via onnxruntime
@@ -168,16 +166,16 @@ httpx==0.28.1
     # via
     #   chromadb
     #   datasets
-    #   huggingface-hub
     #   langgraph-sdk
     #   langsmith
     #   ollama
     #   openai
 httpx-sse==0.4.3
     # via langchain-community
-huggingface-hub==1.0.0
+huggingface-hub==0.36.0
     # via
     #   datasets
+    #   i4g (pyproject.toml)
     #   paddlex
     #   tokenizers
 humanfriendly==10.0
@@ -192,9 +190,7 @@ idna==3.11
 imagesize==1.4.1
     # via paddlex
 importlib-metadata==8.7.0
-    # via
-    #   opentelemetry-api
-    #   streamlit
+    # via opentelemetry-api
 importlib-resources==6.5.2
     # via chromadb
 iniconfig==2.3.0
@@ -420,7 +416,7 @@ psutil==7.1.2
     # via aistudio-sdk
 py-cpuinfo==9.0.0
     # via paddlex
-pyarrow==22.0.0
+pyarrow==21.0.0
     # via
     #   datasets
     #   streamlit
@@ -458,8 +454,6 @@ pygments==2.19.2
     # via
     #   pytest
     #   rich
-pympler==1.1
-    # via streamlit
 pyparsing==3.2.5
     # via httplib2
 pypdfium2==5.0.0
@@ -488,7 +482,6 @@ python-dateutil==2.9.0.post0
     #   kubernetes
     #   pandas
     #   posthog
-    #   streamlit
 python-docx==1.2.0
     # via i4g (pyproject.toml)
 python-dotenv==1.2.1
@@ -523,6 +516,7 @@ requests==2.32.5
     #   aistudio-sdk
     #   datasets
     #   google-api-core
+    #   huggingface-hub
     #   i4g (pyproject.toml)
     #   kubernetes
     #   langchain-classic
@@ -564,16 +558,12 @@ scikit-learn==1.7.2
     # via paddlex
 scipy==1.16.2
     # via scikit-learn
-semver==3.0.4
-    # via streamlit
 sentencepiece==0.2.1
     # via paddlex
 shapely==2.1.2
     # via paddlex
 shellingham==1.5.4
-    # via
-    #   huggingface-hub
-    #   typer
+    # via typer
 six==1.17.0
     # via
     #   bce-python-sdk
@@ -595,7 +585,7 @@ sqlalchemy==2.0.44
     # via
     #   langchain-classic
     #   langchain-community
-streamlit==1.8.0
+streamlit==1.51.0
     # via i4g (pyproject.toml)
 sympy==1.14.0
     # via onnxruntime
@@ -604,6 +594,7 @@ tenacity==9.1.2
     #   chromadb
     #   langchain-community
     #   langchain-core
+    #   streamlit
 threadpoolctl==3.6.0
     # via scikit-learn
 tiktoken==0.12.0
@@ -631,8 +622,6 @@ trio==0.31.0
     # via i4g (pyproject.toml)
 typer==0.20.0
     # via chromadb
-typer-slim==0.20.0
-    # via huggingface-hub
 typing-extensions==4.15.0
     # via
     #   aiosignal
@@ -655,8 +644,8 @@ typing-extensions==4.15.0
     #   python-docx
     #   referencing
     #   sqlalchemy
+    #   streamlit
     #   typer
-    #   typer-slim
     #   typing-inspect
     #   typing-inspection
 typing-inspect==0.9.0
@@ -667,8 +656,6 @@ typing-inspection==0.4.2
     #   pydantic-settings
 tzdata==2025.2
     # via pandas
-tzlocal==5.3.1
-    # via streamlit
 ujson==5.11.0
     # via paddlex
 uritemplate==4.2.0
@@ -682,8 +669,6 @@ uvicorn[standard]==0.38.0
     # via chromadb
 uvloop==0.22.1
     # via uvicorn
-validators==0.35.0
-    # via streamlit
 watchfiles==1.1.1
     # via uvicorn
 wcwidth==0.2.14

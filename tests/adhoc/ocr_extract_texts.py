@@ -2,7 +2,7 @@
 """
 ocr_extract_texts.py
 --------------------
-Run Tesseract OCR on all PNG chat screenshots in ./chat_screens/
+Run Tesseract OCR on all PNG chat screenshots in ./data/chat_screens/
 and save recognized text to JSONL for RAGFlow ingestion.
 """
 
@@ -26,7 +26,7 @@ def ocr_image_to_doc(image_path):
     }
 
 def main():
-    img_dir = Path("chat_screens")
+    img_dir = Path("data/chat_screens")
     output = Path("outputs/ocr_output.jsonl")
     images = sorted(img_dir.glob("*.png"))
     docs = [ocr_image_to_doc(img) for img in images]

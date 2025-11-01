@@ -37,12 +37,18 @@ i4g/
 │   ├── review/             # FastAPI review service
 │   ├── worker/             # Background tasks (report gen)
 │   └── ...
+├── data/                   # Runtime artifacts (bundles, chat_screens, reports, SQLite)
 ├── tests/
 │   ├── unit/
 │   └── adhoc/
 ├── templates/              # Jinja2 report templates
-└── scripts/                # CLI & dev utilities
+└── scripts/                # Production/admin CLI utilities
 ```
+
+**Operational vs. Developer Utilities**
+
+- `scripts/`: automation you can run in production or staging (OCR pipeline, semantic extraction, index rebuilds).
+- `tests/adhoc/`: developer-only demos, diagnostics, data synthesizers, and lightweight utilities (including context snapshots).
 
 ---
 
@@ -91,13 +97,66 @@ pytest -q
 
 There are also targeted demos under `tests/adhoc/` if you want to exercise a single feature (OCR, extraction, reporting, etc.); check the README in that folder for usage details.
 
+## Restoring Sample Data & Artifacts
+
+If you cleaned out the `data/` directory (or are onboarding to a fresh clone), run these helper scripts before jumping into the demos so you have realistic fixtures to work with.
+
+1. **Download + Normalize Scam Text Bundles**
+
+    ```bash
+    python tests/adhoc/build_scam_bundle.py --outdir data/bundles --chunk_chars 800
+    ```
+
+    This pulls public-domain scam/phishing corpora via Hugging Face, masks obvious PII, and writes JSONL bundles such as `data/bundles/ucirvine_sms.jsonl` and `data/bundles/bundle_all.jsonl`.
+
+2. **Synthesize Chat Screenshots for OCR Demos**
+
+    ```bash
+    python tests/adhoc/synthesize_chat_screenshots.py --input data/bundles/ucirvine_sms.jsonl --limit 20
+    ```
+
+    Generated PNGs land in `data/chat_screens/`. That folder is the expected input directory for the OCR script, so you can immediately run:
+
+    ```bash
+    python scripts/run_ocr.py --input data/chat_screens
+    ```
+
+3. **Reprime SQLite / Vector Stores (optional)**
+
+    ```bash
+    python tests/adhoc/manual_ingest_demo.py
+    ```
+
+    This seeds `data/manual_demo/` with a structured SQLite DB and a Chroma vector index using two representative scam cases. Rerun as needed whenever you want a clean slate for ingestion demos.
+
+4. **Seed Analyst Review Queue**
+
+    ```bash
+    python tests/adhoc/synthesize_review_cases.py --reset --queued 5 --in-review 2 --accepted 1 --rejected 1
+    ```
+
+    Populates `data/i4g_store.db` with synthetic review items so the Streamlit dashboard has cases ready to demonstrate claim/accept/reject flows.
+
+Once these assets exist, the downstream scripts referenced below will find usable inputs without manual data hunting.
+
+### Hugging Face API Tokens
+
+Some ad-hoc scripts (for example `tests/adhoc/hf_embedding.py`) call the Hugging Face Inference API. Create a personal access token at <https://huggingface.co/settings/tokens> and expose it before running those scripts:
+
+```bash
+export HF_API_TOKEN=hf_xxx    # put this in your shell profile if you use it often
+python tests/adhoc/hf_embedding.py "Sample text to embed"
+```
+
+Without the token, the API returns `401 Invalid credentials`.
+
 ### OCR + Extraction
 
 ```bash
-python scripts/run_ocr.py --input /path/to/chat_screenshots
+python scripts/run_ocr.py --input data/chat_screens
 ```
 
-Replace `/path/to/chat_screenshots` with the directory containing PNG/JPG evidence.
+That path is where the synthetic screenshots land; swap in another directory if you are running OCR on real evidence.
 
 ### Semantic NER + Classification
 
@@ -123,7 +182,7 @@ i4g-admin query --question "Is this a crypto scam?"
 Run the review backend:
 
 ```bash
-uvicorn i4g.review.api:app --reload
+uvicorn i4g.api.app:app --reload
 ```
 
 Check endpoint:
@@ -139,6 +198,7 @@ streamlit run tests/adhoc/analyst_dashboard_demo.py
 
 **Streamlit Analyst Dashboard**
 
+- **Seed data first:** `python tests/adhoc/synthesize_review_cases.py --reset --queued 5` so the queue has items to triage.
 - **Launch UI:** `streamlit run tests/adhoc/analyst_dashboard_demo.py` (full workflow for claiming, accepting, and rejecting cases).
 - **Search faster:** blend vector + structured lookups, adjust result counts, and paginate without re-running queries; hits tally shows total coverage.
 - **Saved search controls:** tag-based grouping, quick presets, CSV export, rename/share/delete, and bulk tag edits directly in the sidebar.
@@ -160,6 +220,8 @@ python tests/adhoc/manual_report_demo.py
 python tests/adhoc/manual_report_export_demo.py
 ```
 
+Generated `.docx` files are written to `data/reports/` whether you trigger them from the demos, the Streamlit dashboard, or the API.
+
 ---
 
 ## Developer Utilities
@@ -169,7 +231,7 @@ python tests/adhoc/manual_report_export_demo.py
 - **Build FAISS index:** `python scripts/build_index.py --backend faiss --reset`
 - **Run unit tests:** `pytest -v`
 - **Format source:** `black src tests`
-- **Snapshot context:** `bash scripts/generate_context_snapshot.sh --help`
+- **Snapshot context:** `bash tests/adhoc/generate_context_snapshot.sh --help`
 
 **Saved Search Admin (`i4g-admin`)**
 

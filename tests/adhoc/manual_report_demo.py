@@ -30,6 +30,6 @@ if __name__ == "__main__":
         "evidence": "Screenshot logs and wallet addresses extracted.",
     }
 
-    output_file = Path("reports/fbi_report_CASE-2025-001.md")
+    output_file = Path("data/reports/fbi_report_CASE-2025-001.md")
     output_file.parent.mkdir(parents=True, exist_ok=True)
     render_report("fbi_template.md.j2", data, output_file)

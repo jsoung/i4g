@@ -5,7 +5,7 @@ synthesize_chat_screenshots.py
 Generate synthetic chat-style screenshots (PNG) from JSONL text data.
 
 Input  : JSONL file with {"text": "..."} or {"metadata": {...}, "text": "..."}
-Output : ./chat_screens/ folder with chat_0001.png, chat_0002.png, ...
+Output : ./data/chat_screens/ folder with chat_0001.png, chat_0002.png, ...
 
 Usage:
     python tests/adhoc/synthesize_chat_screenshots.py --input data/bundles/ucirvine_sms.jsonl --limit 20
@@ -78,8 +78,8 @@ def create_chat_image(messages, out_path):
 
 
 def main(input_file, limit):
-    output_dir = Path("chat_screens")
-    output_dir.mkdir(exist_ok=True)
+    output_dir = Path("data/chat_screens")
+    output_dir.mkdir(parents=True, exist_ok=True)
     with open(input_file, "r", encoding="utf-8") as f:
         lines = [json.loads(l) for l in f.readlines() if l.strip()]
     print(f"Loaded {len(lines)} records")

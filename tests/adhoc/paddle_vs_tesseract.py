@@ -6,7 +6,7 @@ Compares the OCR output and performance of Tesseract and PaddleOCR
 for a given image file.
 
 Usage:
-    python tests/adhoc/paddle_vs_tesseract.py --image chat_screens/chat_0001.png
+    python tests/adhoc/paddle_vs_tesseract.py --image data/chat_screens/chat_0001.png
 """
 
 import argparse

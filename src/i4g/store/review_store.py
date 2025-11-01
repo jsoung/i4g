@@ -17,20 +17,26 @@ import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 
 class ReviewStore:
     """Lightweight SQLite-based review queue and audit logger."""
 
-    def __init__(self, db_path: str = "data/i4g_store.db") -> None:
+    def __init__(self, db_path: str | Path = "data/i4g_store.db") -> None:
         """
         Initialize the ReviewStore, creating tables if they do not exist.
 
         Args:
             db_path: Path to the SQLite database file.
         """
-        self.db_path = db_path
+        resolved = Path(db_path)
+        if not resolved.is_absolute():
+            project_root = Path(__file__).resolve().parents[3]
+            resolved = (project_root / resolved).resolve()
+        resolved.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = resolved
         self._init_tables()
 
     # -------------------------------------------------------------------------
@@ -38,7 +44,7 @@ class ReviewStore:
     # -------------------------------------------------------------------------
     def _connect(self) -> sqlite3.Connection:
         """Return a SQLite connection with row factory set to dict."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
         return conn
 

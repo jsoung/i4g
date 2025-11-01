@@ -77,7 +77,8 @@ class _ChromaBackend:
             return 0
 
     def persist(self) -> None:
-        self.store.persist()
+        if hasattr(self.store, "persist"):
+            self.store.persist()
 
     def as_retriever(self, search_kwargs: Optional[Dict[str, Any]] = None):
         return self.store.as_retriever(search_kwargs=search_kwargs)

@@ -25,8 +25,8 @@ def export_report(
             - "local_path": path to the saved .docx file.
             - "mode": "docx".
     """
-    reports_dir = Path("reports")
-    reports_dir.mkdir(exist_ok=True)
+    reports_dir = Path("data") / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{title.replace(' ', '_')}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
     path = reports_dir / filename
 

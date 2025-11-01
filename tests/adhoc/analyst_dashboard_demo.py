@@ -12,6 +12,14 @@ from i4g.worker.tasks import generate_report_for_case
 
 st.set_page_config(page_title="i4g Analyst Dashboard", layout="wide")
 
+
+def rerun_dashboard() -> None:
+    """Compatibility wrapper for Streamlit rerun across versions."""
+    if hasattr(st, "rerun"):
+        st.rerun()
+    else:
+        st.experimental_rerun()
+
 # Initialize or reuse local store
 store = ReviewStore()
 
@@ -48,21 +56,21 @@ for case in queue:
                 store.update_status(case["review_id"], status="in_review", notes="Claimed via dashboard")
                 store.log_action(case["review_id"], actor="dashboard", action="claimed")
                 st.toast("Case claimed for review.")
-                st.experimental_rerun()
+                rerun_dashboard()
 
         with col2:
             if st.button("✅ Accept", key=f"accept_{case['review_id']}"):
                 store.update_status(case["review_id"], status="accepted", notes="Accepted via dashboard")
                 store.log_action(case["review_id"], actor="dashboard", action="accepted")
                 st.toast("Case accepted.")
-                st.experimental_rerun()
+                rerun_dashboard()
 
         with col3:
             if st.button("❌ Reject", key=f"reject_{case['review_id']}"):
                 store.update_status(case["review_id"], status="rejected", notes="Rejected via dashboard")
                 store.log_action(case["review_id"], actor="dashboard", action="rejected")
                 st.toast("Case rejected.")
-                st.experimental_rerun()
+                rerun_dashboard()
 
         with col4:
             if st.button("📄 Generate Report", key=f"report_{case['review_id']}"):

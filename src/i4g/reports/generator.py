@@ -24,7 +24,7 @@ from i4g.reports.template_engine import TemplateEngine
 from i4g.reports.gdoc_exporter import export_report
 from langchain_ollama import OllamaLLM
 
-DEFAULT_REPORTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "reports"))
+DEFAULT_REPORTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "data", "reports"))
 
 
 class ReportGenerator:
