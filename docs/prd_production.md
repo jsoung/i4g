@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-**i4g (Intelligence for Good)** is transitioning from a functional prototype to a production-ready platform that helps scam victims document fraud and generate law enforcement reports. This PRD outlines the requirements for a **zero-budget production deployment** using Google Cloud Platform's free tier, with a focus on **PII protection, volunteer scalability, and partnership readiness**.
+**i4g (Intelligence for Good)** is transitioning from a functional prototype to a production-ready platform that helps scam victims document fraud and generate law enforcement reports. This PRD outlines the requirements for a **zero-budget production deployment** using Google Cloud Platform's free tier, with a focus on **PII protection, volunteer scalability, partnership readiness, and forward compatibility with future mobile clients**.
 
 **Timeline**: 8 weeks @ 10 hours/week = 80 hours total
 **Deployment Target**: GCP Cloud Run (serverless, auto-scaling)
@@ -47,6 +47,7 @@
 | Authentication | 100% OAuth | No anonymous access |
 | Test Coverage | ≥80% | pytest-cov |
 | Infrastructure Cost | $0 | GCP billing dashboard |
+| API Versioning | `/api/v1` baseline | OpenAPI spec committed |
 
 ### Phase 2: Beta Launch (Weeks 5-8)
 **Goal**: 3 volunteer analysts onboarded and processing real cases
@@ -57,6 +58,7 @@
 | Cases Processed | 50+ | Firestore /cases collection |
 | False Positive Rate | <20% | Manual review |
 | Analyst NPS | ≥8/10 | Post-beta survey |
+| Mobile Readiness Checklist | Drafted | Architecture review |
 
 ### Phase 3: Partnership Readiness (Months 3-6)
 **Goal**: Pitch-ready for university and AARP partnerships
@@ -67,6 +69,7 @@
 | Cases Processed | 200+ | Analytics dashboard |
 | LEO Reports Generated | 10+ | PDF exports |
 | Funding Secured | $10K+ | Grant applications |
+| Mobile SDK Backlog | Prioritized | Product board |
 
 ---
 
@@ -186,6 +189,8 @@ tokens = pii_detector.tokenize(text)
 | `leo` | Download reports with subpoena |
 
 **Implementation Notes**:
+- Prefer OAuth PKCE flow and refresh tokens to support future mobile clients.
+- Store refresh tokens in Firestore with short TTL and rotation on every use.
 ```python
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
@@ -434,7 +439,28 @@ Timestamp: 2025-10-30T12:00:00Z
 
 ---
 
-### FR-8: Data Retention & Compliance (P1 - High Priority)
+### FR-8: Mobile API Readiness (P1 - High Priority)
+**Requirement**: Provide a versioned, well-documented public API that future iOS/Android clients can consume without breaking changes.
+
+**Acceptance Criteria**:
+- [ ] All external endpoints namespaced under `/api/v1/...` with consistent request/response models.
+- [ ] OpenAPI specification exported on every build and stored at `docs/openapi/i4g-v1.yaml`.
+- [ ] Automated contract tests fail if responses drift from the spec.
+- [ ] OAuth flow exposes PKCE support and refresh-token rotation suitable for mobile native clients.
+- [ ] Client SDK scaffolding generated via `openapi-generator` for TypeScript and Swift; artifacts stored in `/sdk/`.
+- [ ] Deprecation policy documented (minimum 90-day notice before breaking change).
+
+**Implementation Notes**:
+- Add `X-Client-Version` header to capture analytics and enable future feature gating.
+- Annotate FastAPI routes with `response_model` to keep the OpenAPI spec authoritative.
+- Consider rate limiting based on OAuth client ID once mobile apps are launched.
+
+**Dependencies**: FR-2 (OAuth), FR-3 (Cloud Run), FR-6 (Automated testing)
+**Effort**: 5 hours (router refactor, documentation, automation)
+
+---
+
+### FR-9: Data Retention & Compliance (P1 - High Priority)
 **Requirement**: Comply with FERPA, GDPR, and state data breach laws.
 
 **Acceptance Criteria**:
@@ -482,6 +508,26 @@ async def purge_expired_cases():
 
 ---
 
+### FR-10: Background Task Queue (P2 - Nice to Have)
+**Requirement**: Offload long-running or asynchronous work (report generation, bulk ingestion, future mobile push notifications) to a queue-backed worker so API responses stay fast.
+
+**Acceptance Criteria**:
+- [ ] Worker service wraps `i4g.worker.tasks` with queue-backed execution (e.g., Celery + Redis or Arq).
+- [ ] `/api/health` includes worker heartbeat information.
+- [ ] Retry policy with exponential backoff (max 5 attempts) and dead-letter logging.
+- [ ] Configuration flag allows in-process execution for local development and tests.
+- [ ] Documentation outlines how mobile devices will receive async status updates (polling vs. push).
+
+**Implementation Notes**:
+- Start with Redis (Cloud Memorystore) or Cloud Tasks; fall back to `asyncio` executor during MVP.
+- Emit structured logs for enqueue/dequeue actions for easier troubleshooting.
+- Define topic names such as `case.accepted` and `report.ready` to seed a future event bus.
+
+**Dependencies**: FR-3 (deployment), FR-6 (contract tests), FR-7 (report generation)
+**Effort**: 6 hours (queue integration + monitoring)
+
+---
+
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
@@ -516,11 +562,12 @@ async def purge_expired_cases():
 ✅ **Security**:
 - FR-1: PII tokenization
 - FR-2: OAuth 2.0 authentication
-- FR-8: Basic data retention (90 days)
+- FR-9: Basic data retention (90 days)
 
 ✅ **Infrastructure**:
 - FR-3: Cloud Run deployment
 - FR-4: Structured logging + monitoring
+- FR-8: Mobile API readiness (`/api/v1` + OpenAPI spec)
 
 ✅ **User Experience**:
 - FR-5: Analyst dashboard with PII masking
@@ -532,6 +579,7 @@ async def purge_expired_cases():
 - ❌ PDF report generation (FR-7) - can use current .docx approach
 - ❌ Mobile app - web-only for MVP
 - ❌ Multi-language support - English only
+- ❌ Background task queue (FR-10) - synchronous execution acceptable
 - ❌ Advanced analytics dashboard - basic metrics only
 
 ---
@@ -736,7 +784,7 @@ graph TB
 15. ⚪ Collect feedback + iterate
 
 ### Week 7-8 (Launch)
-16. ⚪ Implement data retention policy (FR-8)
+16. ⚪ Implement data retention policy (FR-9)
 17. ⚪ Final security review
 18. ⚪ Deploy to production
 19. ⚪ Launch announcement (blog post + social media)

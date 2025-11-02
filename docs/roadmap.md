@@ -43,6 +43,7 @@ This roadmap outlines the path from prototype to production-ready deployment, pr
 |------|----------|--------|-------|--------|
 | Dockerize FastAPI application | P0 | 3h | Jerry | ⚪ Not Started |
 | Deploy to Cloud Run (staging) | P0 | 2h | Jerry | ⚪ Not Started |
+| Namespace API under `/api/v1` and publish OpenAPI spec | P0 | 3h | Jerry | ⚪ Not Started |
 | Implement structured logging (JSON + correlation IDs) | P0 | 3h | Jerry | ⚪ Not Started |
 | Add health check endpoints | P0 | 2h | Jerry | ⚪ Not Started |
 | Set up CI/CD pipeline (GitHub Actions) | P0 | 4h | Jerry | ⚪ Not Started |
@@ -54,6 +55,7 @@ This roadmap outlines the path from prototype to production-ready deployment, pr
 - ✅ API running on Cloud Run (public URL)
 - ✅ CI/CD auto-deploys on \`main\` branch
 - ✅ Monitoring dashboard functional
+- ✅ Versioned OpenAPI spec committed
 
 ---
 
@@ -66,6 +68,7 @@ This roadmap outlines the path from prototype to production-ready deployment, pr
 | Implement data retention policies (TTL) | P0 | 4h | Jerry | ⚪ Not Started |
 | Add GDPR data export endpoint | P1 | 3h | Jerry | ⚪ Not Started |
 | Write integration tests (upload → classify → review) | P1 | 6h | Jerry | ⚪ Not Started |
+| Generate client SDK scaffolding (TypeScript & Swift) | P1 | 3h | Jerry | ⚪ Not Started |
 | Load testing (20 concurrent users) | P1 | 2h | Jerry | ⚪ Not Started |
 | Security penetration testing | P0 | 3h | Jerry | ⚪ Not Started |
 | Document compliance procedures | P1 | 2h | Jerry | ⚪ Not Started |
@@ -74,6 +77,7 @@ This roadmap outlines the path from prototype to production-ready deployment, pr
 - ✅ Test coverage ≥80%
 - ✅ Load test results documented
 - ✅ Compliance.md published
+- ✅ Client SDK scaffolding generated
 
 ---
 
@@ -109,10 +113,12 @@ This roadmap outlines the path from prototype to production-ready deployment, pr
 | Write report generation guide | P1 | 2h | Jerry | ⚪ Not Started |
 | Test with sample law enforcement partner | P1 | 3h | Jerry | ⚪ Not Started |
 | Final security review | P0 | 2h | Jerry | ⚪ Not Started |
+| Prototype background task queue (Celery/Redis) | P2 | 4h | Jerry | ⚪ Not Started |
 
 **Deliverables**:
 - ✅ PDF reports functional
 - ✅ LEO portal tested
+- ✅ Background queue plan validated
 - ✅ Security sign-off
 
 ---
@@ -146,6 +152,7 @@ This roadmap outlines the path from prototype to production-ready deployment, pr
 | Cases Processed | 10 test cases | 50 real cases | 200+ cases |
 | False Positive Rate | N/A | <20% | <15% |
 | Infrastructure Cost | $0 | $0 | $0 |
+| API Spec Freshness | `/api/v1` merged | Updated weekly | Client SDK regenerated monthly |
 
 ---
 
