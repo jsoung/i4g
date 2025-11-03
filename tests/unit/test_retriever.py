@@ -32,9 +32,11 @@ def test_query_semantic_only():
     assert len(results) == 1
     entry = results[0]
     assert entry["case_id"] == "case-1"
-    assert entry["score"] == 0.75
+    assert entry["score"] == pytest.approx(1.0 / (1.0 + 0.75))
+    assert entry["distance"] == pytest.approx(0.75)
     assert entry["sources"] == ["vector"]
     assert entry["vector"]["text"] == "sample"
+    assert entry["vector"]["distance"] == pytest.approx(0.75)
     structured_store.search_by_field.assert_not_called()
     vector_store.query_similar.assert_called_once_with("sample", top_k=3)
     assert response["vector_hits"] == 1
@@ -85,10 +87,12 @@ def test_combines_structured_and_vector_hits():
     assert len(results) == 1
     entry = results[0]
     assert entry["case_id"] == "case-3"
-    assert entry["score"] == 0.82
+    assert entry["distance"] == pytest.approx(0.82)
+    assert entry["score"] == pytest.approx(1.0 / (1.0 + 0.82))
     assert set(entry["sources"]) == {"structured", "vector"}
     assert entry["record"]["classification"] == "phishing"
     assert entry["vector"]["text"] == "login account suspended"
+    assert entry["vector"]["distance"] == pytest.approx(0.82)
     vector_store.query_similar.assert_called_once_with("account suspended", top_k=4)
     structured_store.search_by_field.assert_called_once_with("classification", "phishing", top_k=6)
     assert response["vector_hits"] == 1
@@ -111,6 +115,7 @@ def test_pagination_slice_returns_expected_segment():
 
     assert len(page["results"]) == 1
     assert page["results"][0]["case_id"] == "case-2"
+    assert page["results"][0]["distance"] == pytest.approx(0.85)
     assert page["total"] == 3
     assert page["vector_hits"] == 3
     assert page["structured_hits"] == 0

@@ -55,7 +55,10 @@ class HybridRetriever:
             if isinstance(item.get("sources"), set):
                 item["sources"] = sorted(item["sources"])
         results.sort(
-            key=lambda item: (item["score"] is not None, item["score"] or 0.0),
+            key=lambda item: (
+                item["score"] is not None,
+                item["score"] or 0.0,
+            ),
             reverse=True,
         )
 
@@ -92,8 +95,21 @@ class HybridRetriever:
 
             score = hit.get("score")
             if score is not None:
-                current = entry.get("score")
-                entry["score"] = max(float(score), float(current)) if current is not None else float(score)
+                try:
+                    distance = float(score)
+                except (TypeError, ValueError):
+                    distance = None
+                if distance is not None:
+                    similarity = 1.0 / (1.0 + distance)
+                    hit["distance"] = distance
+                    hit.setdefault("similarity", similarity)
+                    current = entry.get("score")
+                    entry["score"] = (
+                        max(float(similarity), float(current)) if current is not None else float(similarity)
+                    )
+                    existing_distance = entry.get("distance")
+                    if existing_distance is None or distance < existing_distance:
+                        entry["distance"] = distance
 
         return aggregated, len(vector_hits)
 

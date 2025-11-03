@@ -244,13 +244,43 @@ class VectorStore:
         formatted: List[Dict[str, Any]] = []
         for doc, score in results:
             meta = doc.metadata or {}
+
+            entities_raw = meta.get("entities")
+            entities: Dict[str, Any] = {}
+            if isinstance(entities_raw, str):
+                try:
+                    parsed = json.loads(entities_raw)
+                    if isinstance(parsed, dict):
+                        entities = parsed
+                except Exception:
+                    entities = {}
+            elif isinstance(entities_raw, dict):
+                entities = entities_raw
+
+            metadata_raw = meta.get("metadata")
+            metadata = metadata_raw
+            if isinstance(metadata_raw, str):
+                try:
+                    metadata = json.loads(metadata_raw)
+                except Exception:
+                    metadata = metadata_raw
+
+            confidence = meta.get("confidence")
+            try:
+                confidence_value = float(confidence) if confidence is not None else None
+            except (TypeError, ValueError):
+                confidence_value = confidence
+
             formatted.append(
                 {
                     "case_id": meta.get("case_id"),
                     "score": float(score),
+                    "distance": float(score),
                     "classification": meta.get("classification"),
-                    "confidence": meta.get("confidence"),
+                    "confidence": confidence_value,
                     "text": doc.page_content,
+                    "entities": entities,
+                    "metadata": metadata,
                 }
             )
         return formatted
