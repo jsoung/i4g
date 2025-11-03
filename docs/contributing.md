@@ -53,6 +53,14 @@ source venv/bin/activate  # On Windows: venv\\Scripts\\activate
 pip install -e ".[dev]"
 ```
 
+Note: dependency resolution
+
+The project includes a checked-in `requirements.txt` that pins specific versions for local development. Some transitive dependencies (notably `protobuf`) have conflicting version ranges across packages and may cause `pip-compile` to fail when regenerating `requirements.txt` from `pyproject.toml`. To avoid that, prefer installing from `requirements.txt` when setting up your dev environment:
+
+```bash
+pip install -r requirements.txt
+```
+
 **Run Tests**:
 ```bash
 pytest tests/ -v
@@ -63,15 +71,19 @@ pytest tests/ -v
 # In terminal 1: Start Ollama
 ollama serve
 
-# In terminal 2: Start FastAPI
-python -m i4g.api.app
+# In terminal 2: Start FastAPI (development)
+# Recommended: run with Uvicorn so the ASGI app is imported as `app`.
+uvicorn i4g.api.app:app --reload
 # API runs at http://localhost:8000
 ```
 
 **Start Dashboard**:
 ```bash
-cd src/i4g/dashboard
-streamlit run app.py
+# Official dashboard (API-backed)
+streamlit run src/i4g/ui/analyst_dashboard.py
+
+# Alternative: run the lightweight demo dashboard used in tests and demos
+# streamlit run tests/adhoc/analyst_dashboard_demo.py
 # Dashboard runs at http://localhost:8501
 ```
 

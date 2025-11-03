@@ -92,6 +92,8 @@
 - `POST /api/cases/{id}/approve` - Generate LEO report
 - `GET /api/health` - Health check
 
+Note: The `POST /api/cases` endpoint above is listed as a planned victim-facing intake route in the architecture. In the current implementation this exact endpoint is not present — case intake is handled via the review queue and review-related routes (see `src/i4g/api/review.py` and the `/reviews` router). Consider this endpoint "planned" until a dedicated intake route is added.
+
 ---
 
 ### 2. **Streamlit Dashboard**

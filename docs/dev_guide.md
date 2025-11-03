@@ -201,6 +201,22 @@ http://localhost:8000/docs
 streamlit run tests/adhoc/analyst_dashboard_demo.py
 ```
 
+Note: If Streamlit fails to import protobuf with an error like "Descriptors cannot be created directly", pin protobuf to a 4.x release before launching Streamlit. For example:
+
+```bash
+pip install 'protobuf>=4.21.0,<5.0'
+```
+
+For full dashboard functionality (API-backed), you can run the main UI:
+
+```bash
+streamlit run src/i4g/ui/analyst_dashboard.py
+
+Developer note: dependency resolution
+
+If you run `pip-compile` to regenerate `requirements.txt` from `pyproject.toml`, you may encounter dependency resolution errors (for example, conflicting transitive requirements for `protobuf`). To ensure a reproducible developer environment, we recommend installing from the checked-in `requirements.txt` rather than running `pip-compile` locally. The repository pins a `protobuf` 4.x range to work with Streamlit; if you need to attempt regenerating requirements, do so in an isolated environment and expect the possibility of manual conflict resolution.
+```
+
 **Streamlit Analyst Dashboard**
 
 - **Seed data first:** `python tests/adhoc/synthesize_review_cases.py --reset --queued 5` so the queue has items to triage.

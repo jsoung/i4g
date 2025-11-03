@@ -422,14 +422,9 @@ propcache==0.4.1
     #   yarl
 proto-plus==1.26.1
     # via google-api-core
-protobuf==6.33.0
-    # via
-    #   google-api-core
-    #   googleapis-common-protos
-    #   onnxruntime
-    #   opentelemetry-proto
-    #   proto-plus
-    #   streamlit
+protobuf>=4.21.0,<5.0
+    # pinned to 4.x for Streamlit compatibility (see docs/dev_guide.md)
+    # previously pinned to 6.x which caused Streamlit protobuf errors
 psutil==7.1.2
     # via aistudio-sdk
 py-cpuinfo==9.0.0
