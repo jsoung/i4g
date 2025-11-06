@@ -11,9 +11,10 @@ _Last updated: 5 Nov 2025_
 ## 2. Guiding Principles
 1. **No Capability Regression** – every DT-IFG feature (ingestion, search, chat, reporting) must exist in i4g before cutover.
 2. **GCP-Only Target** – replace Azure Functions, Blob Storage, Cognitive Search, and SQL with GCP equivalents (Cloud Functions/Run, Cloud Storage, Vertex AI Search or managed vector DB, Cloud SQL/Firestore/BigQuery).
-3. **Zero/Low Cost First** – stay within GCP free tier or nonprofit credits; minimize operational overhead.
-4. **Privacy & Security First** – maintain or improve DT-IFG’s data controls (Firestore PII vault, Secret Manager, IAM hardening).
-5. **Communicate Asynchronously** – concise documentation and status updates for stakeholders with limited availability.
+3. **Open & Modern Stack** – favor vendor-neutral, open-source, or standards-based components (e.g., OAuth/OIDC, LangChain-compatible services, managed OSS) even if they differ from today’s i4g prototype.
+4. **Zero/Low Cost First** – stay within GCP free tier or nonprofit credits; minimize operational overhead.
+5. **Privacy & Security First** – maintain or improve DT-IFG’s data controls (Firestore PII vault, Secret Manager, IAM hardening).
+6. **Communicate Asynchronously** – concise documentation and status updates for stakeholders with limited availability.
 
 ## 3. Milestones & Deliverables
 
@@ -31,11 +32,12 @@ _Last updated: 5 Nov 2025_
 - **Key Activities**:
   - Produce updated architecture diagrams (logical + deployment) showing GCP services.
   - Define data flow for ingestion, storage, search, chat, and reporting within GCP.
+  - Evaluate modern, open-aligned replacements for each capability (identity, search, vector DB, orchestration) and document recommended options.
   - Specify replacements:
-    - Azure Functions → Cloud Run/Functions + Scheduler
-    - Blob Storage/SAS → Cloud Storage signed URLs
-    - Cognitive Search → Vertex AI Search or managed vector DB
-    - Azure SQL → Cloud SQL / Firestore / BigQuery
+    - Azure Functions → Cloud Run/Functions + Scheduler (or equivalent serverless jobs)
+    - Blob Storage/SAS → Cloud Storage signed URLs / IAM-based access
+    - Cognitive Search → Vertex AI Search, managed PGVector, or other open-compatible retrieval stack
+    - Azure SQL → Cloud SQL / Firestore / BigQuery (with preference for open standards)
   - Document security/IAM refactor (least-privilege service accounts, Secret Manager usage).
 - **Deliverables**: `docs/future_architecture.md` (diagram, component descriptions, integration notes).
 - **Success Criteria**: Architecture approved for implementation; unresolved decisions clearly listed.
