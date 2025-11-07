@@ -18,12 +18,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from i4g.settings import get_settings
 from i4g.store.schema import ScamRecord
 
-DEFAULT_DB_PATH = "data/i4g_store.db"
+SETTINGS = get_settings()
 
 
-def _ensure_dir_for_db(db_path: str) -> None:
+def _ensure_dir_for_db(db_path: str | Path) -> None:
     """Ensure parent directory for the DB file exists."""
     p = Path(db_path)
     if p.parent:
@@ -37,14 +38,15 @@ class StructuredStore:
     is easy to test and to replace with another backend later.
     """
 
-    def __init__(self, db_path: str = DEFAULT_DB_PATH) -> None:
+    def __init__(self, db_path: str | Path | None = None) -> None:
         """Initialize the StructuredStore.
 
         Args:
             db_path: Path to the SQLite file.
         """
-        _ensure_dir_for_db(db_path)
-        self.db_path = db_path
+        resolved_path = Path(db_path) if db_path else Path(SETTINGS.sqlite_path)
+        _ensure_dir_for_db(resolved_path)
+        self.db_path = str(resolved_path)
         self._conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
         # enable returning rows as dict-like
         self._conn.row_factory = sqlite3.Row

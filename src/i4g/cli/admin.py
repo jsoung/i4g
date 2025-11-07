@@ -12,12 +12,16 @@ from pathlib import Path
 
 from rich.console import Console
 
+from i4g.settings import get_settings
+
 # Fix for OpenMP runtime conflict on macOS.
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 console = Console()
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+SETTINGS = get_settings()
 
 
 def ensure_ollama_running() -> bool:
@@ -277,7 +281,7 @@ def build_parser() -> argparse.ArgumentParser:
     query.add_argument(
         "--backend",
         type=str,
-        default=os.environ.get("I4G_VECTOR_BACKEND", "chroma"),
+        default=SETTINGS.vector_backend,
         choices=["chroma", "faiss"],
         help="Vector backend to use (overrides I4G_VECTOR_BACKEND).",
     )

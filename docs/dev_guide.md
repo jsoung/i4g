@@ -97,6 +97,38 @@ To test your setup:
 pytest -q
 ```
 
+## Configuration
+
+i4g services load configuration through `i4g.settings`, which is powered by
+[Pydantic settings](https://docs.pydantic.dev/latest/usage/pydantic_settings/).
+Values are resolved in the following order:
+
+1. Defaults declared in the `Settings` model.
+2. Project-level `.env`.
+3. Environment-specific `.env.<env>` (e.g. `.env.staging`).
+4. Local overrides in `.env.local` (ignored by git).
+5. Direct environment variables (`I4G_*`).
+
+The active environment is selected via `I4G_ENV` (defaults to `local`). All
+services—including Streamlit, FastAPI, and CLI tools—should read configuration
+via `get_settings()` instead of accessing environment variables directly.
+
+### Sample local override
+
+```
+# .env.local
+I4G_ENV=local
+I4G_API_URL=http://127.0.0.1:8000
+I4G_API_KEY=dev-analyst-token
+I4G_VECTOR_BACKEND=chroma
+```
+
+To inspect the effective configuration:
+
+```bash
+python -c "from i4g.settings import get_settings; print(get_settings())"
+```
+
 
 ## Running the Core Pipelines
 
@@ -214,7 +246,7 @@ streamlit run src/i4g/ui/analyst_dashboard.py
 
 Developer note: dependency resolution
 
-If you run `pip-compile` to regenerate `requirements.txt` from `pyproject.toml`, you may encounter dependency resolution errors (for example, conflicting transitive requirements for `protobuf`). To ensure a reproducible developer environment, we recommend installing from the checked-in `requirements.txt` rather than running `pip-compile` locally. The repository pins a `protobuf` 4.x range to work with Streamlit; if you need to attempt regenerating requirements, do so in an isolated environment and expect the possibility of manual conflict resolution.
+`requirements.txt` is generated with `pip-compile --extra=test pyproject.toml`. Thanks to the `protobuf>=5,<6` pin, the resolver should converge without manual edits. Run the command inside the `i4g` conda environment so the right interpreter is on PATH, and commit both `pyproject.toml` and `requirements.txt` when you intentionally update dependencies.
 ```
 
 **Streamlit Analyst Dashboard**

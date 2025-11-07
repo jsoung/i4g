@@ -17,12 +17,20 @@ from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS
 from langchain_ollama import OllamaEmbeddings
 
+from i4g.settings import get_settings
 from i4g.store.schema import ScamRecord
 
-DEFAULT_VECTOR_DIR = "data/chroma_store"
-DEFAULT_FAISS_DIR = "data/faiss_store"
-DEFAULT_MODEL_NAME = "nomic-embed-text"
-ENV_BACKEND = "I4G_VECTOR_BACKEND"
+SETTINGS = get_settings()
+DEFAULT_VECTOR_DIR = str(SETTINGS.chroma_dir)
+DEFAULT_FAISS_DIR = str(SETTINGS.faiss_dir)
+DEFAULT_MODEL_NAME = SETTINGS.embedding_model
+
+
+def _default_backend() -> str:
+    backend = SETTINGS.vector_backend.lower()
+    if backend not in {"chroma", "faiss"}:
+        return "chroma"
+    return backend
 
 
 def _sanitize_metadata(metadata: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -166,7 +174,7 @@ class VectorStore:
         persist_dir: Optional[str] = None,
         embedding_model: str = DEFAULT_MODEL_NAME,
         backend: Optional[str] = None,
-        collection_name: str = "i4g_vectors",
+        collection_name: str = SETTINGS.vector_collection,
         reset: bool = False,
     ) -> None:
         """Initialize the vector store.
@@ -178,7 +186,7 @@ class VectorStore:
             collection_name: Chroma collection name (ignored for FAISS).
             reset: If True, remove any existing persisted data before init.
         """
-        backend_name = (backend or os.environ.get(ENV_BACKEND, "chroma")).lower()
+        backend_name = (backend or _default_backend()).lower()
         if backend_name not in {"chroma", "faiss"}:
             raise ValueError(f"Unsupported vector backend '{backend_name}'")
 

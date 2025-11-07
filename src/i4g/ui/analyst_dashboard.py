@@ -15,15 +15,17 @@ It supports:
 from __future__ import annotations
 
 import json
-import os
 from typing import Any, Dict, List, Optional
 
 import httpx
 import streamlit as st
 
+from i4g.settings import get_settings
+
 # Configuration
-API_BASE_URL = os.environ.get("I4G_API_URL", "http://127.0.0.1:8000")
-API_KEY = os.environ.get("I4G_API_KEY", "dev-analyst-token")
+SETTINGS = get_settings()
+API_BASE_URL = SETTINGS.api_base_url
+API_KEY = SETTINGS.api_key
 HEADERS = {"X-API-KEY": API_KEY}
 
 TAG_PAL = [
