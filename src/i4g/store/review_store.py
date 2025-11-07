@@ -35,7 +35,7 @@ class ReviewStore:
         Args:
             db_path: Path to the SQLite database file.
         """
-        resolved = Path(db_path) if db_path else Path(SETTINGS.sqlite_path)
+        resolved = Path(db_path) if db_path else Path(SETTINGS.storage.sqlite_path)
         if not resolved.is_absolute():
             resolved = (Path(SETTINGS.project_root) / resolved).resolve()
         resolved.parent.mkdir(parents=True, exist_ok=True)

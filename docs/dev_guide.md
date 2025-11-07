@@ -129,6 +129,21 @@ To inspect the effective configuration:
 python -c "from i4g.settings import get_settings; print(get_settings())"
 ```
 
+### Nested settings reference
+
+`i4g.settings` now groups related configuration into typed sections so we can swap individual services (local versus GCP) without flipping the entire environment. The most frequently used sections are:
+
+| Section | Purpose | Common overrides |
+| --- | --- | --- |
+| `settings.api` | FastAPI/CLI endpoints and shared API key | `I4G_API__BASE_URL`, `I4G_API__KEY` |
+| `settings.storage` | Structured store backend and Cloud Storage buckets | `I4G_STORAGE__STRUCTURED_BACKEND`, `I4G_STORAGE__SQLITE_PATH`, `I4G_STORAGE__EVIDENCE_BUCKET` |
+| `settings.vector` | Vector index backend and embedding model | `I4G_VECTOR__BACKEND`, `I4G_VECTOR__CHROMA_DIR`, `I4G_VECTOR__PGVECTOR__DSN` |
+| `settings.llm` | Chat/RAG model provider selection | `I4G_LLM__PROVIDER`, `I4G_LLM__OLLAMA_BASE_URL`, `I4G_LLM__VERTEX_AI__MODEL` |
+| `settings.identity` | Auth provider wiring for Streamlit + APIs | `I4G_IDENTITY__PROVIDER`, `I4G_IDENTITY__AUDIENCE` |
+| `settings.ingestion` | Scheduler + Cloud Run job defaults | `I4G_INGESTION__ENABLE_SCHEDULED_JOBS`, `I4G_INGESTION__SERVICE_ACCOUNT` |
+
+Use double underscores to drill into nested fields (for example `I4G_STORAGE__EVIDENCE_BUCKET=i4g-evidence-staging`). Legacy aliases like `I4G_API_URL` and `I4G_VECTOR_BACKEND` still work, so existing `.env` files do not need to change immediately.
+
 
 ## Running the Core Pipelines
 

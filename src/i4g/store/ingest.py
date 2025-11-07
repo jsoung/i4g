@@ -12,11 +12,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from i4g.services.factories import build_structured_store, build_vector_store
 from i4g.store.schema import ScamRecord
-from i4g.store.structured import StructuredStore
-from i4g.store.vector import VectorStore
+
+if TYPE_CHECKING:
+    from i4g.store.structured import StructuredStore
+    from i4g.store.vector import VectorStore
 
 
 class IngestPipeline:
@@ -24,8 +27,8 @@ class IngestPipeline:
 
     def __init__(
         self,
-        structured_store: Optional[StructuredStore] = None,
-        vector_store: Optional[VectorStore] = None,
+        structured_store: Optional["StructuredStore"] = None,
+        vector_store: Optional["VectorStore"] = None,
     ) -> None:
         """Initialize pipeline with store instances.
 
@@ -33,8 +36,8 @@ class IngestPipeline:
             structured_store: Optional pre-initialized StructuredStore.
             vector_store: Optional pre-initialized VectorStore.
         """
-        self.structured_store = structured_store or StructuredStore()
-        self.vector_store = vector_store or VectorStore()
+        self.structured_store = structured_store or build_structured_store()
+        self.vector_store = vector_store or build_vector_store()
 
     def ingest_classified_case(self, classification_result: Dict[str, Any]) -> str:
         """Convert classification output into a ScamRecord and persist it.

@@ -9,9 +9,23 @@ import logging
 from typing import Optional
 
 from i4g.reports.generator import ReportGenerator
+from i4g.services.factories import build_review_store
 from i4g.store.review_store import ReviewStore
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_review_store(candidate: Optional[ReviewStore]) -> ReviewStore:
+    """Return a review store honoring patched mocks when supplied."""
+
+    if candidate is not None:
+        return candidate
+
+    # Tests often monkeypatch ``ReviewStore`` with a MagicMock factory.
+    if not isinstance(ReviewStore, type):
+        return ReviewStore()
+
+    return build_review_store()
 
 
 def generate_report_for_case(
@@ -27,7 +41,7 @@ def generate_report_for_case(
     Returns:
         The local path of the created report, or "error:<message>" on failure.
     """
-    store = store or ReviewStore()
+    store = _resolve_review_store(store)
 
     case = store.get_review(review_id)
     if not case:

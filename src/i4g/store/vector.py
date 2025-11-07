@@ -21,13 +21,15 @@ from i4g.settings import get_settings
 from i4g.store.schema import ScamRecord
 
 SETTINGS = get_settings()
-DEFAULT_VECTOR_DIR = str(SETTINGS.chroma_dir)
-DEFAULT_FAISS_DIR = str(SETTINGS.faiss_dir)
-DEFAULT_MODEL_NAME = SETTINGS.embedding_model
+DEFAULT_VECTOR_DIR = str(SETTINGS.vector.chroma_dir)
+DEFAULT_FAISS_DIR = str(SETTINGS.vector.faiss_dir)
+DEFAULT_MODEL_NAME = SETTINGS.vector.embedding_model
 
 
 def _default_backend() -> str:
-    backend = SETTINGS.vector_backend.lower()
+    """Return the configured vector backend or fall back to Chroma."""
+
+    backend = SETTINGS.vector.backend.lower()
     if backend not in {"chroma", "faiss"}:
         return "chroma"
     return backend
@@ -174,7 +176,7 @@ class VectorStore:
         persist_dir: Optional[str] = None,
         embedding_model: str = DEFAULT_MODEL_NAME,
         backend: Optional[str] = None,
-        collection_name: str = SETTINGS.vector_collection,
+        collection_name: str = SETTINGS.vector.collection,
         reset: bool = False,
     ) -> None:
         """Initialize the vector store.

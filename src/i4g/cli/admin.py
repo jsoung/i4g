@@ -12,6 +12,7 @@ from pathlib import Path
 
 from rich.console import Console
 
+from i4g.services.factories import build_review_store, build_vector_store
 from i4g.settings import get_settings
 
 # Fix for OpenMP runtime conflict on macOS.
@@ -38,7 +39,6 @@ def ensure_ollama_running() -> bool:
 
 def run_query(args: argparse.Namespace) -> None:
     from i4g.rag.pipeline import build_scam_detection_chain
-    from i4g.store.vector import VectorStore
 
     if not ensure_ollama_running():
         console.print("[red]❌ Ollama is not running. Start it first with:[/red]")
@@ -48,7 +48,7 @@ def run_query(args: argparse.Namespace) -> None:
     console.print("[green]✅ Ollama detected. Loading vectorstore...[/green]")
 
     try:
-        store = VectorStore(backend=args.backend)
+        store = build_vector_store(backend=args.backend)
     except Exception as e:  # pragma: no cover - defensive logging
         console.print(f"[red]Failed to initialize vectorstore:[/red] {e}")
         console.print("Make sure you ran `python scripts/build_index.py` successfully.")
@@ -73,9 +73,7 @@ def run_query(args: argparse.Namespace) -> None:
 
 def export_saved_searches(args: argparse.Namespace) -> None:
     """Dump saved searches to JSON."""
-    from i4g.store.review_store import ReviewStore
-
-    store = ReviewStore()
+    store = build_review_store()
     owner_filter = None if args.all else (args.owner or None)
     records = store.list_saved_searches(owner=owner_filter, limit=args.limit)
     include_tags = set(t.strip().lower() for t in (args.include_tags or []))
@@ -108,9 +106,8 @@ def export_saved_searches(args: argparse.Namespace) -> None:
 def import_saved_searches(args: argparse.Namespace) -> None:
     """Load saved searches from JSON file/stdin."""
     from i4g.api.review import SavedSearchImportRequest
-    from i4g.store.review_store import ReviewStore
 
-    store = ReviewStore()
+    store = build_review_store()
     content = Path(args.input).read_text() if args.input else sys.stdin.read()
     try:
         payload = json.loads(content)
@@ -137,9 +134,7 @@ def import_saved_searches(args: argparse.Namespace) -> None:
 
 
 def prune_saved_searches(args: argparse.Namespace) -> None:
-    from i4g.store.review_store import ReviewStore
-
-    store = ReviewStore()
+    store = build_review_store()
     records = store.list_saved_searches(owner=args.owner, limit=1000)
     tags_filter = set(t.strip().lower() for t in (args.tags or []))
     to_delete = []
@@ -169,8 +164,6 @@ def prune_saved_searches(args: argparse.Namespace) -> None:
 
 
 def bulk_update_saved_search_tags(args: argparse.Namespace) -> None:
-    from i4g.store.review_store import ReviewStore
-
     if not any([args.add, args.remove, args.replace is not None]):
         console.print("[red]Provide --add, --remove, or --replace to adjust tags.[/red]")
         sys.exit(1)
@@ -178,7 +171,7 @@ def bulk_update_saved_search_tags(args: argparse.Namespace) -> None:
     if args.replace is not None and (args.add or args.remove):
         console.print("[yellow]⚠️ --replace overrides --add/--remove; add/remove values will be ignored.[/yellow]")
 
-    store = ReviewStore()
+    store = build_review_store()
     normalized_add = [t.strip() for t in (args.add or []) if t.strip()]
     normalized_remove = [t.strip() for t in (args.remove or []) if t.strip()]
     normalized_replace = [t.strip() for t in (args.replace or []) if t.strip()] if args.replace is not None else None
@@ -234,9 +227,7 @@ def bulk_update_saved_search_tags(args: argparse.Namespace) -> None:
 
 
 def export_tag_presets(args: argparse.Namespace) -> None:
-    from i4g.store.review_store import ReviewStore
-
-    store = ReviewStore()
+    store = build_review_store()
     presets = store.list_tag_presets(owner=args.owner, limit=1000)
     data = json.dumps(presets, indent=2)
     if args.output:
@@ -247,8 +238,6 @@ def export_tag_presets(args: argparse.Namespace) -> None:
 
 
 def import_tag_presets(args: argparse.Namespace) -> None:
-    from i4g.store.review_store import ReviewStore
-
     content = Path(args.input).read_text() if args.input else sys.stdin.read()
     try:
         payload = json.loads(content)
@@ -281,7 +270,7 @@ def build_parser() -> argparse.ArgumentParser:
     query.add_argument(
         "--backend",
         type=str,
-        default=SETTINGS.vector_backend,
+        default=SETTINGS.vector.backend,
         choices=["chroma", "faiss"],
         help="Vector backend to use (overrides I4G_VECTOR_BACKEND).",
     )

@@ -44,7 +44,9 @@ class StructuredStore:
         Args:
             db_path: Path to the SQLite file.
         """
-        resolved_path = Path(db_path) if db_path else Path(SETTINGS.sqlite_path)
+        resolved_path = Path(db_path) if db_path else Path(SETTINGS.storage.sqlite_path)
+        if not resolved_path.is_absolute():
+            resolved_path = (Path(SETTINGS.project_root) / resolved_path).resolve()
         _ensure_dir_for_db(resolved_path)
         self.db_path = str(resolved_path)
         self._conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
+from i4g.services.factories import build_structured_store, build_vector_store
 from i4g.store.schema import ScamRecord
-from i4g.store.structured import StructuredStore
-from i4g.store.vector import VectorStore
+
+if TYPE_CHECKING:
+    from i4g.store.structured import StructuredStore
+    from i4g.store.vector import VectorStore
 
 
 class HybridRetriever:
@@ -14,11 +17,13 @@ class HybridRetriever:
 
     def __init__(
         self,
-        structured_store: Optional[StructuredStore] = None,
-        vector_store: Optional[VectorStore] = None,
+        structured_store: Optional["StructuredStore"] = None,
+        vector_store: Optional["VectorStore"] = None,
     ) -> None:
-        self.structured_store = structured_store or StructuredStore()
-        self.vector_store = vector_store or VectorStore()
+        """Initialize the retriever with optional backend overrides."""
+
+        self.structured_store = structured_store or build_structured_store()
+        self.vector_store = vector_store or build_vector_store()
 
     def query(
         self,
@@ -34,10 +39,13 @@ class HybridRetriever:
         Args:
             text: Optional free-text query for semantic similarity search.
             filters: Optional dictionary of field → value filters for structured lookup.
-            top_k: Number of top semantic results to return (also applied per structured filter).
+            vector_top_k: Number of top semantic results to retrieve.
+            structured_top_k: Number of structured matches to retrieve per filter.
+            offset: Starting offset for the merged results list.
+            limit: Optional maximum number of results to return.
 
         Returns:
-            List of aggregated result dictionaries with sources annotated.
+            Dictionary containing merged results and hit counters for each backend.
         """
         aggregated: Dict[str, Dict[str, Any]] = {}
         vector_hits_total = 0

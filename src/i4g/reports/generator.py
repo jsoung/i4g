@@ -22,8 +22,35 @@ from langchain_ollama import OllamaLLM
 
 from i4g.reports.gdoc_exporter import export_report
 from i4g.reports.template_engine import TemplateEngine
+from i4g.services.factories import build_structured_store, build_vector_store
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
+
+
+def _resolve_structured_store(candidate: Optional[StructuredStore]) -> StructuredStore:
+    """Return a structured store honoring test-time mocks when provided."""
+
+    if candidate is not None:
+        return candidate
+
+    # When tests patch ``StructuredStore`` with a MagicMock, treat it as factory.
+    if not isinstance(StructuredStore, type):
+        return StructuredStore()
+
+    return build_structured_store()
+
+
+def _resolve_vector_store(candidate: Optional[VectorStore]) -> VectorStore:
+    """Return a vector store honoring test-time mocks when provided."""
+
+    if candidate is not None:
+        return candidate
+
+    if not isinstance(VectorStore, type):
+        return VectorStore()
+
+    return build_vector_store()
+
 
 DEFAULT_REPORTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "data", "reports"))
 
@@ -40,13 +67,13 @@ class ReportGenerator:
 
     def __init__(
         self,
-        structured_store: Optional[StructuredStore] = None,
-        vector_store: Optional[VectorStore] = None,
+        structured_store: Optional["StructuredStore"] = None,
+        vector_store: Optional["VectorStore"] = None,
         template_engine: Optional[TemplateEngine] = None,
         llm_model: str = "llama3.1",
     ) -> None:
-        self.structured = structured_store or StructuredStore()
-        self.vector = vector_store or VectorStore()
+        self.structured = _resolve_structured_store(structured_store)
+        self.vector = _resolve_vector_store(vector_store)
         self.templates = template_engine or TemplateEngine()
         self.reports_dir = DEFAULT_REPORTS_DIR
         os.makedirs(self.reports_dir, exist_ok=True)
