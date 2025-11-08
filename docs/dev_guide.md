@@ -151,7 +151,15 @@ There are also targeted demos under `tests/adhoc/` if you want to exercise a sin
 
 ## Restoring Sample Data & Artifacts
 
-If you cleaned out the `data/` directory (or are onboarding to a fresh clone), run these helper scripts before jumping into the demos so you have realistic fixtures to work with.
+If you cleaned out the `data/` directory (or are onboarding to a fresh clone), start with the consolidated helper below to rebuild everything in one step:
+
+```bash
+python scripts/bootstrap_local_sandbox.py --reset
+```
+
+This command orchestrates the bundle builder, screenshot synthesis, OCR, semantic extraction, manual ingest demo, and review-case seeding. It automatically adds the project `src/` folder to `PYTHONPATH`, so running from an editable install (`pip install -e .`) is optional. If Tesseract is missing it falls back to the downstream steps and prints a reminder—you can rerun with `--skip-ocr` if you plan to install OCR tooling later.
+
+Prefer a manual walkthrough or need to re-run a single stage? Use the individual helpers below.
 
 1. **Download + Normalize Scam Text Bundles**
 

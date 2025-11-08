@@ -338,6 +338,65 @@ class Settings(BaseSettings):
 
         return self
 
+    @model_validator(mode="after")
+    def _apply_environment_overrides(self) -> "Settings":
+        """Force environment-specific defaults after basic resolution."""
+
+        env_name = self.env.lower()
+
+        if env_name == "local":
+            identity_update = {
+                "provider": "mock",
+                "disable_auth": True,
+                "audience": None,
+                "issuer": None,
+                "client_id": None,
+            }
+            object.__setattr__(self, "identity", self.identity.model_copy(update=identity_update))
+
+            storage_update = {
+                "structured_backend": "sqlite",
+                "firestore_project": None,
+                "cloudsql_instance": None,
+                "cloudsql_database": None,
+                "evidence_bucket": None,
+                "reports_bucket": None,
+            }
+            object.__setattr__(self, "storage", self.storage.model_copy(update=storage_update))
+
+            vector_update = {
+                "backend": "chroma",
+                "collection": self.vector.collection or "i4g_vectors",
+                "pgvector_dsn": None,
+                "vertex_ai_index": None,
+                "vertex_ai_project": None,
+            }
+            object.__setattr__(self, "vector", self.vector.model_copy(update=vector_update))
+
+            llm_update = {
+                "provider": "ollama",
+                "vertex_ai_model": None,
+                "vertex_ai_project": None,
+            }
+            object.__setattr__(self, "llm", self.llm.model_copy(update=llm_update))
+
+            secrets_update = {"use_secret_manager": False, "project": None}
+            if not self.secrets.local_env_file:
+                secrets_update["local_env_file"] = self.project_root / ".env.local"
+            object.__setattr__(self, "secrets", self.secrets.model_copy(update=secrets_update))
+
+            ingestion_update = {
+                "enable_scheduled_jobs": False,
+                "scheduler_project": None,
+                "default_service_account": None,
+            }
+            object.__setattr__(self, "ingestion", self.ingestion.model_copy(update=ingestion_update))
+
+            observability_update = {"structured_logging": False, "otlp_endpoint": None}
+            object.__setattr__(self, "observability", self.observability.model_copy(update=observability_update))
+
+        return self
+
     @property
     def log_level(self) -> str:
         """str: Effective logging level for the running process."""
@@ -397,6 +456,12 @@ class Settings(BaseSettings):
         """str: Base URL for the Ollama HTTP API."""
 
         return self.llm.ollama_base_url
+
+    @property
+    def is_local(self) -> bool:
+        """bool: True when the active environment is ``local``."""
+
+        return self.env.lower() == "local"
 
 
 def _load_settings(env: str | None = None) -> Settings:
