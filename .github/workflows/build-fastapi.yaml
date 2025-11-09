@@ -1,0 +1,66 @@
+name: build-fastapi
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Container tag (defaults to git SHA)"
+        required: false
+        default: ""
+  push:
+    branches: [main]
+    paths:
+      - "docker/fastapi.Dockerfile"
+      - "src/i4g/api/**"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - "requirements.txt"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: latest
+
+      - name: Auth to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker --quiet
+
+      - name: Determine image tag
+        id: vars
+        run: |
+          TAG="${{ github.sha }}"
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            TAG="${{ github.event.inputs.image_tag }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: |
+          docker build \
+            -f docker/fastapi.Dockerfile \
+            --tag "${{ secrets.GCP_ARTIFACT_REGISTRY }}/fastapi:${{ steps.vars.outputs.tag }}" \
+            .
+
+      - name: Push image
+        run: |
+          docker push "${{ secrets.GCP_ARTIFACT_REGISTRY }}/fastapi:${{ steps.vars.outputs.tag }}"
+
+      - name: Output image reference
+        run: echo "Pushed ${{ secrets.GCP_ARTIFACT_REGISTRY }}/fastapi:${{ steps.vars.outputs.tag }}"

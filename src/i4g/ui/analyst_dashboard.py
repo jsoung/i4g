@@ -15,6 +15,7 @@ It supports:
 from __future__ import annotations
 
 import json
+import os
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -26,6 +27,8 @@ from i4g.settings import get_settings
 SETTINGS = get_settings()
 API_BASE_URL = SETTINGS.api_base_url
 API_KEY = SETTINGS.api_key
+DEFAULT_API_BASE = os.getenv("I4G_API__BASE_URL") or os.getenv("I4G_API_URL") or API_BASE_URL
+DEFAULT_API_KEY = os.getenv("I4G_API__KEY") or os.getenv("I4G_API_KEY") or API_KEY
 HEADERS = {"X-API-KEY": API_KEY}
 
 TAG_PAL = [
@@ -44,8 +47,10 @@ st.title("🕵️ i4g Analyst Dashboard (API-backed)")
 
 # Sidebar controls
 st.sidebar.header("Connection")
-st.sidebar.text_input("API Base URL", value=API_BASE_URL, key="api_base")
-st.sidebar.text_input("API Key", value=API_KEY, key="api_key")
+st.session_state.setdefault("api_base", DEFAULT_API_BASE)
+st.session_state.setdefault("api_key", DEFAULT_API_KEY)
+st.sidebar.text_input("API Base URL", value=st.session_state["api_base"], key="api_base")
+st.sidebar.text_input("API Key", value=st.session_state["api_key"], key="api_key")
 if st.sidebar.button("Save connection"):
     st.experimental_set_query_params()  # noop to persist inputs in UI
     st.success("Connection settings updated (for this session).")
@@ -504,50 +509,6 @@ def run_search(params: Dict[str, Any], offset: int) -> None:
         st.session_state["search_more_available"] = False
 
 
-if search_submitted:
-    params = {
-        "text": (search_text.strip() or None) if search_text else None,
-        "classification": ((search_classification.strip() or None) if search_classification else None),
-        "case_id": (search_case_id.strip() or None) if search_case_id else None,
-        "vector_limit": st.session_state["search_vector_limit_value"],
-        "structured_limit": st.session_state["search_structured_limit_value"],
-        "page_size": st.session_state["search_page_size_value"],
-    }
-    if update_existing and st.session_state.get("active_saved_search_id"):
-        params["search_id"] = st.session_state["active_saved_search_id"]
-    st.session_state["search_params"] = params
-    st.session_state["search_offset"] = 0
-    run_search(params, offset=0)
-    if save_requested and save_name.strip():
-        try:
-            active_id = st.session_state.get("active_saved_search_id") if update_existing else None
-            current_favorite = None
-            if active_id:
-                for item in st.session_state.get("saved_searches", []):
-                    if item.get("search_id") == active_id:
-                        current_favorite = bool(item.get("favorite"))
-                        break
-            response = save_search(
-                save_name.strip(),
-                params,
-                search_id=active_id,
-                favorite=current_favorite,
-            )
-            st.success(f"Saved search '{save_name.strip()}'")
-            payload = fetch_saved_searches(limit=25)
-            st.session_state["saved_searches"] = payload.get("items", [])
-            st.session_state["saved_search_error"] = None
-            st.session_state["active_saved_search_id"] = response.get("search_id")
-        except Exception as exc:
-            message = str(exc)
-            if "Saved search name already exists" in message:
-                st.error(message)
-            else:
-                st.error(f"Failed to save search: {message}")
-    elif not update_existing:
-        st.session_state["active_saved_search_id"] = None
-
-
 # Helper helpers
 def api_client() -> httpx.Client:
     base = st.session_state.get("api_base", API_BASE_URL)
@@ -814,6 +775,50 @@ def _execute_saved_search(saved_id: str, params: Dict[str, Any]) -> None:
     st.session_state["search_offset"] = offset
     run_search(params, offset=offset)
     st.experimental_rerun()
+
+
+if search_submitted:
+    params = {
+        "text": (search_text.strip() or None) if search_text else None,
+        "classification": ((search_classification.strip() or None) if search_classification else None),
+        "case_id": (search_case_id.strip() or None) if search_case_id else None,
+        "vector_limit": st.session_state["search_vector_limit_value"],
+        "structured_limit": st.session_state["search_structured_limit_value"],
+        "page_size": st.session_state["search_page_size_value"],
+    }
+    if update_existing and st.session_state.get("active_saved_search_id"):
+        params["search_id"] = st.session_state["active_saved_search_id"]
+    st.session_state["search_params"] = params
+    st.session_state["search_offset"] = 0
+    run_search(params, offset=0)
+    if save_requested and save_name.strip():
+        try:
+            active_id = st.session_state.get("active_saved_search_id") if update_existing else None
+            current_favorite = None
+            if active_id:
+                for item in st.session_state.get("saved_searches", []):
+                    if item.get("search_id") == active_id:
+                        current_favorite = bool(item.get("favorite"))
+                        break
+            response = save_search(
+                save_name.strip(),
+                params,
+                search_id=active_id,
+                favorite=current_favorite,
+            )
+            st.success(f"Saved search '{save_name.strip()}'")
+            payload = fetch_saved_searches(limit=25)
+            st.session_state["saved_searches"] = payload.get("items", [])
+            st.session_state["saved_search_error"] = None
+            st.session_state["active_saved_search_id"] = response.get("search_id")
+        except Exception as exc:
+            message = str(exc)
+            if "Saved search name already exists" in message:
+                st.error(message)
+            else:
+                st.error(f"Failed to save search: {message}")
+    elif not update_existing:
+        st.session_state["active_saved_search_id"] = None
 
 
 # Sidebar filter controls

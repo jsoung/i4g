@@ -694,7 +694,9 @@ urllib3==2.3.0
     #   modelscope
     #   requests
 uvicorn[standard]==0.38.0
-    # via chromadb
+    # via
+    #   chromadb
+    #   i4g (pyproject.toml)
 uvloop==0.22.1
     # via uvicorn
 virtualenv==20.35.4

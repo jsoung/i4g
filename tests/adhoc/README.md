@@ -8,7 +8,12 @@ This directory contains a collection of ad-hoc scripts for quick testing, demons
 python scripts/bootstrap_local_sandbox.py --reset
 ```
 
-Run this from the project root to rebuild bundles, screenshots, OCR artifacts, semantic entities, the manual ingestion demo, and review queue seeds in one shot. The helper will warn (and skip OCR) if Tesseract is not installed; use `--skip-ocr` to silence the check when you intend to install it later.
+Run this from the project root to rebuild bundles, screenshots, OCR artifacts, semantic entities, the manual ingestion demo, and review queue seeds in one shot. Helpful flags:
+- `--skip-ocr` to bypass the screenshot + OCR + semantic extraction stages (the script already warns and skips when Tesseract is missing).
+- `--skip-vector` when you only need review cases refreshed and want to leave the vector/structured stores untouched.
+- Drop `--reset` for incremental updates (existing artifacts remain).
+
+The helper adds `src/` to `PYTHONPATH`, so editable installs are optional. Expect the first run to take a couple of minutes while embeddings warm up; subsequent runs are faster.
 
 ---
 

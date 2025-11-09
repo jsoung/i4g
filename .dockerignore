@@ -1,0 +1,24 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.sqlite
+*.db
+*.log
+*.pem
+*.key
+*.crt
+
+.git
+.gitignore
+.env*
+.idea
+.vscode
+.mypy_cache
+.pytest_cache
+
+# Local data and model artifacts
+/data/
+/notebooks/
+/chroma_store/
+/faiss_store/

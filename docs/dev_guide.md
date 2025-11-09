@@ -159,6 +159,13 @@ python scripts/bootstrap_local_sandbox.py --reset
 
 This command orchestrates the bundle builder, screenshot synthesis, OCR, semantic extraction, manual ingest demo, and review-case seeding. It automatically adds the project `src/` folder to `PYTHONPATH`, so running from an editable install (`pip install -e .`) is optional. If Tesseract is missing it falls back to the downstream steps and prints a reminder—you can rerun with `--skip-ocr` if you plan to install OCR tooling later.
 
+Key switches:
+- `--skip-ocr`: bypass screenshot synthesis, OCR, and semantic extraction (useful when you only need fresh vector/structured stores or do not have Tesseract installed yet).
+- `--skip-vector`: skip the manual ingest demo; existing Chroma/SQLite artifacts will remain untouched.
+- `--reset`: remove generated artifacts before rebuilding; omit for an incremental refresh.
+
+The first run primes embeddings and Chroma metadata, so it can take a couple of minutes. Subsequent runs reuse cached models and complete faster.
+
 Prefer a manual walkthrough or need to re-run a single stage? Use the individual helpers below.
 
 1. **Download + Normalize Scam Text Bundles**
@@ -331,3 +338,55 @@ Install locally with `pip install -e .` to expose `i4g-admin` everywhere; run `i
 - Review API and worker tasks should run as services.
 - GDoc exporter requires Google service account credentials.
 - Use `docker/` folder for containerized deployment (optional).
+
+### Publishing the FastAPI Image to Artifact Registry
+
+Manual workflow (run from the repo root unless noted):
+
+1. Authenticate gcloud and Docker (once per machine/shell).
+
+    gcloud config set project i4g-dev
+    gcloud auth login
+    gcloud auth configure-docker us-central1-docker.pkg.dev
+
+2. Create the Artifact Registry repo if it does not already exist.
+
+    gcloud artifacts repositories create applications \
+      --repository-format docker \
+      --location us-central1
+
+3. Build, tag, and push the service image. On Apple Silicon (M-series), target `linux/amd64` so Cloud Run can start the container.
+
+                docker buildx create --use --name i4g-builder            # one-time builder setup
+                docker buildx inspect --bootstrap                        # optional: verify builder
+                docker buildx build \
+                    --platform linux/amd64 \
+                    -f docker/fastapi.Dockerfile \
+                    -t us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev \
+                    --push \
+                    .
+
+    # For x86 development machines, plain docker build/tag/push still works:
+    # docker build -f docker/fastapi.Dockerfile -t fastapi:dev .
+    # docker tag fastapi:dev us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev
+    # docker push us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev
+
+    # Swap docker/fastapi.Dockerfile with docker/streamlit.Dockerfile and adjust the tag
+    # (e.g. streamlit:dev) to publish the Streamlit UI container using the same flow.
+
+4. Reference the pushed URI in Terraform (for example `infra/environments/dev/terraform.tfvars`).
+
+    project_id    = "i4g-dev"
+    fastapi_image = "us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev"
+
+5. If you rebuild an image but keep the same tag (for example `:dev`), force Cloud Run to pull the new digest:
+
+                gcloud run services update streamlit-analyst-ui \
+                    --region=us-central1 \
+                    --image=us-central1-docker.pkg.dev/i4g-dev/applications/streamlit:dev
+
+                gcloud run services update fastapi-gateway \
+                    --region=us-central1 \
+                    --image=us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev
+
+        Running `terraform apply` afterwards keeps state in sync once the new revisions are live.
