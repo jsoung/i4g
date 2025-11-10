@@ -1,0 +1,18 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Runs daily at midnight UTC
+  workflow_dispatch:      # Allows manual triggering
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Fork
+        uses: tgymnich/fork-sync@v1
+        with:
+          # 'owner' parameter removed to allow automatic detection
+          token: ${{ secrets.SYNC_FORK_ACTION }}
+          head: main
+          base: main
