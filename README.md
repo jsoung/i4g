@@ -54,6 +54,7 @@ flowchart LR
 - 🏗️ **[System Architecture](./docs/architecture.md)** - High-level system design, deployment, and data flow
 - 🔧 **[Technical Design Document](./docs/tdd.md)** - Detailed implementation specs, APIs, and security design
 - 💻 **[Developer Guide](./docs/dev_guide.md)** - Setup instructions, development workflow
+- ☁️ **[Infrastructure Operations](../infra/README.md)** - Terraform workflow, environment bootstrap, and GCP prerequisites
 
 ### Governance & Compliance
 - 🔒 **[Data Compliance Guide](./docs/compliance.md)** - PII handling, FERPA/GDPR compliance, incident response

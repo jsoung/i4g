@@ -206,6 +206,10 @@ Prefer a manual walkthrough or need to re-run a single stage? Use the individual
 
 Once these assets exist, the downstream scripts referenced below will find usable inputs without manual data hunting.
 
+## Vertex AI Search Retrieval PoC
+
+For the hosted Discovery Engine workflows (Terraform setup, ingestion script, CLI query helpers, filters, and boosting examples) see `docs/retrieval_gcp_guide.md`. That guide tracks the GCP environment separately from the local sandbox to keep each workflow focused.
+
 ### Hugging Face API Tokens
 
 Some ad-hoc scripts (for example `tests/adhoc/hf_embedding.py`) call the Hugging Face Inference API. Create a personal access token at <https://huggingface.co/settings/tokens> and expose it before running those scripts:
@@ -338,6 +342,10 @@ Install locally with `pip install -e .` to expose `i4g-admin` everywhere; run `i
 - Review API and worker tasks should run as services.
 - GDoc exporter requires Google service account credentials.
 - Use `docker/` folder for containerized deployment (optional).
+
+### Terraforming GCP Resources
+
+Infrastructure lives under the sibling `infra/` tree. For module layout, workflow steps, and Discovery Engine prerequisites (including the quota-project command), follow the instructions in `infra/README.md`.
 
 ### Publishing the FastAPI Image to Artifact Registry
 
