@@ -364,23 +364,28 @@ Manual workflow (run from the repo root unless noted):
       --location us-central1
 
 3. Build, tag, and push the service image. On Apple Silicon (M-series), target `linux/amd64` so Cloud Run can start the container.
+```bash
+docker buildx create --use --name i4g-builder # one-time builder
+```
+```bash
+docker buildx inspect --bootstrap # optional: verify builder
+```
+```bash
+docker buildx build \
+--platform linux/amd64 \
+-f docker/fastapi.Dockerfile \
+-t us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev \
+--push \
+.
+```
+For x86 development machines, plain docker build/tag/push still works:
+```bash
+docker build -f docker/fastapi.Dockerfile -t fastapi:dev .
+docker tag fastapi:dev us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev
+docker push us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev
+```
 
-                docker buildx create --use --name i4g-builder            # one-time builder setup
-                docker buildx inspect --bootstrap                        # optional: verify builder
-                docker buildx build \
-                    --platform linux/amd64 \
-                    -f docker/fastapi.Dockerfile \
-                    -t us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev \
-                    --push \
-                    .
-
-    # For x86 development machines, plain docker build/tag/push still works:
-    # docker build -f docker/fastapi.Dockerfile -t fastapi:dev .
-    # docker tag fastapi:dev us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev
-    # docker push us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev
-
-    # Swap docker/fastapi.Dockerfile with docker/streamlit.Dockerfile and adjust the tag
-    # (e.g. streamlit:dev) to publish the Streamlit UI container using the same flow.
+Swap `docker/fastapi.Dockerfile` with `docker/streamlit.Dockerfile` and adjust the tag (e.g. `streamlit:dev`) to publish the Streamlit UI container using the same flow.
 
 4. Reference the pushed URI in Terraform (for example `infra/environments/dev/terraform.tfvars`).
 
@@ -398,3 +403,27 @@ Manual workflow (run from the repo root unless noted):
                     --image=us-central1-docker.pkg.dev/i4g-dev/applications/fastapi:dev
 
         Running `terraform apply` afterwards keeps state in sync once the new revisions are live.
+
+### Publishing the Cloud Run Job Images
+
+Use the same `docker buildx` workflow to publish the ingestion and report job containers referenced by Terraform. Replace the Dockerfile path and tag as shown below, then update `infra/environments/*/terraform.tfvars` if you promote a new tag:
+
+```bash
+docker buildx build \
+    --platform linux/amd64 \
+        -f docker/ingest-job.Dockerfile \
+        -t us-central1-docker.pkg.dev/i4g-dev/applications/ingest-job:dev \
+    --push \
+    .
+
+docker buildx build \
+    --platform linux/amd64 \
+        -f docker/report-job.Dockerfile \
+        -t us-central1-docker.pkg.dev/i4g-dev/applications/report-job:dev \
+    --push \
+    .
+```
+
+By default the ingestion job runs against `/app/data/retrieval_poc/cases.jsonl` packaged in the container and skips embeddings unless `I4G_INGEST__ENABLE_VECTOR=true` is supplied, allowing the Cloud Run job to succeed without an external Ollama endpoint. Terraform injects `I4G_ENV` and the Dockerfile sets `I4G_RUNTIME__PROJECT_ROOT=/app`, so structured-store writes land in `/app/data` unless overridden.
+
+> ⚠️  Reminder: `data/retrieval_poc` only seeds the prototype. Plan to remove the dataset from local workstations and job images once production ingestion sources are wired up.

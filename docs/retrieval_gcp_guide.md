@@ -96,6 +96,18 @@ Add `--raw` to print the full protobuf response as JSON. This is useful for debu
 
 ---
 
+## Analyst Dashboard Integration
+
+Run the Streamlit dashboard with `streamlit run src/i4g/ui/analyst_dashboard.py` to let analysts exercise the hosted search without touching the CLI. A new *Discovery Engine (Vertex AI) search* panel sits near the top of the main view and accepts the same parameters as the CLI helper:
+
+- Project, location, data store ID, and serving config (defaults pull from environment variables when available).
+- Free-text query, optional filter expression, and optional BoostSpec JSON payload for ranking experiments.
+- Page size picker plus a toggle to expose the raw JSON response for each hit.
+
+Results show the summary, tags, structured payload, and rank signals, and you can download the raw response blob for sharing in Slack or attaching to tickets.
+
+---
+
 ## Schema & Filter Reference
 
 The data store currently uses the auto-generated `default_schema`. You can inspect it with:
@@ -138,8 +150,24 @@ The script performs a dry-run ingest on `data/retrieval_poc/cases.jsonl` and the
 
 ---
 
+## Relevance Baseline
+
+Use the evaluation helper to track a lightweight relevance baseline across common scam scenarios:
+
+```bash
+python scripts/evaluate_vertex_search.py \
+    --project i4g-dev \
+    --location global \
+    --data-store-id retrieval-poc
+```
+
+By default the script runs four canned queries (wallet verification, romance visa pretext, investment pump room, and tech-support remote access) and reports whether a matching document appears within the top five results. Provide `--config path/to/scenarios.json` to override or extend the scenario list; each entry can specify the query, optional filter, expected document ids/tags/labels, and the acceptable rank cut-off (`pass_k`). The process exits with a non-zero code if any scenario fails, making it suitable for manual checkpoints or future CI automation.
+
+---
+
 ## Next Steps
 
-- Capture favorite filter/boost combinations in versioned JSON snippets for quick reuse.
-- Add automated smoke tests (e.g., GitHub Actions job) that performs a dry-run ingest followed by a query using the mocked data store.
+- [ ] Add GitHub Actions job that runs `scripts/smoke_vertex_retrieval.py` and `scripts/evaluate_vertex_search.py` against a fixture data store
+- [x] Add `i4g-admin` command to query Vertex Search with saved filters
+- [ ] Surface Discovery Engine hits in the React analyst UI once the panel design is finalized
 - When the schema diverges from the default, export the custom schema to `infra/` so Terraform keeps the configuration synced.

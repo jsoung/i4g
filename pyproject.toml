@@ -52,6 +52,8 @@ test = [
 [project.scripts]
 i4g-admin = "i4g.cli.admin:main"
 run-dataflow = "prefect_gcp.beam.pipeline:main"
+i4g-ingest-job = "i4g.worker.jobs.ingest:main"
+i4g-report-job = "i4g.worker.jobs.report:main"
 
 [tool.hatch.version]
 path = "VERSION.txt"
