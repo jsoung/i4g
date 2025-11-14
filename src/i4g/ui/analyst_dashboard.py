@@ -15,22 +15,15 @@ It supports:
 from __future__ import annotations
 
 import json
-import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-import httpx
 import streamlit as st
 
-from i4g.settings import get_settings
+import i4g.ui.api as ui_api
+from i4g.ui.state import ensure_session_defaults
+from i4g.ui.views import render_discovery_engine_panel
 
 # Configuration
-SETTINGS = get_settings()
-API_BASE_URL = SETTINGS.api_base_url
-API_KEY = SETTINGS.api_key
-DEFAULT_API_BASE = os.getenv("I4G_API__BASE_URL") or os.getenv("I4G_API_URL") or API_BASE_URL
-DEFAULT_API_KEY = os.getenv("I4G_API__KEY") or os.getenv("I4G_API_KEY") or API_KEY
-HEADERS = {"X-API-KEY": API_KEY}
-
 TAG_PAL = [
     "#E0BBE4",
     "#957DAD",
@@ -42,42 +35,81 @@ TAG_PAL = [
 ]
 
 
+def run_search(params: Dict[str, Any], offset: int) -> None:
+    try:
+        st.session_state["case_reviews"] = {}
+        payload = ui_api.search_cases_api(
+            text=params.get("text"),
+            classification=params.get("classification"),
+            case_id=params.get("case_id"),
+            vector_limit=params["vector_limit"],
+            structured_limit=params["structured_limit"],
+            page_size=params["page_size"],
+            offset=offset,
+        )
+        results = payload.get("results", [])
+        st.session_state["search_results"] = results
+        st.session_state["search_error"] = None
+        st.session_state["search_offset"] = payload.get("offset", offset)
+        st.session_state["search_more_available"] = len(results) == params["page_size"]
+        st.session_state["search_meta"] = {
+            "total": payload.get("total"),
+            "vector_hits": payload.get("vector_hits"),
+            "structured_hits": payload.get("structured_hits"),
+            "search_id": payload.get("search_id"),
+        }
+
+        try:
+            history_payload = ui_api.fetch_search_history(limit=st.session_state.get("history_limit", 10))
+            st.session_state["search_history"] = history_payload.get("events", [])
+            st.session_state["search_history_error"] = None
+        except Exception as exc:
+            st.session_state["search_history_error"] = str(exc)
+
+        try:
+            saved_payload = ui_api.fetch_saved_searches(limit=25)
+            st.session_state["saved_searches"] = saved_payload.get("items", [])
+            st.session_state["saved_search_error"] = None
+        except Exception as exc:
+            st.session_state["saved_search_error"] = str(exc)
+    except Exception as exc:
+        st.session_state["search_results"] = None
+        st.session_state["search_error"] = str(exc)
+        st.session_state["search_more_available"] = False
+
+
+def _execute_saved_search(saved_id: str, params: Dict[str, Any]) -> None:
+    st.session_state["active_saved_search_id"] = saved_id
+    st.session_state["search_text_input"] = params.get("text", "") or ""
+    st.session_state["search_class_input"] = params.get("classification", "") or ""
+    st.session_state["search_case_input"] = params.get("case_id", "") or ""
+    st.session_state["search_vector_limit_slider"] = params.get("vector_limit", 5) or 5
+    st.session_state["search_structured_limit_slider"] = params.get("structured_limit", 5) or 5
+    st.session_state["search_page_size_slider"] = params.get("page_size", 5) or 5
+    st.session_state["search_params"] = params
+    offset = params.get("offset", 0)
+    st.session_state["search_offset"] = offset
+    run_search(params, offset=offset)
+    st.rerun()
+
+
+def _tag_badge(tag: str) -> str:
+    color = TAG_PAL[hash(tag) % len(TAG_PAL)]
+    return f"<span style='background:{color}; padding:2px 6px; border-radius:6px; margin-right:4px;'>{tag}</span>"
+
+
 st.set_page_config(page_title="i4g Analyst Dashboard", layout="wide")
 st.title("🕵️ i4g Analyst Dashboard (API-backed)")
 
 # Sidebar controls
+ensure_session_defaults()
+
 st.sidebar.header("Connection")
-st.session_state.setdefault("api_base", DEFAULT_API_BASE)
-st.session_state.setdefault("api_key", DEFAULT_API_KEY)
-st.sidebar.text_input("API Base URL", value=st.session_state["api_base"], key="api_base")
-st.sidebar.text_input("API Key", value=st.session_state["api_key"], key="api_key")
+st.sidebar.text_input("API Base URL", key="api_base")
+st.sidebar.text_input("API Key", key="api_key")
 if st.sidebar.button("Save connection"):
     st.experimental_set_query_params()  # noop to persist inputs in UI
     st.success("Connection settings updated (for this session).")
-
-# Maintain search state across reruns
-st.session_state.setdefault("search_results", None)
-st.session_state.setdefault("search_error", None)
-st.session_state.setdefault("case_reviews", {})
-st.session_state.setdefault("search_vector_limit_value", 5)
-st.session_state.setdefault("search_structured_limit_value", 5)
-st.session_state.setdefault("search_page_size_value", 5)
-st.session_state.setdefault("search_params", None)
-st.session_state.setdefault("search_offset", 0)
-st.session_state.setdefault("search_more_available", False)
-st.session_state.setdefault("search_history", [])
-st.session_state.setdefault("search_history_error", None)
-st.session_state.setdefault("history_limit", 10)
-st.session_state.setdefault("saved_searches", [])
-st.session_state.setdefault("saved_search_error", None)
-st.session_state.setdefault("active_saved_search_id", None)
-st.session_state.setdefault("tag_filters", set())
-st.session_state.setdefault("saved_tag_filters", [])
-st.session_state.setdefault("saved_search_tag_filter", [])
-st.session_state.setdefault("bulk_selected_saved_searches", set())
-st.session_state.setdefault("bulk_tags_add", "")
-st.session_state.setdefault("bulk_tags_remove", "")
-st.session_state.setdefault("bulk_tags_replace", "")
 
 with st.sidebar.form("case_search_form"):
     st.markdown("### Search cases")
@@ -126,6 +158,32 @@ st.session_state["search_structured_limit_value"] = st.session_state["search_str
 st.session_state["search_page_size_value"] = st.session_state["search_page_size_slider"]
 st.session_state["preview_enabled"] = preview_enabled
 
+if st.session_state.get("pending_saved_search_preview"):
+    preview = st.session_state["pending_saved_search_preview"]
+    with st.container():
+        st.info(f"Preview saved search: {preview.get('name') or preview.get('id')}")
+        st.json(preview.get("params", {}))
+        confirm_col, cancel_col = st.columns([1, 1])
+        if confirm_col.button("Run saved search", key="confirm_saved_search_preview"):
+            data = st.session_state.pop("pending_saved_search_preview")
+            _execute_saved_search(data["id"], data["params"])
+        if cancel_col.button("Cancel", key="cancel_saved_search_preview"):
+            st.session_state.pop("pending_saved_search_preview", None)
+            st.rerun()
+
+if st.session_state.get("pending_history_search_preview"):
+    history_preview = st.session_state["pending_history_search_preview"]
+    with st.container():
+        st.info(f"Preview history search: {history_preview.get('key')}")
+        st.json(history_preview.get("params", {}))
+        confirm_hist, cancel_hist = st.columns([1, 1])
+        if confirm_hist.button("Run history search", key="confirm_history_search_preview"):
+            data = st.session_state.pop("pending_history_search_preview")
+            _execute_saved_search(data["key"], data["params"])
+        if cancel_hist.button("Cancel", key="cancel_history_search_preview"):
+            st.session_state.pop("pending_history_search_preview", None)
+            st.rerun()
+
 with st.sidebar.expander("Recent search history", expanded=False):
     history_limit = st.slider(
         "Entries to load",
@@ -136,7 +194,7 @@ with st.sidebar.expander("Recent search history", expanded=False):
     )
     if st.button("Refresh history", key="refresh_history_btn"):
         try:
-            payload = fetch_search_history(limit=history_limit)
+            payload = ui_api.fetch_search_history(limit=history_limit)
             st.session_state["search_history"] = payload.get("events", [])
             st.session_state["search_history_error"] = None
             st.session_state["history_limit"] = history_limit
@@ -146,7 +204,7 @@ with st.sidebar.expander("Recent search history", expanded=False):
 with st.sidebar.expander("Saved searches", expanded=False):
     if st.button("Refresh saved searches", key="refresh_saved_searches_btn"):
         try:
-            payload = fetch_saved_searches(limit=25)
+            payload = ui_api.fetch_saved_searches(limit=25)
             st.session_state["saved_searches"] = payload.get("items", [])
             st.session_state["saved_search_error"] = None
         except Exception as exc:
@@ -154,7 +212,7 @@ with st.sidebar.expander("Saved searches", expanded=False):
 
     if st.button("Export tag presets", key="export_tag_presets_btn"):
         try:
-            presets = fetch_tag_presets()
+            presets = ui_api.fetch_tag_presets()
             data = json.dumps(presets, indent=2)
             st.download_button(
                 label="Download Tag Presets",
@@ -176,7 +234,7 @@ with st.sidebar.expander("Saved searches", expanded=False):
                 "tags": tags_to_share,
             }
             try:
-                import_saved_search_api(preset_payload)
+                ui_api.import_saved_search_api(preset_payload)
                 st.success("Tag filter saved as shared preset via saved searches.")
             except RuntimeError as exc:
                 st.error(str(exc))
@@ -187,9 +245,9 @@ with st.sidebar.expander("Saved searches", expanded=False):
             data = json.loads(content.decode("utf-8"))
             items = data if isinstance(data, list) else [data]
             for item in items:
-                import_saved_search_api(item)
+                ui_api.import_saved_search_api(item)
             st.success(f"Imported {len(items)} saved search(es).")
-            refreshed = fetch_saved_searches(limit=25)
+            refreshed = ui_api.fetch_saved_searches(limit=25)
             st.session_state["saved_searches"] = refreshed.get("items", [])
             st.session_state["saved_search_error"] = None
         except RuntimeError as exc:
@@ -311,14 +369,14 @@ with st.sidebar.expander("Saved searches", expanded=False):
             )
             apply_cols = st.columns([1, 1])
             if apply_cols[0].button("Apply bulk tag update", key="apply_bulk_tag_update"):
-                add_tags = _parse_tags(add_tags_raw)
-                remove_tags = _parse_tags(remove_tags_raw)
-                replace_tags = _parse_tags(replace_tags_raw)
+                add_tags = ui_api._parse_tags(add_tags_raw)
+                remove_tags = ui_api._parse_tags(remove_tags_raw)
+                replace_tags = ui_api._parse_tags(replace_tags_raw)
                 if not any([add_tags, remove_tags, replace_tags]):
                     st.warning("Provide tags to add, remove, or replace before applying.")
                 else:
                     try:
-                        result = bulk_update_saved_search_tags(
+                        result = ui_api.bulk_update_saved_search_tags(
                             list(selected_ids),
                             add=add_tags or None,
                             remove=remove_tags or None,
@@ -335,9 +393,9 @@ with st.sidebar.expander("Saved searches", expanded=False):
                         st.session_state["bulk_tags_add"] = ""
                         st.session_state["bulk_tags_remove"] = ""
                         st.session_state["bulk_tags_replace"] = ""
-                        refreshed = fetch_saved_searches(limit=25)
+                        refreshed = ui_api.fetch_saved_searches(limit=25)
                         st.session_state["saved_searches"] = refreshed.get("items", [])
-                        st.experimental_rerun()
+                        st.rerun()
                     except RuntimeError as exc:
                         st.error(str(exc))
             if apply_cols[1].button("Cancel bulk edit", key="cancel_bulk_tag_update"):
@@ -385,20 +443,21 @@ with st.sidebar.expander("Saved searches", expanded=False):
             fav_label = "★" if is_favorite else "☆"
             if col_fav.button(fav_label, key=f"fav_saved_{saved_id}"):
                 try:
-                    patch_saved_search(saved_id, favorite=not is_favorite)
+                    ui_api.patch_saved_search(saved_id, favorite=not is_favorite)
                     st.success(f"{'Pinned' if not is_favorite else 'Unpinned'} '{name}'")
-                    refreshed = fetch_saved_searches(limit=25)
+                    refreshed = ui_api.fetch_saved_searches(limit=25)
                     st.session_state["saved_searches"] = refreshed.get("items", [])
-                    st.experimental_rerun()
+                    st.rerun()
                 except Exception as exc:
                     st.error(f"Failed to toggle favorite: {exc}")
             if col_load.button("Run", key=f"run_saved_{saved_id}"):
                 if st.session_state.get("preview_enabled", True):
-                    with st.modal(f"Preview saved search: {name}"):
-                        st.json(params)
-                        if st.button("Run search", key=f"confirm_run_saved_{saved_id}"):
-                            _execute_saved_search(saved_id, params)
-                        st.caption("Close this dialog to cancel.")
+                    st.session_state["pending_saved_search_preview"] = {
+                        "id": saved_id,
+                        "params": params,
+                        "name": name,
+                    }
+                    st.rerun()
                 else:
                     _execute_saved_search(saved_id, params)
             with col_info.expander("Details / Rename", expanded=False):
@@ -413,12 +472,12 @@ with st.sidebar.expander("Saved searches", expanded=False):
                 new_name = st.text_input("Rename", value=name, key=f"rename_{saved_id}")
                 if st.button("Apply rename", key=f"apply_rename_{saved_id}"):
                     try:
-                        tags_list = _parse_tags(tag_input)
-                        patch_saved_search(saved_id, name=new_name, tags=tags_list)
+                        tags_list = ui_api._parse_tags(tag_input)
+                        ui_api.patch_saved_search(saved_id, name=new_name, tags=tags_list)
                         st.success(f"Renamed to '{new_name}'")
-                        refreshed = fetch_saved_searches(limit=25)
+                        refreshed = ui_api.fetch_saved_searches(limit=25)
                         st.session_state["saved_searches"] = refreshed.get("items", [])
-                        st.experimental_rerun()
+                        st.rerun()
                     except RuntimeError as exc:
                         st.error(str(exc))
                     except Exception as exc:
@@ -426,12 +485,12 @@ with st.sidebar.expander("Saved searches", expanded=False):
             if saved.get("owner"):
                 if col_share.button("Share", key=f"share_saved_{saved_id}"):
                     try:
-                        resp = share_saved_search(saved_id)
+                        resp = ui_api.share_saved_search(saved_id)
                         st.success("Shared search published to team scope")
-                        refreshed = fetch_saved_searches(limit=25)
+                        refreshed = ui_api.fetch_saved_searches(limit=25)
                         st.session_state["saved_searches"] = refreshed.get("items", [])
                         st.session_state["active_saved_search_id"] = resp.get("search_id")
-                        st.experimental_rerun()
+                        st.rerun()
                     except RuntimeError as exc:
                         st.error(str(exc))
                     except Exception as exc:
@@ -440,7 +499,7 @@ with st.sidebar.expander("Saved searches", expanded=False):
                 col_share.write(" ")
             if col_download.button("Export", key=f"export_saved_{saved_id}"):
                 try:
-                    record = export_saved_search(saved_id)
+                    record = ui_api.export_saved_search(saved_id)
                     data = json.dumps(record, indent=2)
                     st.download_button(
                         label="Download JSON",
@@ -453,328 +512,20 @@ with st.sidebar.expander("Saved searches", expanded=False):
                     st.error(str(exc))
             if col_delete.button("Delete", key=f"delete_saved_{saved_id}"):
                 try:
-                    delete_saved_search(saved_id)
+                    ui_api.delete_saved_search(saved_id)
                     st.success(f"Deleted saved search '{name}'")
-                    updated = fetch_saved_searches(limit=25)
+                    updated = ui_api.fetch_saved_searches(limit=25)
                     st.session_state["saved_searches"] = updated.get("items", [])
                     if st.session_state.get("active_saved_search_id") == saved_id:
                         st.session_state["active_saved_search_id"] = None
-                    st.experimental_rerun()
+                    st.rerun()
                 except Exception as exc:
                     st.error(f"Failed to delete saved search: {exc}")
 
 st.session_state["history_limit"] = st.session_state.get("history_limit_slider", st.session_state["history_limit"])
 
 
-def run_search(params: Dict[str, Any], offset: int) -> None:
-    try:
-        st.session_state["case_reviews"] = {}
-        payload = search_cases_api(
-            text=params.get("text"),
-            classification=params.get("classification"),
-            case_id=params.get("case_id"),
-            vector_limit=params["vector_limit"],
-            structured_limit=params["structured_limit"],
-            page_size=params["page_size"],
-            offset=offset,
-        )
-        results = payload.get("results", [])
-        st.session_state["search_results"] = results
-        st.session_state["search_error"] = None
-        st.session_state["search_offset"] = payload.get("offset", offset)
-        st.session_state["search_more_available"] = len(results) == params["page_size"]
-        st.session_state["search_meta"] = {
-            "total": payload.get("total"),
-            "vector_hits": payload.get("vector_hits"),
-            "structured_hits": payload.get("structured_hits"),
-            "search_id": payload.get("search_id"),
-        }
-        # refresh history with latest search event
-        try:
-            history_payload = fetch_search_history(limit=st.session_state.get("history_limit", 10))
-            st.session_state["search_history"] = history_payload.get("events", [])
-            st.session_state["search_history_error"] = None
-        except Exception as exc:
-            st.session_state["search_history_error"] = str(exc)
-
-        try:
-            saved_payload = fetch_saved_searches(limit=25)
-            st.session_state["saved_searches"] = saved_payload.get("items", [])
-            st.session_state["saved_search_error"] = None
-        except Exception as exc:
-            st.session_state["saved_search_error"] = str(exc)
-    except Exception as exc:
-        st.session_state["search_results"] = None
-        st.session_state["search_error"] = str(exc)
-        st.session_state["search_more_available"] = False
-
-
-# Helper helpers
-def api_client() -> httpx.Client:
-    base = st.session_state.get("api_base", API_BASE_URL)
-    key = st.session_state.get("api_key", API_KEY)
-    return httpx.Client(base_url=base, headers={"X-API-KEY": key}, timeout=30.0)
-
-
-def reviews_client() -> httpx.Client:
-    """Convenience client scoped to /reviews routes."""
-    base = st.session_state.get("api_base", API_BASE_URL).rstrip("/")
-    key = st.session_state.get("api_key", API_KEY)
-    reviews_base = f"{base}/reviews"
-    return httpx.Client(base_url=reviews_base, headers={"X-API-KEY": key}, timeout=30.0)
-
-
-def fetch_queue(status: str = "queued", limit: int = 50) -> List[Dict[str, Any]]:
-    client = reviews_client()
-    r = client.get("/queue", params={"status": status, "limit": limit})
-    r.raise_for_status()
-    data = r.json()
-    return data.get("items", [])
-
-
-def fetch_review(review_id: str) -> Dict[str, Any]:
-    client = reviews_client()
-    r = client.get(f"/{review_id}")
-    r.raise_for_status()
-    return r.json()
-
-
-def post_action(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    client = reviews_client()
-    r = client.post(path, json=payload)
-    r.raise_for_status()
-    return r.json()
-
-
-def post_patch(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    client = reviews_client()
-    r = client.patch(path, json=payload)
-    r.raise_for_status()
-    return r.json()
-
-
-def search_cases_api(
-    text: Optional[str],
-    classification: Optional[str],
-    case_id: Optional[str],
-    vector_limit: int,
-    structured_limit: int,
-    page_size: int,
-    offset: int,
-) -> Dict[str, Any]:
-    limit_param = max(vector_limit, structured_limit, page_size)
-    params: Dict[str, Any] = {
-        "limit": limit_param,
-        "offset": offset,
-        "page_size": page_size,
-    }
-    if text:
-        params["text"] = text
-    if classification:
-        params["classification"] = classification
-    if case_id:
-        params["case_id"] = case_id
-    params["vector_limit"] = vector_limit
-    params["structured_limit"] = structured_limit
-
-    client = reviews_client()
-    resp = client.get("/search", params=params)
-    resp.raise_for_status()
-    return resp.json()
-
-
-def fetch_case_reviews(case_id: str, limit: int = 5) -> Dict[str, Any]:
-    client = reviews_client()
-    resp = client.get(f"/case/{case_id}", params={"limit": limit})
-    resp.raise_for_status()
-    return resp.json()
-
-
-def fetch_search_history(limit: int = 10) -> Dict[str, Any]:
-    client = reviews_client()
-    resp = client.get("/search/history", params={"limit": limit})
-    resp.raise_for_status()
-    return resp.json()
-
-
-def fetch_saved_searches(limit: int = 25, owner_only: bool = False) -> Dict[str, Any]:
-    client = reviews_client()
-    resp = client.get("/search/saved", params={"limit": limit, "owner_only": owner_only})
-    resp.raise_for_status()
-    return resp.json()
-
-
-def save_search(
-    name: str,
-    params: Dict[str, Any],
-    search_id: Optional[str] = None,
-    favorite: Optional[bool] = None,
-) -> Dict[str, Any]:
-    client = reviews_client()
-    payload_params = dict(params)
-    payload_params.pop("search_id", None)
-    body: Dict[str, Any] = {"name": name, "params": payload_params}
-    if search_id:
-        body["search_id"] = search_id
-    if favorite is not None:
-        body["favorite"] = favorite
-    resp = client.post("/search/saved", json=body)
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        detail = str(exc)
-        if exc.response is not None:
-            try:
-                detail = exc.response.json().get("detail", detail)
-            except Exception:
-                detail = exc.response.text
-        raise RuntimeError(detail) from exc
-    return resp.json()
-
-
-def delete_saved_search(search_id: str) -> Dict[str, Any]:
-    client = reviews_client()
-    resp = client.delete(f"/search/saved/{search_id}")
-    resp.raise_for_status()
-    return resp.json()
-
-
-def patch_saved_search(
-    search_id: str,
-    name: Optional[str] = None,
-    params: Optional[Dict[str, Any]] = None,
-    favorite: Optional[bool] = None,
-    tags: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    payload: Dict[str, Any] = {}
-    if name is not None:
-        payload["name"] = name
-    if params is not None:
-        payload["params"] = params
-    if favorite is not None:
-        payload["favorite"] = favorite
-    if tags is not None:
-        payload["tags"] = tags
-    client = reviews_client()
-    resp = client.patch(f"/search/saved/{search_id}", json=payload)
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        detail = str(exc)
-        if exc.response is not None:
-            try:
-                detail = exc.response.json().get("detail", detail)
-            except Exception:
-                detail = exc.response.text
-        raise RuntimeError(detail) from exc
-    return resp.json()
-
-
-def share_saved_search(search_id: str) -> Dict[str, Any]:
-    client = reviews_client()
-    resp = client.post(f"/search/saved/{search_id}/share")
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        detail = str(exc)
-        if exc.response is not None:
-            try:
-                detail = exc.response.json().get("detail", detail)
-            except Exception:
-                detail = exc.response.text
-        raise RuntimeError(detail) from exc
-    return resp.json()
-
-
-def import_saved_search_api(payload: Dict[str, Any]) -> Dict[str, Any]:
-    client = reviews_client()
-    resp = client.post("/search/saved/import", json=payload)
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        detail = str(exc)
-        if exc.response is not None:
-            try:
-                detail = exc.response.json().get("detail", detail)
-            except Exception:
-                detail = exc.response.text
-        raise RuntimeError(detail) from exc
-    return resp.json()
-
-
-def export_saved_search(search_id: str) -> Dict[str, Any]:
-    client = reviews_client()
-    resp = client.get(f"/search/saved/{search_id}/export")
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        detail = str(exc)
-        if exc.response is not None:
-            try:
-                detail = exc.response.json().get("detail", detail)
-            except Exception:
-                detail = exc.response.text
-        raise RuntimeError(detail) from exc
-    return resp.json()
-
-
-def fetch_tag_presets(owner_only: bool = False) -> List[Dict[str, Any]]:
-    client = reviews_client()
-    resp = client.get("/search/tag-presets", params={"owner_only": owner_only})
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        detail = str(exc)
-        if exc.response is not None:
-            try:
-                detail = exc.response.json().get("detail", detail)
-            except Exception:
-                detail = exc.response.text
-        raise RuntimeError(detail) from exc
-    return resp.json().get("presets", [])
-
-
-def bulk_update_saved_search_tags(
-    search_ids: List[str],
-    add: Optional[List[str]] = None,
-    remove: Optional[List[str]] = None,
-    replace: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    payload: Dict[str, Any] = {"search_ids": search_ids}
-    if add:
-        payload["add"] = add
-    if remove:
-        payload["remove"] = remove
-    if replace:
-        payload["replace"] = replace
-    client = reviews_client()
-    resp = client.post("/search/saved/bulk-tags", json=payload)
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        detail = str(exc)
-        if exc.response is not None:
-            try:
-                detail = exc.response.json().get("detail", detail)
-            except Exception:
-                detail = exc.response.text
-        raise RuntimeError(detail) from exc
-    return resp.json()
-
-
-def _execute_saved_search(saved_id: str, params: Dict[str, Any]) -> None:
-    st.session_state["active_saved_search_id"] = saved_id
-    st.session_state["search_text_input"] = params.get("text", "") or ""
-    st.session_state["search_class_input"] = params.get("classification", "") or ""
-    st.session_state["search_case_input"] = params.get("case_id", "") or ""
-    st.session_state["search_vector_limit_slider"] = params.get("vector_limit", 5) or 5
-    st.session_state["search_structured_limit_slider"] = params.get("structured_limit", 5) or 5
-    st.session_state["search_page_size_slider"] = params.get("page_size", 5) or 5
-    st.session_state["search_params"] = params
-    offset = params.get("offset", 0)
-    st.session_state["search_offset"] = offset
-    run_search(params, offset=offset)
-    st.experimental_rerun()
+render_discovery_engine_panel()
 
 
 if search_submitted:
@@ -800,14 +551,14 @@ if search_submitted:
                     if item.get("search_id") == active_id:
                         current_favorite = bool(item.get("favorite"))
                         break
-            response = save_search(
+            response = ui_api.save_search(
                 save_name.strip(),
                 params,
                 search_id=active_id,
                 favorite=current_favorite,
             )
             st.success(f"Saved search '{save_name.strip()}'")
-            payload = fetch_saved_searches(limit=25)
+            payload = ui_api.fetch_saved_searches(limit=25)
             st.session_state["saved_searches"] = payload.get("items", [])
             st.session_state["saved_search_error"] = None
             st.session_state["active_saved_search_id"] = response.get("search_id")
@@ -826,7 +577,7 @@ status = st.sidebar.selectbox("Show cases by status", ["queued", "in_review", "a
 limit = st.sidebar.slider("Max cases to load", 5, 200, 50)
 
 if st.sidebar.button("Refresh queue"):
-    st.experimental_rerun()
+    st.rerun()
 
 search_error = st.session_state.get("search_error")
 if search_error:
@@ -854,7 +605,7 @@ if search_params and page_size:
         new_offset = max(0, current_offset - page_size)
         st.session_state["search_offset"] = new_offset
         run_search(search_params, offset=new_offset)
-        st.experimental_rerun()
+    st.rerun()
 
     if nav_next.button(
         "Next ▶",
@@ -864,7 +615,7 @@ if search_params and page_size:
         new_offset = current_offset + page_size
         st.session_state["search_offset"] = new_offset
         run_search(search_params, offset=new_offset)
-        st.experimental_rerun()
+    st.rerun()
 
 search_results = st.session_state.get("search_results") or []
 if search_results:
@@ -924,7 +675,7 @@ if search_results:
 
         if st.button("Show queue entries", key=f"show_queue_{case_id}"):
             try:
-                payload = fetch_case_reviews(
+                payload = ui_api.fetch_case_reviews(
                     case_id,
                     limit=st.session_state.get("search_structured_limit_value", 5),
                 )
@@ -945,15 +696,15 @@ if search_results:
 
                 if action_cols[0].button("Claim", key=f"claim_search_{review_id}"):
                     try:
-                        post_action(f"/{review_id}/claim", {})
+                        ui_api.post_action(f"/{review_id}/claim", {})
                         st.success(f"Review {review_id} claimed.")
-                        st.experimental_rerun()
+                        st.rerun()
                     except Exception as exc:
                         st.error(f"Failed to claim {review_id}: {exc}")
 
                 if action_cols[1].button("Accept", key=f"accept_search_{review_id}"):
                     try:
-                        post_action(
+                        ui_api.post_action(
                             f"/{review_id}/decision",
                             {
                                 "decision": "accepted",
@@ -962,13 +713,13 @@ if search_results:
                             },
                         )
                         st.success(f"Review {review_id} accepted.")
-                        st.experimental_rerun()
+                        st.rerun()
                     except Exception as exc:
                         st.error(f"Failed to accept {review_id}: {exc}")
 
                 if action_cols[2].button("Reject", key=f"reject_search_{review_id}"):
                     try:
-                        post_action(
+                        ui_api.post_action(
                             f"/{review_id}/decision",
                             {
                                 "decision": "rejected",
@@ -976,7 +727,7 @@ if search_results:
                             },
                         )
                         st.warning(f"Review {review_id} rejected.")
-                        st.experimental_rerun()
+                        st.rerun()
                     except Exception as exc:
                         st.error(f"Failed to reject {review_id}: {exc}")
 
@@ -1015,17 +766,17 @@ if history_events:
                 "page_size": payload.get("page_size", st.session_state["search_page_size_value"]),
             }
             if st.session_state.get("preview_enabled", True):
-                with st.modal(f"Preview history search: {search_key}"):
-                    st.json(params)
-                    if st.button("Run search", key=f"confirm_run_history_{search_key}"):
-                        _execute_saved_search(search_key, params)
-                    st.caption("Close this dialog to cancel.")
+                st.session_state["pending_history_search_preview"] = {
+                    "key": search_key,
+                    "params": params,
+                }
+                st.rerun()
             else:
                 _execute_saved_search(search_key, params)
 
 queue = []
 try:
-    queue = fetch_queue(status=status, limit=limit)
+    queue = ui_api.fetch_queue(status=status, limit=limit)
 except Exception as e:
     st.error(f"Failed to fetch queue: {e}")
 
@@ -1043,9 +794,9 @@ for case in queue:
         # Claim
         if cols[0].button("👀 Claim", key=f"claim_{case['review_id']}"):
             try:
-                resp = post_action(f"/{case['review_id']}/claim", {})
+                resp = ui_api.post_action(f"/{case['review_id']}/claim", {})
                 st.success("Claimed")
-                st.experimental_rerun()
+                st.rerun()
             except Exception as e:
                 st.error(f"Claim failed: {e}")
 
@@ -1058,9 +809,9 @@ for case in queue:
                     "notes": "Accepted via dashboard",
                     "auto_generate_report": bool(auto_report),
                 }
-                resp = post_action(f"/{case['review_id']}/decision", payload)
+                resp = ui_api.post_action(f"/{case['review_id']}/decision", payload)
                 st.success("Accepted")
-                st.experimental_rerun()
+                st.rerun()
             except Exception as e:
                 st.error(f"Accept failed: {e}")
 
@@ -1068,9 +819,9 @@ for case in queue:
         if cols[2].button("❌ Reject", key=f"reject_{case['review_id']}"):
             try:
                 payload = {"decision": "rejected", "notes": "Rejected via dashboard"}
-                resp = post_action(f"/{case['review_id']}/decision", payload)
+                resp = ui_api.post_action(f"/{case['review_id']}/decision", payload)
                 st.success("Rejected")
-                st.experimental_rerun()
+                st.rerun()
             except Exception as e:
                 st.error(f"Reject failed: {e}")
 
@@ -1078,7 +829,7 @@ for case in queue:
         if cols[3].button("📄 Generate Report", key=f"report_{case['review_id']}"):
             try:
                 # Ensure the case is marked accepted before triggering report generation
-                post_action(
+                ui_api.post_action(
                     f"/{case['review_id']}/decision",
                     {
                         "decision": "accepted",
@@ -1087,7 +838,7 @@ for case in queue:
                     },
                 )
 
-                client = api_client()
+                client = ui_api.api_client()
                 response = client.post("/reports/generate")
                 response.raise_for_status()
                 payload = response.json()
@@ -1104,35 +855,12 @@ for case in queue:
         # Show actions/audit
         if st.button("Show history", key=f"history_{case['review_id']}"):
             try:
-                client = api_client()
+                client = ui_api.api_client()
                 r = client.get(f"/{case['review_id']}/actions")
                 r.raise_for_status()
                 st.json(r.json())
             except Exception as e:
                 st.error(f"Failed to fetch history: {e}")
-        if col_download.button("Export", key=f"export_saved_{saved_id}"):
-            try:
-                record = export_saved_search(saved_id)
-                data = json.dumps(record, indent=2)
-                st.download_button(
-                    label="Download JSON",
-                    data=data,
-                    file_name=f"saved_search_{saved_id}.json",
-                    mime="application/json",
-                    key=f"download_btn_{saved_id}",
-                )
-            except RuntimeError as exc:
-                st.error(str(exc))
-
-
-def _parse_tags(raw: Optional[Any]) -> List[str]:
-    if not raw:
-        return []
-    if isinstance(raw, list):
-        candidates = [str(item) for item in raw]
-    else:
-        candidates = str(raw).split(",")
-    return [item.strip() for item in candidates if item and item.strip()]
 
 
 def _tag_badge(tag: str) -> str:

@@ -19,6 +19,8 @@ __pycache__
 
 # Local data and model artifacts
 /data/
+!data/retrieval_poc
+!data/retrieval_poc/**
 /notebooks/
 /chroma_store/
 /faiss_store/
