@@ -36,6 +36,14 @@ attrs==25.4.0
     #   outcome
     #   referencing
     #   trio
+azure-core==1.36.0
+    # via
+    #   azure-identity
+    #   azure-storage-blob
+azure-identity==1.25.1
+    # via i4g (pyproject.toml)
+azure-storage-blob==12.27.1
+    # via i4g (pyproject.toml)
 backoff==2.2.1
     # via posthog
 bce-python-sdk==0.9.46
@@ -61,6 +69,8 @@ certifi==2025.10.5
     #   httpx
     #   kubernetes
     #   requests
+cffi==2.0.0
+    # via cryptography
 cfgv==3.4.0
     # via pre-commit
 chardet==5.2.0
@@ -80,6 +90,12 @@ coloredlogs==15.0.1
     # via onnxruntime
 colorlog==6.10.1
     # via paddlex
+cryptography==46.0.3
+    # via
+    #   azure-identity
+    #   azure-storage-blob
+    #   msal
+    #   pyjwt
 cssselect==1.3.0
     # via premailer
 cssutils==2.11.1
@@ -136,7 +152,10 @@ gitpython==3.1.45
 google-api-core[grpc]==2.27.0
     # via
     #   google-api-python-client
+    #   google-cloud-core
     #   google-cloud-discoveryengine
+    #   google-cloud-firestore
+    #   google-cloud-storage
 google-api-python-client==2.185.0
     # via i4g (pyproject.toml)
 google-auth==2.41.1
@@ -145,7 +164,10 @@ google-auth==2.41.1
     #   google-api-python-client
     #   google-auth-httplib2
     #   google-auth-oauthlib
+    #   google-cloud-core
     #   google-cloud-discoveryengine
+    #   google-cloud-firestore
+    #   google-cloud-storage
     #   kubernetes
 google-auth-httplib2==0.2.0
     # via
@@ -153,8 +175,22 @@ google-auth-httplib2==0.2.0
     #   i4g (pyproject.toml)
 google-auth-oauthlib==1.2.2
     # via i4g (pyproject.toml)
+google-cloud-core==2.5.0
+    # via
+    #   google-cloud-firestore
+    #   google-cloud-storage
 google-cloud-discoveryengine==0.15.0
     # via i4g (pyproject.toml)
+google-cloud-firestore==2.21.0
+    # via i4g (pyproject.toml)
+google-cloud-storage==3.5.0
+    # via i4g (pyproject.toml)
+google-crc32c==1.7.1
+    # via
+    #   google-cloud-storage
+    #   google-resumable-media
+google-resumable-media==2.7.2
+    # via google-cloud-storage
 googleapis-common-protos==1.71.0
     # via
     #   google-api-core
@@ -218,6 +254,8 @@ importlib-resources==6.5.2
     # via chromadb
 iniconfig==2.3.0
     # via pytest
+isodate==0.7.2
+    # via azure-storage-blob
 jinja2==3.1.6
     # via
     #   altair
@@ -306,6 +344,12 @@ more-itertools==10.8.0
     # via cssutils
 mpmath==1.3.0
     # via sympy
+msal==1.34.0
+    # via
+    #   azure-identity
+    #   msal-extensions
+msal-extensions==1.3.1
+    # via azure-identity
 multidict==6.7.0
     # via
     #   aiohttp
@@ -411,7 +455,7 @@ pillow==12.0.0
     #   paddlex
     #   pytesseract
     #   streamlit
-pip-tools==7.5.1
+pip-tools==7.5.2
     # via i4g (pyproject.toml)
 platformdirs==4.5.0
     # via virtualenv
@@ -419,7 +463,7 @@ pluggy==1.6.0
     # via pytest
 posthog==5.4.0
     # via chromadb
-pre-commit==4.3.0
+pre-commit==4.4.0
     # via i4g (pyproject.toml)
 premailer==3.10.0
     # via paddlex
@@ -435,10 +479,12 @@ proto-plus==1.26.1
     # via
     #   google-api-core
     #   google-cloud-discoveryengine
+    #   google-cloud-firestore
 protobuf==5.29.5
     # via
     #   google-api-core
     #   google-cloud-discoveryengine
+    #   google-cloud-firestore
     #   googleapis-common-protos
     #   grpcio-status
     #   i4g (pyproject.toml)
@@ -464,6 +510,8 @@ pybase64==1.4.2
     # via chromadb
 pyclipper==1.3.0.post6
     # via paddlex
+pycparser==2.23
+    # via cffi
 pycryptodome==3.23.0
     # via bce-python-sdk
 pydantic==2.12.3
@@ -492,6 +540,12 @@ pygments==2.19.2
     # via
     #   pytest
     #   rich
+pyjwt[crypto]==2.10.1
+    # via
+    #   msal
+    #   pyjwt
+pyodbc==5.3.0
+    # via i4g (pyproject.toml)
 pyparsing==3.2.5
     # via httplib2
 pypdfium2==5.0.0
@@ -504,7 +558,7 @@ pyproject-hooks==1.2.0
     #   pip-tools
 pytesseract==0.3.13
     # via i4g (pyproject.toml)
-pytest==8.4.2
+pytest==9.0.1
     # via
     #   i4g (pyproject.toml)
     #   pytest-anyio
@@ -553,8 +607,10 @@ regex==2025.10.23
 requests==2.32.5
     # via
     #   aistudio-sdk
+    #   azure-core
     #   datasets
     #   google-api-core
+    #   google-cloud-storage
     #   huggingface-hub
     #   i4g (pyproject.toml)
     #   kubernetes
@@ -562,6 +618,7 @@ requests==2.32.5
     #   langchain-community
     #   langsmith
     #   modelscope
+    #   msal
     #   paddleocr
     #   paddlex
     #   posthog
@@ -668,6 +725,9 @@ typing-extensions==4.15.0
     #   aiosignal
     #   altair
     #   anyio
+    #   azure-core
+    #   azure-identity
+    #   azure-storage-blob
     #   beautifulsoup4
     #   chromadb
     #   fastapi
