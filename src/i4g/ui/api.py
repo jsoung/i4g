@@ -11,6 +11,13 @@ import streamlit as st
 from google.cloud import discoveryengine_v1beta as discoveryengine
 from google.protobuf import json_format
 
+
+@st.cache_resource
+def _search_client() -> discoveryengine.SearchServiceClient:
+    """Reuse a single Discovery Engine client to avoid reconnect overhead."""
+    return discoveryengine.SearchServiceClient()
+
+
 from i4g.settings import get_settings
 
 SETTINGS = get_settings()
@@ -29,7 +36,7 @@ def _convert_struct(data: Any) -> Any:
 
 
 def perform_vertex_search(params: Dict[str, Any]) -> List[Dict[str, Any]]:
-    client = discoveryengine.SearchServiceClient()
+    client = _search_client()
 
     serving_config = client.serving_config_path(
         project=params["project"],
@@ -76,7 +83,7 @@ def perform_vertex_search(params: Dict[str, Any]) -> List[Dict[str, Any]]:
         elif document.struct_data:
             struct = _convert_struct(document.struct_data)
 
-        summary = struct.get("summary") or struct.get("text") or document.title or ""
+        summary = struct.get("summary") or struct.get("text") or struct.get("title") or getattr(document, "title", "")
         tags = struct.get("tags") or []
         label = struct.get("ground_truth_label")
 
@@ -90,6 +97,8 @@ def perform_vertex_search(params: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "summary": summary,
                 "label": label,
                 "tags": tags,
+                "source": struct.get("source") or struct.get("index_type"),
+                "index_type": struct.get("index_type"),
                 "struct": struct,
                 "rank_signals": raw_payload.get("rankSignals", {}),
                 "raw": raw_payload,

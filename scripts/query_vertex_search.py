@@ -111,6 +111,15 @@ def print_summary(results: Iterable[discoveryengine.SearchResponse.SearchResult]
         tags = struct.get("tags")
         if isinstance(tags, list):
             print(f"    tags: {', '.join(tags)}")
+        meta_parts: list[str] = []
+        source = struct.get("source")
+        if isinstance(source, str) and source:
+            meta_parts.append(f"source={source}")
+        index_type = struct.get("index_type")
+        if isinstance(index_type, str) and index_type and index_type != source:
+            meta_parts.append(f"index_type={index_type}")
+        if meta_parts:
+            print(f"    meta: {', '.join(meta_parts)}")
         print()
 
     if not had_results:

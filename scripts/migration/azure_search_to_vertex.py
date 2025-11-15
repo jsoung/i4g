@@ -41,10 +41,12 @@ class IndexMapping:
 
     def __init__(
         self,
+        index_type: str,
         content_fields: Iterable[str],
         struct_fields: Iterable[str],
         title_field: Optional[str] = None,
     ) -> None:
+        self.index_type = index_type
         self.content_fields: List[str] = list(content_fields)
         self.struct_fields: List[str] = list(struct_fields)
         self.title_field = title_field
@@ -68,6 +70,9 @@ class IndexMapping:
             if value in (None, "", [], {}):
                 continue
             struct[field] = value
+        struct["index_type"] = self.index_type
+        if not struct.get("source"):
+            struct["source"] = self.index_type
 
         doc: Dict[str, object] = {"id": doc_id}
         content_text = content.strip()
@@ -117,6 +122,7 @@ class IndexMapping:
 
 INDEX_MAPPINGS: Dict[str, IndexMapping] = {
     "groupsio-search": IndexMapping(
+        index_type="groupsio-search",
         content_fields=("subject", "body", "content"),
         struct_fields=(
             "sender_name",
@@ -131,6 +137,7 @@ INDEX_MAPPINGS: Dict[str, IndexMapping] = {
         title_field="subject",
     ),
     "intake-form-search": IndexMapping(
+        index_type="intake-form-search",
         content_fields=(
             "incident_details",
             "additional_info",

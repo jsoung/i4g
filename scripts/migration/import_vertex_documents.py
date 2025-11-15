@@ -42,6 +42,11 @@ def parse_args() -> argparse.Namespace:
         help="Reconciliation mode for import (default: INCREMENTAL)",
     )
     parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate arguments and print intended request without calling the ImportDocuments API.",
+    )
+    parser.add_argument(
         "--error-prefix",
         help="Optional GCS prefix (gs://bucket/path) for per-document error logs",
     )
@@ -70,13 +75,12 @@ def build_parent(project: str, location: str, collection_id: str, data_store_id:
     )
 
 
-def import_documents(
+def build_request(
     parent: str,
     uris: Iterable[str],
     reconciliation_mode: str,
     error_prefix: str | None,
-):
-    client = discoveryengine.DocumentServiceClient()
+) -> discoveryengine.ImportDocumentsRequest:
     gcs_source = discoveryengine.GcsSource(input_uris=list(uris))
 
     error_config = None
@@ -93,11 +97,7 @@ def import_documents(
         error_config=error_config,
     )
 
-    operation = client.import_documents(request=request)
-    # Log the resolved error prefix so failures are discoverable even if the caller forgets.
-    if error_config:
-        logging.info("Error manifest prefix: %s", error_config.gcs_prefix)
-    return operation
+    return request
 
 
 def main() -> None:
@@ -108,7 +108,17 @@ def main() -> None:
     logging.info("Starting import into %s", parent)
     logging.info("URIs: %s", ", ".join(args.uris))
 
-    operation = import_documents(parent, args.uris, args.reconciliation_mode, args.error_prefix)
+    request = build_request(parent, args.uris, args.reconciliation_mode, args.error_prefix)
+    logging.debug("ImportDocumentsRequest: %s", request)
+
+    if args.dry_run:
+        logging.info("Dry-run mode enabled; request not sent.")
+        return
+
+    client = discoveryengine.DocumentServiceClient()
+    operation = client.import_documents(request=request)
+    if request.error_config and request.error_config.gcs_prefix:
+        logging.info("Error manifest prefix: %s", request.error_config.gcs_prefix)
     logging.info("Operation name: %s", operation.operation.name)
     logging.info("Waiting for import to complete...")
 
