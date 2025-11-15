@@ -18,6 +18,7 @@ dependencies = [
     "google-api-python-client",
     "google-auth-httplib2",
     "azure-identity",
+    "azure-search-documents>=11.6.0,<12",
     "google-auth-oauthlib",
     "google-cloud-discoveryengine>=0.15.0,<1.0",
     "google-cloud-storage",

@@ -8,6 +8,7 @@ import json
 import logging
 import sys
 from collections.abc import Sequence as AbcSequence
+from itertools import islice
 from typing import Any, Iterable, Sequence
 
 from google.cloud import discoveryengine_v1beta as discoveryengine
@@ -77,6 +78,14 @@ def _convert_struct(data: Any) -> Any:
     return data
 
 
+def _snippet(value: Any, length: int = 120) -> str | None:
+    if isinstance(value, str):
+        text = value.strip()
+        if text:
+            return text[:length] + ("…" if len(text) > length else "")
+    return None
+
+
 def print_summary(results: Iterable[discoveryengine.SearchResponse.SearchResult]) -> None:
     had_results = False
     for rank, result in enumerate(results, start=1):
@@ -90,7 +99,13 @@ def print_summary(results: Iterable[discoveryengine.SearchResponse.SearchResult]
                 LOGGER.debug("Failed to decode json_data for document %s", document.id)
         elif document.struct_data:
             struct = _convert_struct(document.struct_data)
-        summary = struct.get("summary") or document.title or "<no summary>"
+        summary = (
+            struct.get("summary")
+            or struct.get("subject")
+            or struct.get("title")
+            or _snippet(struct.get("content"))
+            or "<no summary>"
+        )
         print(f"#{rank}  id={document.id}")
         print(f"    summary: {summary}")
         tags = struct.get("tags")
@@ -140,7 +155,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     LOGGER.debug("SearchRequest: %s", request)
 
-    results = list(client.search(request=request))
+    results_iter = client.search(request=request)
+    if args.page_size and args.page_size > 0:
+        results = list(islice(results_iter, args.page_size))
+    else:
+        results = list(results_iter)
 
     if args.raw:
         payload = [json_format.MessageToDict(result._pb) for result in results]  # type: ignore[attr-defined]
