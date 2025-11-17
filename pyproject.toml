@@ -22,6 +22,7 @@ dependencies = [
     "google-auth-oauthlib",
     "google-cloud-discoveryengine>=0.15.0,<1.0",
     "google-cloud-storage",
+    "google-cloud-secret-manager",
     "huggingface-hub>=0.34.0,<1.0",
     "langchain",
     "langchain-chroma",
