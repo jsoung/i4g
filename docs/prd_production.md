@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-**i4g (Intelligence for Good)** is transitioning from a functional prototype to a production-ready platform that helps scam victims document fraud and generate law enforcement reports. This PRD outlines the requirements for a **zero-budget production deployment** using Google Cloud Platform's free tier, with a focus on **PII protection, volunteer scalability, partnership readiness, and forward compatibility with future mobile clients**.
+**i4g (Intelligence for Good)** is transitioning from a functional prototype to a production-ready platform that helps scam users document fraud and generate law enforcement reports. This PRD outlines the requirements for a **zero-budget production deployment** using Google Cloud Platform's free tier, with a focus on **PII protection, volunteer scalability, partnership readiness, and forward compatibility with future mobile clients**.
 
 **Timeline**: 8 weeks @ 10 hours/week = 80 hours total
 **Deployment Target**: GCP Cloud Run (serverless, auto-scaling)
@@ -75,7 +75,7 @@
 
 ## User Personas
 
-### 1. **Scam Victim** (Primary End User)
+### 1. **Scam User** (Primary End User)
 - **Demographics**: 65+ years old, limited technical literacy
 - **Pain Points**:
   - Overwhelmed by evidence collection (emails, screenshots, receipts)
@@ -87,12 +87,12 @@
   - Professional police report for filing
 
 **User Journey**:
-1. Victim visits `i4g.org/report`
+1. User visits `i4g.org/report`
 2. Uploads evidence (emails, screenshots, bank statements)
 3. System automatically extracts PII and tokenizes
 4. Receives confirmation email with case ID
 5. Analyst reviews and approves case (1-3 days)
-6. Victim receives PDF police report via secure link
+6. User receives PDF police report via secure link
 
 ---
 
@@ -121,16 +121,16 @@
 ### 3. **Law Enforcement Officer** (Tertiary User)
 - **Demographics**: Detectives in financial crimes units
 - **Pain Points**:
-  - Receives poorly documented victim reports
+  - Receives poorly documented user reports
   - Lacks technical expertise to analyze crypto transactions
   - Case backlog (hundreds of open fraud cases)
 - **Goals**:
   - Standardized report format (court-admissible)
   - Digital evidence chain of custody
-  - Batch export for multi-victim cases
+  - Batch export for multi-user cases
 
 **User Journey**:
-1. Victim brings i4g-generated report to police station
+1. User brings i4g-generated report to police station
 2. LEO validates report authenticity (digital signature)
 3. Accesses evidence files via secure portal (with subpoena if needed)
 4. Downloads batch export for organized crime investigation
@@ -148,7 +148,7 @@
 - [ ] PII encrypted with AES-256-GCM before storage in Firestore `/pii_vault` collection
 - [ ] Case data contains only tokens (e.g., `<PII:SSN:7a8f2e>`)
 - [ ] Analysts see masked PII (e.g., `███████`) in dashboard
-- [ ] LEO reports reconstruct real PII only with victim consent
+- [ ] LEO reports reconstruct real PII only with user consent
 
 **Implementation Notes**:
 ```python
@@ -183,7 +183,7 @@ tokens = pii_detector.tokenize(text)
 **User Roles**:
 | Role | Permissions |
 |------|-------------|
-| `victim` | View/edit own case only |
+| `user` | View/edit own case only |
 | `analyst` | View assigned cases, add notes |
 | `admin` | View all cases, manage analysts |
 | `leo` | Download reports with subpoena |
@@ -309,7 +309,7 @@ gcloud run deploy i4g-api \
 │                                         │
 │ ┌─────────────────────────────────────┐ │
 │ │ Case \#1234 - Romance Scam          │ │
-│ │ Victim: ███████ (@gmail.com)        │ │
+│ │ User: ███████ (@gmail.com)        │ │
 │ │ Amount Lost: $10,000                │ │
 │ │ Status: Pending Review              │ │
 │ │ [View Details] [Approve]            │ │
@@ -317,7 +317,7 @@ gcloud run deploy i4g-api \
 │                                         │
 │ ┌─────────────────────────────────────┐ │
 │ │ Case \#1235 - Crypto Scam           │ │
-│ │ Victim: ███████ (@outlook.com)      │ │
+│ │ User: ███████ (@outlook.com)      │ │
 │ │ Amount Lost: $5,000                 │ │
 │ │ Status: In Progress                 │ │
 │ │ [View Details]                      │ │
@@ -383,7 +383,7 @@ jobs:
 
 **Acceptance Criteria**:
 - [ ] PDF format (replacing current .docx)
-- [ ] Standardized template: Header, victim info, scammer info, timeline, evidence links
+- [ ] Standardized template: Header, user info, scammer info, timeline, evidence links
 - [ ] Digital signature (hash + timestamp for authenticity)
 - [ ] Batch export (multiple cases for organized crime investigation)
 - [ ] Downloadable from `/api/cases/{case_id}/report.pdf`
@@ -399,7 +399,7 @@ Analyst: Jane Doe (jane@university.edu)
 
 VICTIM INFORMATION:
   Name: [REDACTED - See PII Vault]
-  Email: victim@example.com
+  Email: user@example.com
   Phone: [REDACTED]
 
 SCAM CLASSIFICATION:
@@ -415,7 +415,7 @@ FINANCIAL LOSS:
 TIMELINE:
   2025-09-15: First contact on dating app
   2025-09-20: Scammer requests financial help
-  2025-09-25: Victim sends $10,000
+  2025-09-25: User sends $10,000
   2025-09-30: Scammer stops responding
 
 EVIDENCE FILES:
@@ -434,7 +434,7 @@ Timestamp: 2025-10-30T12:00:00Z
 ────────────────────────────────────────
 ```
 
-**Dependencies**: FR-1 (PII vault for victim details), FR-5 (analyst approval)
+**Dependencies**: FR-1 (PII vault for user details), FR-5 (analyst approval)
 **Effort**: 4 hours (PDF generation + template design)
 
 ---
@@ -481,7 +481,7 @@ graph LR
     E --> F[Automated Purge]
     F --> G[Permanent Deletion]
 
-    B --> H[Victim Requests Deletion]
+    B --> H[User Requests Deletion]
     H --> G
 ```
 
@@ -591,7 +591,7 @@ async def purge_expired_cases():
 ```mermaid
 graph TB
     subgraph "User Layer"
-        victim[Victim Browser]
+        user[User Browser]
         analyst[Analyst Browser]
     end
 
@@ -610,7 +610,7 @@ graph TB
         ollama[Ollama LLM<br/>Cloud Run GPU]
     end
 
-    victim -->|HTTPS| api
+    user -->|HTTPS| api
     analyst -->|HTTPS| dashboard
     dashboard -->|API calls| api
     api --> firestore
@@ -663,7 +663,7 @@ graph TB
 /cases (main case data)
   └─ {case_id}
       ├─ created_at: timestamp
-      ├─ victim_email: string
+      ├─ user_email: string
       ├─ title: string
       ├─ description: string (with PII tokens: <PII:SSN:7a8f2e>)
       ├─ classification: {type, confidence}
@@ -719,16 +719,16 @@ graph TB
 ### FERPA (University Partnerships)
 - All university-affiliated analysts must complete FERPA training
 - Data Use Agreement (DUA) signed annually
-- No educational records stored (only victim-submitted evidence)
+- No educational records stored (only user-submitted evidence)
 
 ### GDPR/CCPA (Data Privacy)
 - Data export: `/api/cases/{case_id}/export` (JSON format)
 - Data deletion: `DELETE /api/cases/{case_id}` (hard delete)
-- Consent tracking: Victims opt-in to data processing
+- Consent tracking: Users opt-in to data processing
 
 ### Data Breach Laws (50 States)
 - Incident response plan (detect, contain, notify within 72 hours)
-- Victim notification template prepared
+- User notification template prepared
 - Law enforcement contact (local FBI Cyber Division)
 
 ---

@@ -6,7 +6,7 @@
 
 ## About the Project
 
-**i4g** is a volunteer-driven, non-profit platform helping scam victims document and report fraud to law enforcement. We use AI (LangChain + Ollama) to classify scams, extract evidence, and generate police reports.
+**i4g** is a volunteer-driven, non-profit platform helping scam users document and report fraud to law enforcement. We use AI (LangChain + Ollama) to classify scams, extract evidence, and generate police reports.
 
 **Current Status**: Transitioning from prototype to production (Phase 1 MVP in progress)
 
@@ -19,7 +19,7 @@ We welcome contributions from:
 - **Software Engineers**: Python, FastAPI, React, cloud infrastructure
 - **Graduate Students**: Computer science, data science, criminology (internship credits available)
 - **Security Experts**: Penetration testing, compliance audits
-- **UX/UI Designers**: Improving analyst dashboard and victim forms
+- **UX/UI Designers**: Improving analyst dashboard and user forms
 - **Legal Advisors**: FERPA, GDPR, data privacy guidance
 - **Scam Researchers**: Classification taxonomy, emerging fraud trends
 
@@ -427,7 +427,7 @@ By contributing to i4g, you agree that your contributions will be licensed under
 
 ## Thank You! 🙏
 
-Every contribution—no matter how small—makes a difference in helping scam victims. We're grateful for your time and expertise.
+Every contribution—no matter how small—makes a difference in helping scam users. We're grateful for your time and expertise.
 
 **Questions?** Reach out to jerry.soung@gmail.com or open a discussion on GitHub.
 

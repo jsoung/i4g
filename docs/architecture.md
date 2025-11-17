@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-**i4g** is a cloud-native, AI-powered platform that helps scam victims document fraud and generate law enforcement reports. The system uses a **privacy-by-design** architecture where personally identifiable information (PII) is tokenized immediately upon upload and stored separately from case data.
+**i4g** is a cloud-native, AI-powered platform that helps scam users document fraud and generate law enforcement reports. The system uses a **privacy-by-design** architecture where personally identifiable information (PII) is tokenized immediately upon upload and stored separately from case data.
 
 **Key Design Principles**:
 1. **Zero Trust**: No analyst ever sees raw PII
@@ -24,7 +24,7 @@
 ┌──────────────────────────────────────────────────────────┐
 │                      User Layer                          │
 │  ┌──────────┐      ┌──────────┐      ┌──────────┐        │
-│  │  Victim  │      │ Analyst  │      │   LEO    │        │
+│  │  User  │      │ Analyst  │      │   LEO    │        │
 │  └────┬─────┘      └────┬─────┘      └────┬─────┘        │
 └───────┼─────────────────┼─────────────────┼──────────────┘
         │                 │                 │
@@ -92,7 +92,7 @@
 - `POST /api/cases/{id}/approve` - Generate LEO report
 - `GET /api/health` - Health check
 
-Note: The `POST /api/cases` endpoint above is listed as a planned victim-facing intake route in the architecture. In the current implementation this exact endpoint is not present — case intake is handled via the review queue and review-related routes (see `src/i4g/api/review.py` and the `/reviews` router). Consider this endpoint "planned" until a dedicated intake route is added.
+Note: The `POST /api/cases` endpoint above is listed as a planned user-facing intake route in the architecture. In the current implementation this exact endpoint is not present — case intake is handled via the review queue and review-related routes (see `src/i4g/api/review.py` and the `/reviews` router). Consider this endpoint "planned" until a dedicated intake route is added.
 
 ---
 
@@ -126,7 +126,7 @@ Note: The `POST /api/cases` endpoint above is listed as a planned victim-facing 
 /cases
   └─ {case_id}
       ├─ created_at: timestamp
-      ├─ victim_email: string
+      ├─ user_email: string
       ├─ title: string
       ├─ description: string (tokenized: <PII:SSN:7a8f2e>)
       ├─ classification: {type, confidence}
@@ -255,7 +255,7 @@ curl http://localhost:11434/api/chat -d '{
    ↓
    Upload to Cloud Storage: gs://i4g-reports/{case_id}.pdf
    ↓
-   Email victim with secure download link
+   Email user with secure download link
 ```
 
 ---

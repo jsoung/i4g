@@ -23,7 +23,7 @@ This Technical Design Document (TDD) provides implementation-level details for t
 C4Context
     title System Context (C4 Level 1)
 
-    Person(victim, "Scam Victim", "Submits evidence")
+    Person(user, "Scam User", "Submits evidence")
     Person(analyst, "Volunteer Analyst", "Reviews cases")
     Person(leo, "Law Enforcement", "Downloads reports")
 
@@ -33,7 +33,7 @@ C4Context
     System_Ext(gcp, "Google Cloud Platform", "Firestore, Cloud Run, Storage")
     System_Ext(email, "SendGrid", "Email notifications")
 
-    Rel(victim, i4g, "Uploads evidence", "HTTPS")
+    Rel(user, i4g, "Uploads evidence", "HTTPS")
     Rel(analyst, i4g, "Reviews cases", "HTTPS + OAuth")
     Rel(leo, i4g, "Requests reports", "HTTPS")
 
@@ -95,14 +95,14 @@ JWT payload:
 
 **Description**: Submit a new scam case
 
-**Authentication**: Optional (victims don't need accounts)
+**Authentication**: Optional (users don't need accounts)
 
 **Request Body**:
 ```json
 {
   "title": "Romance scam - lost $10K",
   "description": "I met someone on a dating app. They asked for money...",
-  "victim_email": "victim@example.com",
+  "user_email": "user@example.com",
   "evidence_files": [
     {
       "filename": "chat_screenshot.png",
@@ -179,7 +179,7 @@ JWT payload:
   "case_id": "uuid-v4",
   "title": "Romance scam - lost $10K",
   "description": "I met someone on a dating app. My SSN is ███████ and I sent $10,000 to...",
-  "victim_email": "victim@example.com",
+  "user_email": "user@example.com",
   "status": "pending_review",
   "assigned_to": "analyst_uid_123",
   "classification": {
@@ -211,7 +211,7 @@ JWT payload:
 **PII Masking Logic**:
 - Analysts see: `███████` (7 black squares)
 - Admins see: `<PII:SSN:7a8f2e>` (token for debugging)
-- LEO reports see: `123-45-6789` (real PII with victim consent)
+- LEO reports see: `123-45-6789` (real PII with user consent)
 
 ---
 
@@ -276,7 +276,7 @@ JWT payload:
 **Request Body**:
 ```json
 {
-  "victim_consent": true
+  "user_consent": true
 }
 ```
 
@@ -296,7 +296,7 @@ JWT payload:
 3. Decrypt PII
 4. Generate PDF report with real PII
 5. Upload PDF to Cloud Storage
-6. Email victim with secure download link
+6. Email user with secure download link
 7. Update case status to `resolved`
 
 ---
@@ -305,7 +305,7 @@ JWT payload:
 
 **Description**: GDPR-compliant data export
 
-**Authentication**: Optional (victim can use email-based token)
+**Authentication**: Optional (user can use email-based token)
 
 **Response** (200 OK):
 ```json
@@ -328,7 +328,7 @@ JWT payload:
 
 **Description**: GDPR-compliant hard delete
 
-**Authentication**: Required (victim or admin)
+**Authentication**: Required (user or admin)
 
 **Response** (204 No Content)
 
@@ -380,7 +380,7 @@ pii = json.loads(response['message']['content'])
 ```json
 {
   "ssn": "123-45-6789",
-  "email": "victim@example.com",
+  "email": "user@example.com",
   "phone": "(555) 123-4567"
 }
 ```
@@ -502,8 +502,8 @@ interface Case {
   created_at: Timestamp;
   updated_at: Timestamp;
 
-  // Victim info
-  victim_email: string;
+  // User info
+  user_email: string;
   title: string;
   description: string;  // Contains PII tokens: <PII:SSN:7a8f2e>
 
@@ -602,7 +602,7 @@ interface Analyst {
 | Threat | Mitigation |
 |--------|------------|
 | **Spoofing** | OAuth 2.0 (Google trusted provider), JWT signatures |
-| **Tampering** | Firestore rules, TLS 1.3, read-only API for victims |
+| **Tampering** | Firestore rules, TLS 1.3, read-only API for users |
 | **Repudiation** | Audit logs (all `/pii_vault` access logged) |
 | **Information Disclosure** | PII tokenization, encryption at rest, HTTPS |
 | **Denial of Service** | Cloud Armor (DDoS protection), rate limiting |
@@ -904,14 +904,14 @@ def test_ssn_tokenization():
     assert "<PII:SSN:" in result["tokenized_text"]
 
 def test_email_tokenization():
-    text = "Contact me at victim@example.com"
+    text = "Contact me at user@example.com"
     result = tokenize_pii(text)
 
     assert "email" in result["tokens"]
-    assert "victim@example.com" not in result["tokenized_text"]
+    assert "user@example.com" not in result["tokenized_text"]
 
 def test_multiple_pii_types():
-    text = "SSN: 123-45-6789, Email: victim@example.com, Phone: (555) 123-4567"
+    text = "SSN: 123-45-6789, Email: user@example.com, Phone: (555) 123-4567"
     result = tokenize_pii(text)
 
     assert len(result["tokens"]) == 3
@@ -937,7 +937,7 @@ def test_case_submission_to_approval():
     response = client.post("/api/cases", json={
         "title": "Test scam",
         "description": "My SSN is 123-45-6789",
-        "victim_email": "test@example.com"
+        "user_email": "test@example.com"
     })
     assert response.status_code == 201
     case_id = response.json()["case_id"]
@@ -956,7 +956,7 @@ def test_case_submission_to_approval():
     response = client.post(
         f"/api/cases/{case_id}/approve",
         headers={"Authorization": f"Bearer {analyst_token}"},
-        json={"victim_consent": True}
+        json={"user_consent": True}
     )
     assert response.status_code == 200
     assert "report_url" in response.json()

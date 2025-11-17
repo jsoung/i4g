@@ -41,7 +41,7 @@ def render_discovery_engine_panel() -> None:
             key="vertex_search_boost_json",
             help="Optional SearchRequest.BoostSpec payload for ranking experiments.",
         )
-        vertex_submitted = st.form_submit_button("Run Discovery Engine search", use_container_width=True)
+        vertex_submitted = st.form_submit_button("Run Discovery Engine search", width="stretch")
 
     show_raw_toggle = st.checkbox("Show raw JSON for each result", key="vertex_search_show_raw")
 

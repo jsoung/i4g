@@ -15,6 +15,7 @@ It supports:
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any, Dict, List
 
 import streamlit as st
@@ -24,6 +25,11 @@ from i4g.ui.state import ensure_session_defaults
 from i4g.ui.views import render_discovery_engine_panel
 
 # Configuration
+BRAND_DIR = Path(__file__).parent / "assets" / "branding"
+LOGO_FULL = BRAND_DIR / "primary-color.png"
+LOGO_MARK = BRAND_DIR / "logomark.png"
+PAGE_ICON = str(LOGO_MARK) if LOGO_MARK.exists() else "🕵️"
+
 TAG_PAL = [
     "#E0BBE4",
     "#957DAD",
@@ -98,13 +104,22 @@ def _tag_badge(tag: str) -> str:
     return f"<span style='background:{color}; padding:2px 6px; border-radius:6px; margin-right:4px;'>{tag}</span>"
 
 
-st.set_page_config(page_title="i4g Analyst Dashboard", layout="wide")
-st.title("🕵️ i4g Analyst Dashboard (API-backed)")
+st.set_page_config(page_title="i4g Analyst Dashboard", page_icon=PAGE_ICON, layout="wide")
+
+header_cols = st.columns([1, 6])
+with header_cols[0]:
+    if LOGO_FULL.exists():
+        st.image(str(LOGO_FULL), width="stretch")
+with header_cols[1]:
+    st.title("i4g Analyst Dashboard (API-backed)")
 
 # Sidebar controls
 ensure_session_defaults()
 
 st.sidebar.header("Connection")
+if LOGO_MARK.exists():
+    st.sidebar.image(str(LOGO_MARK), width=120)
+    st.sidebar.markdown("**Intelligence for Good**")
 st.sidebar.text_input("API Base URL", key="api_base")
 st.sidebar.text_input("API Key", key="api_key")
 if st.sidebar.button("Save connection"):
@@ -297,7 +312,7 @@ with st.sidebar.expander("Saved searches", expanded=False):
         st.session_state["tag_filters"] = set(selected_tags)
         with cols_tag[1]:
             st.write("")
-            if st.button("Clear filters", key="clear_tag_filters", use_container_width=True):
+            if st.button("Clear filters", key="clear_tag_filters", width="stretch"):
                 st.session_state["tag_filters"] = set()
                 st.session_state["saved_search_tag_filter"] = []
                 selected_tags = []

@@ -6,7 +6,7 @@ This Developer Guide explains how to set up, run, and extend the i4g platform â€
 
 ## System Overview
 
-i4g combines OCR, language models, semantic entity extraction, classification, and human-in-the-loop review to support law enforcement and victim assistance workflows.
+i4g combines OCR, language models, semantic entity extraction, classification, and human-in-the-loop review to support law enforcement and user assistance workflows.
 
 ### Core Data Flow
 

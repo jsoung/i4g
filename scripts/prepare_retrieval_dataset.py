@@ -191,13 +191,13 @@ def iso_timestamp(offset_days: int, rng: random.Random) -> str:
 
 def wallet_verification_generator(cfg: TemplateConfig, idx: int, rng: random.Random) -> Dict[str, object]:
     agent = rng.choice(AGENT_NAMES)
-    victim = rng.choice(VICTIM_NAMES)
+    user = rng.choice(VICTIM_NAMES)
     provider = rng.choice(WALLET_PROVIDERS)
     asset = rng.choice(CRYPTO_ASSETS)
     amount = random_amount(asset, rng)
     wallet = random_wallet(asset, rng)
     text = (
-        f"Hi {victim}, this is {agent} from {provider}. "
+        f"Hi {user}, this is {agent} from {provider}. "
         f"We flagged a withdrawal attempt on your wallet. To keep the account active, "
         f"send a verification deposit of {amount} {asset} to {wallet} in the next 15 minutes. "
         "Reply DONE once complete so we can secure your funds."
@@ -206,7 +206,7 @@ def wallet_verification_generator(cfg: TemplateConfig, idx: int, rng: random.Ran
         "text": text,
         "summary": make_summary(text),
         "entities": {
-            "people": [{"role": "agent", "value": agent}] + [{"role": "victim", "value": victim}],
+            "people": [{"role": "agent", "value": agent}] + [{"role": "user", "value": user}],
             "organizations": [{"value": provider}],
             "crypto_assets": [{"value": asset}],
             "wallet_addresses": [{"value": wallet}],
@@ -224,13 +224,13 @@ def wallet_verification_generator(cfg: TemplateConfig, idx: int, rng: random.Ran
 
 def romance_bitcoin_generator(cfg: TemplateConfig, idx: int, rng: random.Random) -> Dict[str, object]:
     alias = rng.choice(ROMANCE_ALIASES)
-    victim = rng.choice(VICTIM_NAMES)
+    user = rng.choice(VICTIM_NAMES)
     city = rng.choice(ROMANCE_CITIES)
     asset = rng.choice(["BTC", "USDT", "ETH"])
     amount = random_amount(asset, rng)
     wallet = random_wallet(asset, rng)
     text = (
-        f"My love {victim}, the visa office in {city} finally approved us but I must show proof of funds today. "
+        f"My love {user}, the visa office in {city} finally approved us but I must show proof of funds today. "
         f"Please send {amount} {asset} to {wallet}. Once I land we will start our life together. "
         "I am counting every minute until we meet."
     )
@@ -238,7 +238,7 @@ def romance_bitcoin_generator(cfg: TemplateConfig, idx: int, rng: random.Random)
         "text": text,
         "summary": make_summary(text),
         "entities": {
-            "people": [{"role": "alias", "value": alias}, {"role": "victim", "value": victim}],
+            "people": [{"role": "alias", "value": alias}, {"role": "user", "value": user}],
             "locations": [{"value": city}],
             "crypto_assets": [{"value": asset}],
             "wallet_addresses": [{"value": wallet}],
@@ -347,7 +347,7 @@ def impostor_refund_generator(cfg: TemplateConfig, idx: int, rng: random.Random)
 
 def gift_card_shakedown_generator(cfg: TemplateConfig, idx: int, rng: random.Random) -> Dict[str, object]:
     executive = rng.choice(AGENT_NAMES)
-    victim = rng.choice(VICTIM_NAMES)
+    user = rng.choice(VICTIM_NAMES)
     retailer = rng.choice(GIFT_CARD_BRANDS)
     quantity = rng.randint(3, 6)
     value = rng.choice([100, 200, 500])
@@ -360,7 +360,7 @@ def gift_card_shakedown_generator(cfg: TemplateConfig, idx: int, rng: random.Ran
         "text": text,
         "summary": make_summary(text),
         "entities": {
-            "people": [{"role": "executive", "value": executive}, {"role": "victim", "value": victim}],
+            "people": [{"role": "executive", "value": executive}, {"role": "user", "value": user}],
             "retailers": [{"value": retailer}],
         },
         "tags": cfg.tags + [retailer.lower(), "gift-card"],
