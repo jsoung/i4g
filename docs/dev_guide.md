@@ -359,6 +359,37 @@ Manual workflow (run from the repo root unless noted):
 
 2. Create the Artifact Registry repo if it does not already exist.
 
+### Rapid Streamlit Redeploy (dev)
+
+When you need to re-test Streamlit changes quickly, you can reuse the `streamlit:dev` tag standing in Terraform:
+
+1. Rebuild and push the image:
+
+        ```bash
+        docker buildx build \
+            --platform linux/amd64 \
+            -f docker/streamlit.Dockerfile \
+            -t us-central1-docker.pkg.dev/i4g-dev/applications/streamlit:dev \
+            --push .
+        ```
+
+2. Force Cloud Run to pull the new digest, keeping existing env vars and supplying the Discovery Engine defaults:
+
+    ```bash
+        gcloud run services update streamlit-analyst-ui \
+            --project i4g-dev \
+            --region us-central1 \
+            --image us-central1-docker.pkg.dev/i4g-dev/applications/streamlit:dev \
+            --update-env-vars I4G_VERTEX_SEARCH_PROJECT=i4g-dev,\
+                I4G_VERTEX_SEARCH_LOCATION=global,\
+                I4G_VERTEX_SEARCH_DATA_STORE=retrieval-poc,\
+                I4G_VERTEX_SEARCH_SERVING_CONFIG=default_search
+    ```
+
+    `--update-env-vars` patches Cloud Run’s configuration without wiping values that Terraform applied earlier. Cloud Run reuses the same `:dev` tag but pulls the new digest.
+
+Terraform keeps pointing at the same tag, so it will not trigger a deployment on its own. Once you finish iterating, bump the tag (and mirror the env vars) in `infra/environments/dev/terraform.tfvars` so infrastructure runs remain declarative.
+
     gcloud artifacts repositories create applications \
       --repository-format docker \
       --location us-central1

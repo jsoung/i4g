@@ -55,15 +55,6 @@ def render_discovery_engine_panel() -> None:
         filter_value = (st.session_state.get("vertex_search_filter") or "").strip()
         boost_value = (st.session_state.get("vertex_search_boost_json") or "").strip()
 
-        st.session_state["vertex_search_query"] = query_value
-        st.session_state["vertex_search_project"] = project_value
-        st.session_state["vertex_search_location"] = location_value
-        st.session_state["vertex_search_data_store"] = data_store_value
-        st.session_state["vertex_search_serving_config"] = serving_config_value
-        st.session_state["vertex_search_page_size"] = page_size_value
-        st.session_state["vertex_search_filter"] = filter_value
-        st.session_state["vertex_search_boost_json"] = boost_value
-
         params: Dict[str, Optional[str] | int] = {
             "query": query_value,
             "project": project_value,
@@ -128,6 +119,16 @@ def render_discovery_engine_panel() -> None:
             summary = item.get("summary")
             if summary:
                 st.write(summary)
+
+            meta_parts = []
+            source_value = item.get("source")
+            if source_value:
+                meta_parts.append(f"source={source_value}")
+            index_type_value = item.get("index_type")
+            if index_type_value and index_type_value != source_value:
+                meta_parts.append(f"index_type={index_type_value}")
+            if meta_parts:
+                st.caption(" · ".join(meta_parts))
 
             tags = item.get("tags") or []
             if tags:
