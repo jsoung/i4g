@@ -124,7 +124,29 @@ I4G_INGEST__ENABLE_VECTOR=false
    Confirm the change with `gcloud run jobs describe process-intakes --format='value(spec.template.spec.template.spec.containers[0].env)'` if needed.
 2. Ensure the remote FastAPI gateway is healthy: https://fastapi-gateway-y5jge5w2cq-uc.a.run.app/ (you should see the default OpenAPI docs).
 
-### 1. Submit an Intake via the Deployed API
+### 1. Automated Cloud Run Smoke (recommended)
+
+If your workstation already has `gcloud` and `curl` available, run the scripted smoke to submit an intake, execute the Cloud Run job, and verify the processed state in one step:
+
+```bash
+conda run -n i4g python scripts/smoke_dev_cloud_run.py
+```
+
+The script prints a JSON summary similar to:
+
+```json
+{
+  "intake_id": "...",
+  "job_id": "...",
+  "execution": "process-intakes-abcde",
+  "intake_status": "processed",
+  "job_status": "completed"
+}
+```
+
+If you prefer to run the workflow manually (useful for debugging individual steps), follow the commands below.
+
+### 2. Submit an Intake via the Deployed API
 
 ```bash
 curl -sS -L -o /tmp/dev_intake_response.json -w "%{http_code}" \
@@ -139,7 +161,7 @@ export DEV_INTAKE_ID=$(jq -r '.intake_id' /tmp/dev_intake_response.json)
 export DEV_JOB_ID=$(jq -r '.job_id' /tmp/dev_intake_response.json)
 ```
 
-### 2. Execute the Cloud Run Intake Job
+### 3. Execute the Cloud Run Intake Job
 
 Only the dynamic identifiers change per run because the static configuration is now part of the job definition:
 
@@ -154,7 +176,7 @@ gcloud run jobs execute process-intakes \
 
 You should see `Execution [...] has successfully completed.` in the CLI output.
 
-### 3. Validate the Execution
+### 4. Validate the Execution
 
 1. Inspect the Cloud Logging trail for the execution (replace the execution name if different):
    ```bash
