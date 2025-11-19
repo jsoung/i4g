@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
@@ -82,6 +82,16 @@ def run_search(params: Dict[str, Any], offset: int) -> None:
         st.session_state["search_results"] = None
         st.session_state["search_error"] = str(exc)
         st.session_state["search_more_available"] = False
+
+
+def _refresh_intakes(limit: Optional[int] = None) -> None:
+    requested = limit or st.session_state.get("intake_list_limit", 25) or 25
+    try:
+        payload = ui_api.list_intakes(limit=requested)
+        st.session_state["intake_items"] = payload.get("items", [])
+        st.session_state["intake_error"] = None
+    except Exception as exc:
+        st.session_state["intake_error"] = str(exc)
 
 
 def _execute_saved_search(saved_id: str, params: Dict[str, Any]) -> None:
@@ -541,6 +551,225 @@ st.session_state["history_limit"] = st.session_state.get("history_limit_slider",
 
 
 render_discovery_engine_panel()
+
+
+if not st.session_state.get("intake_items") and st.session_state.get("intake_error") is None:
+    _refresh_intakes()
+
+st.divider()
+st.subheader("📝 Intake submissions")
+
+intake_cols = st.columns([2, 1])
+with intake_cols[0]:
+    st.markdown("#### Submit new intake")
+    with st.form("intake_submission_form"):
+        reporter_name = st.text_input("Reporter name", key="intake_reporter_name")
+        submitted_by = st.text_input("Submitted by (optional)", key="intake_submitted_by")
+        source = st.text_input("Submission source", value="web_form", key="intake_source")
+        summary = st.text_area("Summary", key="intake_summary")
+        details = st.text_area("Details", key="intake_details", height=150)
+        st.markdown("##### Contact information (optional)")
+        contact_cols = st.columns(3)
+        contact_email = contact_cols[0].text_input("Email", key="intake_contact_email")
+        contact_phone = contact_cols[1].text_input("Phone", key="intake_contact_phone")
+        contact_handle = contact_cols[2].text_input("Handle / Username", key="intake_contact_handle")
+        preferred_contact = st.selectbox(
+            "Preferred contact",
+            options=["", "email", "phone", "messaging_app"],
+            index=0,
+            key="intake_preferred_contact",
+        )
+        col_incident, col_loss = st.columns(2)
+        incident_date = col_incident.text_input(
+            "Incident date (ISO or free text)", key="intake_incident_date", placeholder="2025-10-01"
+        )
+        loss_amount_raw = col_loss.text_input(
+            "Estimated loss amount (USD)", key="intake_loss_amount", placeholder="2500"
+        )
+        metadata_input = st.text_area(
+            "Metadata (JSON)",
+            key="intake_metadata_text",
+            help="Optional structured metadata to attach to the intake record.",
+        )
+        attachments = st.file_uploader(
+            "Evidence attachments",
+            type=None,
+            accept_multiple_files=True,
+            help="Upload screenshots, PDFs, or other supporting evidence.",
+            key="intake_attachments",
+        )
+        submitted = st.form_submit_button("Submit intake")
+
+        if submitted:
+            errors: List[str] = []
+            if not reporter_name.strip():
+                errors.append("Reporter name is required.")
+            if not summary.strip():
+                errors.append("Summary is required.")
+            if not details.strip():
+                errors.append("Details are required.")
+
+            metadata: Dict[str, Any] = {}
+            if metadata_input.strip():
+                try:
+                    metadata = json.loads(metadata_input)
+                except json.JSONDecodeError as exc:
+                    errors.append(f"Metadata JSON invalid: {exc}")
+
+            loss_amount_value: Optional[float] = None
+            if loss_amount_raw.strip():
+                try:
+                    loss_amount_value = float(loss_amount_raw.replace(",", ""))
+                except ValueError:
+                    errors.append("Loss amount must be numeric.")
+
+            if errors:
+                for message in errors:
+                    st.error(message)
+            else:
+                submission_payload: Dict[str, Any] = {
+                    "reporter_name": reporter_name.strip(),
+                    "summary": summary.strip(),
+                    "details": details.strip(),
+                    "submitted_by": submitted_by.strip() or None,
+                    "contact_email": contact_email.strip() or None,
+                    "contact_phone": contact_phone.strip() or None,
+                    "contact_handle": contact_handle.strip() or None,
+                    "preferred_contact": preferred_contact or None,
+                    "incident_date": incident_date.strip() or None,
+                    "loss_amount": loss_amount_value,
+                    "source": source.strip() or "unknown",
+                    "metadata": metadata,
+                }
+                attachment_payloads = []
+                for upload in attachments or []:
+                    try:
+                        content = upload.read()
+                        attachment_payloads.append(
+                            (
+                                upload.name or "upload",
+                                content,
+                                upload.type or "application/octet-stream",
+                            )
+                        )
+                    finally:
+                        upload.close()
+
+                try:
+                    response = ui_api.submit_intake(submission_payload, attachment_payloads)
+                    st.session_state["intake_last_response"] = response
+                    st.success(f"Intake submitted (ID {response.get('intake_id')})")
+                    _refresh_intakes(limit=st.session_state.get("intake_list_limit", 25))
+                except Exception as exc:
+                    st.error(f"Failed to submit intake: {exc}")
+
+with intake_cols[1]:
+    st.markdown("#### Recent submissions")
+    list_limit = st.slider(
+        "Records to show",
+        min_value=5,
+        max_value=100,
+        value=st.session_state.get("intake_list_limit", 25),
+        key="intake_list_limit_slider",
+    )
+    st.session_state["intake_list_limit"] = list_limit
+    if st.button("Refresh intakes", key="intake_refresh_btn"):
+        _refresh_intakes(limit=list_limit)
+
+    last_response = st.session_state.get("intake_last_response")
+    if last_response:
+        st.caption(
+            f"Latest submission → intake_id={last_response.get('intake_id')} | job_id={last_response.get('job_id') or 'n/a'}"
+        )
+
+intake_error = st.session_state.get("intake_error")
+if intake_error:
+    st.error(f"Failed to load intake submissions: {intake_error}")
+
+intake_items = st.session_state.get("intake_items") or []
+if intake_items:
+    st.markdown("#### Intake status")
+    for item in intake_items:
+        intake_id = item.get("intake_id", "unknown")
+        status_label = item.get("status", "unknown")
+        header = f"{intake_id} · status={status_label}"
+        with st.expander(header, expanded=False):
+            st.write(f"Submitted {item.get('created_at', 'unknown')} · Updated {item.get('updated_at', 'unknown')}")
+            st.write(
+                f"Reporter: {item.get('reporter_name', 'n/a')} · Submitted by: {item.get('submitted_by') or 'unknown'}"
+            )
+            contact_parts = [
+                part
+                for part in [
+                    item.get("contact_email"),
+                    item.get("contact_phone"),
+                    item.get("contact_handle"),
+                ]
+                if part
+            ]
+            if contact_parts:
+                st.write("Contact: " + " | ".join(contact_parts))
+            st.write(f"Source: {item.get('source') or 'unknown'}")
+            if item.get("summary"):
+                st.markdown("**Summary**")
+                st.write(item.get("summary"))
+
+            job_status = item.get("job_status")
+            job_message = item.get("job_message")
+            job_id = item.get("job_id")
+            st.write(f"Job status: {job_status or 'pending'}")
+            if job_message:
+                st.caption(job_message)
+
+            detail_key = f"intake_detail_{intake_id}"
+            detail = st.session_state.get(detail_key)
+            if detail:
+                attachments_detail = detail.get("attachments") or []
+                if attachments_detail:
+                    st.markdown("**Attachments**")
+                    for attachment in attachments_detail:
+                        st.write(
+                            f"- {attachment.get('file_name', 'file')} · {attachment.get('storage_uri', 'unknown')}"
+                        )
+                job_blob = detail.get("job") or {}
+                if job_blob:
+                    job_id = job_blob.get("job_id", job_id)
+                    st.markdown("**Job metadata**")
+                    st.json(job_blob)
+                st.markdown("**Metadata**")
+                st.json(detail.get("metadata", {}))
+                if detail.get("case_id"):
+                    st.caption(f"Linked case ID: {detail.get('case_id')}")
+            else:
+                st.caption("Intake details not loaded yet.")
+
+            action_cols = st.columns([1, 1, 1])
+            if action_cols[0].button("Refresh details", key=f"refresh_details_{intake_id}"):
+                try:
+                    detail_payload = ui_api.fetch_intake(intake_id)
+                    st.session_state[detail_key] = detail_payload
+                    st.success("Details refreshed.")
+                except Exception as exc:
+                    st.error(f"Failed to refresh intake: {exc}")
+
+            if job_id and action_cols[1].button("Refresh job", key=f"refresh_job_{job_id}"):
+                try:
+                    job_payload = ui_api.fetch_intake_job(job_id)
+                    detail_payload = st.session_state.get(detail_key) or {}
+                    detail_payload = dict(detail_payload) if detail_payload else {}
+                    detail_payload["job"] = job_payload
+                    st.session_state[detail_key] = detail_payload
+                    st.success("Job status refreshed.")
+                except Exception as exc:
+                    st.error(f"Failed to refresh job status: {exc}")
+                finally:
+                    _refresh_intakes(limit=st.session_state.get("intake_list_limit", 25))
+
+            if action_cols[2].button("Reload list", key=f"reload_intake_{intake_id}"):
+                _refresh_intakes(limit=st.session_state.get("intake_list_limit", 25))
+else:
+    if not intake_error:
+        st.info("No recent intake submissions found.")
 
 
 if search_submitted:

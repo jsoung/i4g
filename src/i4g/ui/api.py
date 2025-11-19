@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from typing import Any, Dict, List, Optional
+from typing import Sequence as Seq
 
 import httpx
 import streamlit as st
@@ -119,6 +120,13 @@ def reviews_client() -> httpx.Client:
     key = st.session_state.get("api_key", API_KEY)
     reviews_base = f"{base}/reviews"
     return httpx.Client(base_url=reviews_base, headers={"X-API-KEY": key}, timeout=30.0)
+
+
+def intake_client() -> httpx.Client:
+    base = st.session_state.get("api_base", API_BASE_URL).rstrip("/")
+    key = st.session_state.get("api_key", API_KEY)
+    intake_base = f"{base}/intakes"
+    return httpx.Client(base_url=intake_base, headers={"X-API-KEY": key}, timeout=30.0)
 
 
 def fetch_queue(status: str = "queued", limit: int = 50) -> List[Dict[str, Any]]:
@@ -274,6 +282,36 @@ def fetch_tag_presets(limit: int = 100) -> Dict[str, Any]:
     return response.json()
 
 
+def submit_intake(submission: Dict[str, Any], attachments: Seq[tuple[str, bytes, str]]) -> Dict[str, Any]:
+    client = intake_client()
+    data = {"payload": json.dumps(submission)}
+    files = [("files", (name, content, content_type)) for name, content, content_type in attachments]
+    response = client.post("/", data=data, files=files if files else None)
+    response.raise_for_status()
+    return response.json()
+
+
+def list_intakes(limit: int = 25) -> Dict[str, Any]:
+    client = intake_client()
+    response = client.get("/", params={"limit": limit})
+    response.raise_for_status()
+    return response.json()
+
+
+def fetch_intake(intake_id: str) -> Dict[str, Any]:
+    client = intake_client()
+    response = client.get(f"/{intake_id}")
+    response.raise_for_status()
+    return response.json()
+
+
+def fetch_intake_job(job_id: str) -> Dict[str, Any]:
+    client = intake_client()
+    response = client.get(f"/jobs/{job_id}")
+    response.raise_for_status()
+    return response.json()
+
+
 def _parse_tags(raw_value: str) -> List[str]:
     if not raw_value:
         return []
@@ -329,4 +367,9 @@ __all__ = [
     "fetch_tag_presets",
     "_parse_tags",
     "bulk_update_saved_search_tags",
+    "intake_client",
+    "submit_intake",
+    "list_intakes",
+    "fetch_intake",
+    "fetch_intake_job",
 ]

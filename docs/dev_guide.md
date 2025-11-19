@@ -322,6 +322,8 @@ Generated `.docx` files are written to `data/reports/` whether you trigger them 
 - **Install git hook:** `ln -sf ../../scripts/git-hooks/pre-commit .git/hooks/pre-commit`
 - **First hook run:** `pre-commit run --all-files`
 
+For a consolidated checklist of ingestion and intake smoke tests, see [`docs/smoke_test.md`](./smoke_test.md).
+
 > ⚠️ Run commits from an activated `i4g` environment (or set `CONDA_PREFIX`/`VIRTUAL_ENV`) so the hook uses the correct Python when executing unit tests.
 > Formatter line length is set to 120 characters to match team editor settings.
 
@@ -437,13 +439,20 @@ Swap `docker/fastapi.Dockerfile` with `docker/streamlit.Dockerfile` and adjust t
 
 ### Publishing the Cloud Run Job Images
 
-Use the same `docker buildx` workflow to publish the ingestion and report job containers referenced by Terraform. Replace the Dockerfile path and tag as shown below, then update `infra/environments/*/terraform.tfvars` if you promote a new tag:
+Use the same `docker buildx` workflow to publish the ingestion, intake, and report job containers referenced by Terraform. Replace the Dockerfile path and tag as shown below, then update `infra/environments/*/terraform.tfvars` if you promote a new tag:
 
 ```bash
 docker buildx build \
     --platform linux/amd64 \
         -f docker/ingest-job.Dockerfile \
         -t us-central1-docker.pkg.dev/i4g-dev/applications/ingest-job:dev \
+    --push \
+    .
+
+docker buildx build \
+    --platform linux/amd64 \
+        -f docker/intake-job.Dockerfile \
+        -t us-central1-docker.pkg.dev/i4g-dev/applications/intake-job:dev \
     --push \
     .
 

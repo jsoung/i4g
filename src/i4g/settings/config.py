@@ -125,6 +125,10 @@ class StorageSettings(BaseModel):
         default=None,
         validation_alias=AliasChoices("STORAGE_EVIDENCE_BUCKET", "STORAGE__EVIDENCE_BUCKET"),
     )
+    evidence_local_dir: Path = Field(
+        default=PROJECT_ROOT / "data" / "evidence",
+        validation_alias=AliasChoices("STORAGE_EVIDENCE_LOCAL_DIR", "STORAGE__EVIDENCE__LOCAL_DIR"),
+    )
     reports_bucket: str | None = Field(
         default=None,
         validation_alias=AliasChoices("STORAGE_REPORTS_BUCKET", "STORAGE__REPORTS_BUCKET"),
@@ -321,6 +325,8 @@ class Settings(BaseSettings):
         storage_updates = {}
         if not self.storage.sqlite_path.is_absolute():
             storage_updates["sqlite_path"] = (self.project_root / self.storage.sqlite_path).resolve()
+        if not self.storage.evidence_local_dir.is_absolute():
+            storage_updates["evidence_local_dir"] = (self.project_root / self.storage.evidence_local_dir).resolve()
         if storage_updates:
             object.__setattr__(self, "storage", self.storage.model_copy(update=storage_updates))
 

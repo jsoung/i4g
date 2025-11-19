@@ -26,6 +26,11 @@ def ensure_session_defaults() -> None:
     defaults: dict[str, Any] = {
         "api_base": default_api_base,
         "api_key": default_api_key,
+        "intake_items": [],
+        "intake_error": None,
+        "intake_metadata_text": "{}",
+        "intake_last_response": None,
+        "intake_list_limit": 25,
         "search_results": None,
         "search_error": None,
         "case_reviews": {},

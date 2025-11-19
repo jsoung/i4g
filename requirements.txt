@@ -600,6 +600,8 @@ python-dotenv==1.2.1
     # via
     #   pydantic-settings
     #   uvicorn
+python-multipart==0.0.20
+    # via i4g (pyproject.toml)
 pytz==2025.2
     # via pandas
 pyyaml==6.0.2
