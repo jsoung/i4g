@@ -1,7 +1,7 @@
 # i4g System Architecture
 
-> **Document Version**: 1.0
-> **Last Updated**: October 30, 2025
+> **Document Version**: 1.1
+> **Last Updated**: November 7, 2025
 > **Audience**: Engineers, technical stakeholders, university partners
 
 ---
@@ -9,6 +9,8 @@
 ## Executive Summary
 
 **i4g** is a cloud-native, AI-powered platform that helps scam users document fraud and generate law enforcement reports. The system uses a **privacy-by-design** architecture where personally identifiable information (PII) is tokenized immediately upon upload and stored separately from case data.
+
+The analyst experience now runs through a **Next.js console** deployed on Cloud Run, replacing the original Streamlit proof-of-concept. This console talks to the FastAPI services through server-side proxy routes, ensuring the privacy guarantees described below remain intact.
 
 **Key Design Principles**:
 1. **Zero Trust**: No analyst ever sees raw PII
@@ -24,12 +26,12 @@
 ┌──────────────────────────────────────────────────────────┐
 │                      User Layer                          │
 │  ┌──────────┐      ┌──────────┐      ┌──────────┐        │
-│  │  User  │      │ Analyst  │      │   LEO    │        │
+│  │  User    │      │ Analyst  │      │   LEO    │        │
 │  └────┬─────┘      └────┬─────┘      └────┬─────┘        │
 └───────┼─────────────────┼─────────────────┼──────────────┘
-        │                 │                 │
-        │ HTTPS           │ HTTPS           │ HTTPS
-        │                 │                 │
+    │                 │                 │
+    │ HTTPS           │ HTTPS           │ HTTPS
+    │                 │                 │
 ┌───────┼─────────────────┼─────────────────┼──────────────┐
 │       │     GCP Cloud Run (us-central1)   │              │
 │  ┌────▼─────────────────▼─────────────────▼────┐         │
@@ -37,13 +39,14 @@
 │  └──┬─────────────────────┬────────────────────┘         │
 │     │                     │                              │
 │  ┌──▼─────────┐      ┌────▼──────────┐                   │
-│  │  FastAPI   │      │  Streamlit    │                   │
-│  │  Backend   │      │  Dashboard    │                   │
+│  │  FastAPI   │      │  Next.js      │                   │
+│  │  Backend   │      │  Analyst      │                   │
+│  │  (Python)  │      │  Console      │                   │
 │  └──┬─────────┘      └────┬──────────┘                   │
 └─────┼─────────────────────┼──────────────────────────────┘
-      │                     │
-      │   Firestore API     │
-      │                     │
+  │                     │
+  │   Firestore API     │
+  │                     │
 ┌─────▼─────────────────────▼──────────────────────────────┐
 │                  Data Layer (GCP)                        │
 │  ┌──────────────┐  ┌────────────┐  ┌───────────┐         │
@@ -96,25 +99,26 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 
 ---
 
-### 2. **Streamlit Dashboard**
+### 2. **Next.js Analyst Console**
 
 **Responsibilities**:
-- Analyst login (OAuth 2.0 flow)
-- Case list view with filters
-- Case detail view with evidence thumbnails
-- PII masking display (███████)
-- Bulk operations (assign, export CSV)
+- Analyst authentication (OAuth 2.0 flow routed through Next.js middleware)
+- Search, review, and approval workflows surfaced through a React UI
+- Case detail view with evidence thumbnails and inline entity highlighting
+- Faceted filtering and result toggles sourced from the proto search API
+- Bulk report export and smoke-test automation hooks (in progress)
 
 **Technology Stack**:
-- Python 3.11
-- Streamlit 1.28+
-- Custom CSS for PII redaction
-- Google OAuth 2.0 client library
+- Node.js 20 (Cloud Run)
+- Next.js 15 App Router with React 19 RC and TypeScript
+- Tailwind CSS, `@i4g/ui-kit`, and shared design tokens
+- `@i4g/sdk` plus proto-backed adapter selected via `I4G_API_KIND` env var
 
 **Key Features**:
-- Session state management (JWT storage)
-- Responsive design (works on tablets)
-- Real-time updates via Firestore listeners
+- Hybrid rendering (Server Components + edge-ready client interactivity)
+- Cloud Run friendly build (PNPM workspaces, multi-stage Dockerfile)
+- API route proxy that injects server-only secrets for FastAPI calls
+- Configurable mock mode for demos without backend dependencies
 
 ---
 
@@ -283,6 +287,8 @@ curl http://localhost:11434/api/chat -d '{
 
 ### Cloud Run Configuration
 
+API deployment (Python FastAPI):
+
 ```bash
 gcloud run deploy i4g-api \
   --image gcr.io/i4g-prod/api:latest \
@@ -295,6 +301,20 @@ gcloud run deploy i4g-api \
   --timeout 300 \
   --set-env-vars "FIRESTORE_PROJECT_ID=i4g-prod,ENVIRONMENT=production" \
   --set-secrets "TOKEN_ENCRYPTION_KEY=TOKEN_ENCRYPTION_KEY:latest"
+```
+
+Analyst console deployment (Next.js container image built via PNPM workspaces):
+
+```bash
+gcloud run deploy i4g-console \
+    --image us-central1-docker.pkg.dev/i4g-dev/applications/analyst-console:dev \
+    --region us-central1 \
+    --platform managed \
+    --allow-unauthenticated \
+    --set-env-vars NEXT_PUBLIC_USE_MOCK_DATA=false \
+    --set-env-vars I4G_API_URL=https://fastapi-gateway-y5jge5w2cq-uc.a.run.app/ \
+    --set-env-vars I4G_API_KIND=proto \
+    --set-env-vars I4G_API_KEY=dev-analyst-token
 ```
 
 **Auto-Scaling**:
@@ -326,7 +346,7 @@ gcloud run deploy i4g-api \
    ↓
 8. Generate session token (expires in 1 hour)
    ↓
-9. Store JWT in Streamlit session state
+9. Store session token in an HTTP-only cookie managed by the Next.js auth route
    ↓
 10. All API calls include: Authorization: Bearer {JWT}
 ```
@@ -359,9 +379,9 @@ gcloud run deploy i4g-api \
           ⚠️ RESTRICTED                           │
      (Backend SA only)                            │
                                          ┌────────▼──────────┐
-                                         │ Analyst Dashboard │
-                                         │  (PII masked as   │
-                                         │   ███████)        │
+                                         │ Next.js Analyst   │
+                                         │ Console (PII      │
+                                         │ masked ███████)   │
                                          └───────────────────┘
 ```
 
