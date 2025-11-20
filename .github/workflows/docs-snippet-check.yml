@@ -1,0 +1,47 @@
+name: Docs Snippet Size Check
+
+on:
+  pull_request:
+    paths:
+      - '**/docs/**'
+      - 'docs/**'
+
+jobs:
+  scan-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Run docs snippet scanner
+        id: scan
+        run: |
+          python3 scripts/check_docs_snippets.py --max-lines 100 --report reports/docs_snippet_report.txt || true
+          if [ -f reports/docs_snippet_report.txt ]; then
+            echo "report_found=true" >> $GITHUB_OUTPUT
+            echo "report<<EOF" >> $GITHUB_OUTPUT
+            cat reports/docs_snippet_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "report_found=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Post PR comment when large snippets found
+        if: steps.scan.outputs.report_found == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ⚠️ Docs snippet size check found large fenced blocks in documentation.
+
+            Report:
+
+            ```
+            ${{ steps.scan.outputs.report }}
+            ```
+
+            Please replace full-file embeds with a short focused snippet and add a link to the full file in the repo (see `.github/docs.instructions.md`).
+      - name: Finish
+        run: echo "Docs snippet scan complete (non-blocking)"
