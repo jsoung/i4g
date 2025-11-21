@@ -15,6 +15,8 @@
 **Deployment Target**: GCP Cloud Run (serverless, auto-scaling)
 **Success Metric**: 12 active volunteer analysts processing 200+ cases within 4 months
 
+**Dual-Frontend Note**: The project will maintain two first-party frontend surfaces: a production-facing **Next.js portal** (victims, volunteer analysts, and law enforcement) and an internal **Streamlit operations console** (developers and sys-admins). Both surfaces call the same FastAPI backend so authentication, audit logging, and PII protections remain centralized. Update onboarding, runbook, and stakeholder communications to reflect role-based access, deployment guidance, and operational responsibilities for each surface.
+
 ---
 
 ## Problem Statement

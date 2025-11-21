@@ -44,13 +44,16 @@ C4Context
 
 ---
 
+You now maintain two experience surfaces on top of this context. The **Next.js portal** is the production-facing path for victims, volunteer analysts, and law enforcement officers, while the **Streamlit operations console** is restricted to internal developers and sys-admins for analytics, dashboards, and rapid experiments. Both clients call the same FastAPI backend so authorization, audit logging, and privacy controls stay consistent.
+
 ### Container Diagram (C4 Level 2)
 
 ```mermaid
 C4Container
     title Container Diagram
 
-    Container(web, "Streamlit Dashboard", "Python", "Analyst UI")
+  Container(portal, "Next.js Portal", "Node.js", "Victim/analyst/LEO UI")
+  Container(streamlit, "Streamlit Ops Console", "Python", "Internal analytics + dashboards")
     Container(api, "FastAPI Backend", "Python + LangChain", "REST API")
     Container(ollama_c, "Ollama", "Docker", "LLM inference")
 
@@ -58,7 +61,8 @@ C4Container
     ContainerDb(chroma, "ChromaDB", "Vector DB", "RAG embeddings")
     ContainerDb(gcs, "Cloud Storage", "Blob", "Evidence files")
 
-    Rel(web, api, "API calls", "HTTPS/JSON")
+  Rel(portal, api, "API calls", "HTTPS/JSON")
+  Rel(streamlit, api, "API calls + service helpers", "HTTPS/JSON")
     Rel(api, firestore, "CRUD", "Firestore SDK")
     Rel(api, chroma, "Vector search", "HTTP")
     Rel(api, gcs, "Upload/download", "GCS SDK")
@@ -432,23 +436,25 @@ def generate_token(pii_value: str, pii_type: str) -> str:
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant Web as Streamlit
+  participant Portal as Next.js Portal
     participant API as FastAPI
     participant Google as Google OAuth
 
-    U->>Web: Click "Sign In with Google"
-    Web->>Google: Redirect to consent screen
-    Google-->>Web: Authorization code
-    Web->>API: POST /auth/callback (code)
+  U->>Portal: Click "Sign In with Google"
+  Portal->>Google: Redirect to consent screen
+  Google-->>Portal: Authorization code
+  Portal->>API: POST /auth/callback (code)
     API->>Google: Exchange code for tokens
     Google-->>API: Access token + ID token
     API->>API: Verify JWT signature
     API->>Firestore: Check if approved analyst
     Firestore-->>API: Return user role
     API->>API: Generate session token
-    API-->>Web: JWT (expires 1 hour)
-    Web->>Web: Store JWT in session state
+  API-->>Portal: JWT (expires 1 hour)
+  Portal->>Portal: Store JWT in session state
 ```
+
+Internal developers and sys-admins sign into the Streamlit operations console through the same Google OAuth client. Streamlit reuses the FastAPI-issued JWTs, but Cloud Run IAM and group-based approvals limit access to on-call personnel only.
 
 ### FastAPI Implementation
 

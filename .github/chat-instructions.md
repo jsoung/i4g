@@ -18,3 +18,6 @@ Apply the [general coding guidelines](./general-coding.instructions.md) to all c
 - Keep components small and focused—move derived state into custom hooks under `apps/web/src/hooks/` when logic grows.
 - Style via CSS modules or the shared design tokens (`@i4g/ui-kit`); avoid inline styles except for dynamic values.
 - Snapshot backend interactions in Storybook/Playwright fixtures so UI regressions can be validated without live API calls.
+
+## Execution Discipline
+- When assigned a task (e.g., fix a failing search), debug and implement the end-to-end solution within the same request. Do not pause mid-stream to ask permission for subsequent steps—finish the work unless explicitly instructed otherwise.

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
 from i4g.services.factories import build_structured_store, build_vector_store
 from i4g.store.schema import ScamRecord
+
+LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from i4g.store.structured import StructuredStore
@@ -23,7 +26,13 @@ class HybridRetriever:
         """Initialize the retriever with optional backend overrides."""
 
         self.structured_store = structured_store or build_structured_store()
-        self.vector_store = vector_store or build_vector_store()
+        try:
+            self.vector_store = vector_store or build_vector_store()
+            self._vector_error = False
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            LOGGER.warning("Vector store unavailable; falling back to structured-only search: %s", exc, exc_info=True)
+            self.vector_store = None
+            self._vector_error = True
 
     def query(
         self,
@@ -54,6 +63,13 @@ class HybridRetriever:
         if text:
             vector_results, vector_hits_total = self._semantic_results(text, vector_top_k)
             aggregated.update(vector_results)
+            fallback_top_k = max(vector_top_k, structured_top_k)
+            if (self.vector_store is None or self._vector_error) and not vector_results:
+                structured_hits_total += self._merge_text_fallback(
+                    aggregated,
+                    text,
+                    top_k=fallback_top_k,
+                )
 
         if filters:
             structured_hits_total += self._merge_structured_filters(aggregated, filters, structured_top_k)
@@ -89,7 +105,16 @@ class HybridRetriever:
 
     def _semantic_results(self, text: str, top_k: int) -> Tuple[Dict[str, Dict[str, Any]], int]:
         """Run semantic vector search and normalize results."""
-        vector_hits = self.vector_store.query_similar(text, top_k=top_k)
+        if not self.vector_store:
+            return {}, 0
+
+        try:
+            vector_hits = self.vector_store.query_similar(text, top_k=top_k)
+            self._vector_error = False
+        except Exception as exc:  # pragma: no cover - depends on backend availability
+            LOGGER.warning("Vector similarity search failed; falling back to text search: %s", exc, exc_info=True)
+            self._vector_error = True
+            return {}, 0
         aggregated: Dict[str, Dict[str, Any]] = {}
 
         for idx, hit in enumerate(vector_hits):
@@ -135,6 +160,26 @@ class HybridRetriever:
             for record in records:
                 self._add_structured_record(aggregated, record)
         return total
+
+    def _merge_text_fallback(
+        self,
+        aggregated: Dict[str, Dict[str, Any]],
+        query: str,
+        top_k: int,
+    ) -> int:
+        """Populate aggregated map using structured text search when vectors are unavailable."""
+
+        limit = max(top_k, 1)
+        records = self.structured_store.search_text(query, top_k=limit)
+        for record in records:
+            entry = aggregated.setdefault(
+                record.case_id,
+                {"case_id": record.case_id, "score": None, "sources": set()},
+            )
+            entry["sources"].add("text")
+            entry["record"] = record.to_dict()
+            entry["score"] = entry["score"] if entry["score"] is not None else 0.0
+        return len(records)
 
     @staticmethod
     def _iter_filters(filters: Dict[str, Any]) -> Iterable[Tuple[str, Any]]:

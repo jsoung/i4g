@@ -10,7 +10,7 @@
 
 **i4g** is a cloud-native, AI-powered platform that helps scam users document fraud and generate law enforcement reports. The system uses a **privacy-by-design** architecture where personally identifiable information (PII) is tokenized immediately upon upload and stored separately from case data.
 
-The analyst experience now runs through a **Next.js console** deployed on Cloud Run, replacing the original Streamlit proof-of-concept. This console talks to the FastAPI services through server-side proxy routes, ensuring the privacy guarantees described below remain intact.
+You now run two first-party consoles. The **Next.js portal** on Cloud Run serves victims, volunteer analysts, and law enforcement officers through server-side proxy routes that preserve the privacy guarantees described below. The **Streamlit operations console** stays online for internal developers and sys-admins who need dashboards, data analytics, and live ingestion telemetry without exposing those tools to external users.
 
 **Key Design Principles**:
 1. **Zero Trust**: No analyst ever sees raw PII
@@ -99,14 +99,15 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 
 ---
 
-### 2. **Next.js Analyst Console**
+### 2. **Experience Layer**
+
+#### Next.js External Portal
 
 **Responsibilities**:
-- Analyst authentication (OAuth 2.0 flow routed through Next.js middleware)
-- Search, review, and approval workflows surfaced through a React UI
-- Case detail view with evidence thumbnails and inline entity highlighting
-- Faceted filtering and result toggles sourced from the proto search API
-- Bulk report export and smoke-test automation hooks (in progress)
+- Orchestrate the full victim → analyst → law enforcement workflow with OAuth-backed authentication
+- Expose search, review, approval, and report delivery experiences through a React UI that mirrors the FastAPI contracts
+- Render case detail pages with evidence thumbnails, inline entity highlighting, and Discovery Engine powered search facets
+- Provide bulk report exports, smoke-test hooks, and future citizen-facing intake forms without revealing backend secrets
 
 **Technology Stack**:
 - Node.js 20 (Cloud Run)
@@ -119,6 +120,23 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 - Cloud Run friendly build (PNPM workspaces, multi-stage Dockerfile)
 - API route proxy that injects server-only secrets for FastAPI calls
 - Configurable mock mode for demos without backend dependencies
+
+#### Streamlit Operations Console
+
+**Responsibilities**:
+- Give internal developers and sys-admins a fast path to query cases, review ingestion telemetry, and validate Discovery Engine relevance tuning
+- Host privileged dashboards (PII handling audit trails, queue depth monitors, weekly migration metrics) without impacting the hardened external portal
+- Surface ad-hoc data science notebooks and quick visualizations that do not belong in the production-facing UI
+
+**Technology Stack**:
+- Python 3.11 with Streamlit 1.28+
+- Shared component library (`i4g.ui.widgets`) to reuse FastAPI schemas directly in widgets
+- OAuth session reuse via the same FastAPI-issued JWTs consumed by Next.js
+
+**Key Features**:
+- Runs behind Cloud Run IAM so only on-call engineers and sys-admins can launch it
+- Ships with environment toggles (`I4G_ENV`, `I4G_ANALYTICS_MODE`) to switch between local SQLite/Chroma and GCP services
+- Imports `i4g.services.discovery` directly so Discovery Engine experiments stay consistent with the backend
 
 ---
 
@@ -536,8 +554,9 @@ gcloud run services update i4g-api --traffic
 - **Vector DB**: ChromaDB (local embeddings via nomic-embed-text)
 
 ### Frontend
-- **Dashboard**: Streamlit 1.28+ (analyst UI)
-- **Styling**: Custom CSS (PII redaction, responsive design)
+- **External portal**: Next.js 15 (victim, analyst, and law enforcement UI)
+- **Operations console**: Streamlit 1.28+ (internal dashboards for developers and sys-admins)
+- **Shared styling**: Tailwind CSS design tokens + focused CSS for PII redaction and responsive layouts
 
 ### Cloud Infrastructure
 - **Hosting**: Google Cloud Platform
