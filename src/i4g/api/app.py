@@ -58,6 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(discovery_router)
     app.include_router(intake_router)
     app.include_router(task_router)
+
     return app
 
 

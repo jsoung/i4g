@@ -345,33 +345,11 @@ gcloud run deploy i4g-console \
 
 ## Security Architecture
 
-### 1. **Authentication Flow (OAuth 2.0)**
+> **Note:** All IAM, authentication, and role-planning details now live in `docs/iam.md`. This section only summarizes the privacy controls already documented elsewhere.
 
-```
-1. User clicks "Sign In with Google"
-   ↓
-2. Redirect to Google consent screen
-   ↓
-3. User approves access
-   ↓
-4. Google returns authorization code
-   ↓
-5. Backend exchanges code for tokens
-   ↓
-6. Verify JWT signature
-   ↓
-7. Check if user is approved analyst (Firestore /analysts)
-   ↓
-8. Generate session token (expires in 1 hour)
-   ↓
-9. Store session token in an HTTP-only cookie managed by the Next.js auth route
-   ↓
-10. All API calls include: Authorization: Bearer {JWT}
-```
+**Identity-Aware Proxy (IAP)** now fronts every Cloud Run service (FastAPI, Analyst Console, Streamlit). Users hit the standard Cloud Run URLs, are prompted by Google sign-in if needed, and traffic is forwarded only when the caller is listed in the IAP policy. This replaces the short-lived helper SPA.
 
----
-
-### 2. **PII Isolation**
+### 1. **PII Isolation**
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -389,15 +367,15 @@ gcloud run deploy i4g-console \
               ┌──────────────────┼──────────────────┐
               │                                     │
     ┌─────────▼────────┐              ┌────────────▼────────┐
-    │   PII Vault      │              │   Cases DB          │
-    │  (Encrypted)     │              │  (Tokenized)        │
-    │  Firestore       │              │  Firestore          │
-    │  /pii_vault      │              │  /cases             │
-    └──────────────────┘              └──────────┬──────────┘
+        │   PII Vault      │              │   Cases DB          │
+        │  (Encrypted)     │              │  (Tokenized)        │
+        │  Firestore       │              │  Firestore          │
+        │  /pii_vault      │              │  /cases             │
+        └──────────────────┘              └──────────┬──────────┘
           ⚠️ RESTRICTED                           │
-     (Backend SA only)                            │
-                                         ┌────────▼──────────┐
-                                         │ Next.js Analyst   │
+         (Backend SA only)                            │
+                     ┌────────▼──────────┐
+                     │ Next.js Analyst   │
                                          │ Console (PII      │
                                          │ masked ███████)   │
                                          └───────────────────┘
