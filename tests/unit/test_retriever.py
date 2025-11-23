@@ -119,3 +119,23 @@ def test_pagination_slice_returns_expected_segment():
     assert page["total"] == 3
     assert page["vector_hits"] == 3
     assert page["structured_hits"] == 0
+
+
+def test_text_fallback_when_vector_unavailable():
+    record = make_record(case_id="case-text")
+    structured_store = MagicMock()
+    structured_store.search_by_field.return_value = []
+    structured_store.search_text.return_value = [record]
+
+    vector_store = MagicMock()
+    vector_store.query_similar.side_effect = RuntimeError("vector backend down")
+
+    retriever = HybridRetriever(structured_store=structured_store, vector_store=vector_store)
+    response = retriever.query(text="wallet", vector_top_k=2)
+
+    assert response["vector_hits"] == 0
+    assert response["structured_hits"] == 1
+    assert response["results"][0]["case_id"] == "case-text"
+    assert response["results"][0]["sources"] == ["text"]
+    vector_store.query_similar.assert_called_once_with("wallet", top_k=2)
+    structured_store.search_text.assert_called_once_with("wallet", top_k=5)

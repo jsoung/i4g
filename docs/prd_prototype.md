@@ -9,13 +9,13 @@
 # Product Requirements Document (PRD) - Prototype Phase
 
 ## Overview
-**i4g** is an experimental platform designed to detect, analyze, and help prevent **crypto and romance scams**, particularly those targeting **senior citizens**. The system ingests chat histories, screenshots, and related materials, performs OCR and semantic analysis, and assists victims, analysts, and law enforcement in identifying and tracking scam operations.
+**i4g** is an experimental platform designed to detect, analyze, and help prevent **crypto and romance scams**, particularly those targeting **senior citizens**. The system ingests chat histories, screenshots, and related materials, performs OCR and semantic analysis, and assists users, analysts, and law enforcement in identifying and tracking scam operations.
 
 ## Objectives
 - Detect potential scam communications using AI-driven semantic and structured analysis.
 - Build a growing knowledge base of scam patterns for educational and investigative purposes.
 - Facilitate collaboration between fraud analysts and law enforcement agencies.
-- Empower victims to verify suspicious conversations early and access intelligent chat-based assistance.
+- Empower users to verify suspicious conversations early and access intelligent chat-based assistance.
 
 ## Assumptions
 - All software, models, and tools used in the current development phase are **free and open source**.
@@ -25,16 +25,16 @@
 ## Personas
 | Persona | Description | Goals | Pain Points |
 |----------|--------------|--------|--------------|
-| **Victim (Senior Citizen)** | Engaged in suspicious online conversations (crypto or romance) | Understand whether they are being scammed; get AI chat assistance; voluntarily share data to help others | Fear, shame, lack of technical literacy |
+| **User (Senior Citizen)** | Engaged in suspicious online conversations (crypto or romance) | Understand whether they are being scammed; get AI chat assistance; voluntarily share data to help others | Fear, shame, lack of technical literacy |
 | **Fraud Analyst** | Reviews borderline or uncertain classifications | Validate or reject suspected scams; provide structured annotations | Overwhelming data volume, repetitive analysis |
-| **Scammer (Adversarial Persona)** | Operates scams via social media, dating apps, or crypto groups | Deceive victims for money or data | Increasing AI
-| **Law Enforcement Officer** | Receives summarized, evidence-rich reports | Use aggregated evidence to prosecute scammers | Lack of structured data from victims |
+| **Scammer (Adversarial Persona)** | Operates scams via social media, dating apps, or crypto groups | Deceive users for money or data | Increasing AI
+| **Law Enforcement Officer** | Receives summarized, evidence-rich reports | Use aggregated evidence to prosecute scammers | Lack of structured data from users |
 
 ## Use Cases
-### Victim Verification & Assistance
+### User Verification & Assistance
    - A user visits the i4g website and interacts with a **chat helper** powered by LLMs.
    - The system provides **real-time guidance** to help identify suspicious activity and protect the user from further harm.
-   - Victims can optionally **upload chat histories or screenshots** to contribute to the knowledge base.
+   - Users can optionally **upload chat histories or screenshots** to contribute to the knowledge base.
    - Uploaded data is processed via OCR (Tesseract) and semantic extraction (LangChain + Ollama).
    - Classification outcomes:
      - **Likely Scam** → Added to knowledge base.

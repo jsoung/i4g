@@ -9,7 +9,7 @@ The tool reads the following environment variables unless overridden via CLI:
 Example usage:
 
     python scripts/migration/azure_search_export.py \
-        --indexes victims cases \
+        --indexes users cases \
         --output-dir data/search_exports/20251114
 
 The script writes `<index>_schema.json` and `<index>_documents.jsonl` files for

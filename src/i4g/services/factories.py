@@ -12,6 +12,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from i4g.settings import get_settings
+from i4g.storage import EvidenceStorage
+from i4g.store.intake_store import IntakeStore
 from i4g.store.review_store import ReviewStore
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
@@ -109,3 +111,27 @@ def build_vector_store(
         raise NotImplementedError("Vertex AI vector backend not implemented yet")
 
     raise NotImplementedError(f"Unsupported vector backend '{resolved_backend}'")
+
+
+def build_intake_store(db_path: str | Path | None = None) -> IntakeStore:
+    """Return an :class:`IntakeStore` aligned with the structured backend."""
+
+    settings = get_settings()
+    backend = settings.storage.structured_backend
+    if backend == "sqlite":
+        return IntakeStore(db_path=db_path)
+
+    if backend == "firestore":
+        raise NotImplementedError("Firestore intake backend not implemented yet")
+
+    if backend == "cloudsql":
+        raise NotImplementedError("Cloud SQL intake backend not implemented yet")
+
+    raise NotImplementedError(f"Unsupported intake storage backend '{backend}'")
+
+
+def build_evidence_storage(*, local_dir: str | Path | None = None) -> EvidenceStorage:
+    """Instantiate the configured evidence storage provider."""
+
+    path = Path(local_dir) if isinstance(local_dir, str) else local_dir
+    return EvidenceStorage(local_dir=path)

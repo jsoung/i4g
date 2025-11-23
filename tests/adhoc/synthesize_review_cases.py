@@ -28,12 +28,12 @@ CASE_TEMPLATES: List[Dict[str, str]] = [
     {
         "code": "ROMANCE",
         "priority": "medium",
-        "summary": "Romance scam escalation asking the victim for travel funds.",
+        "summary": "Romance scam escalation asking the user for travel funds.",
     },
     {
         "code": "INVEST",
         "priority": "high",
-        "summary": "Telegram pump-and-dump group directing victims to unknown token.",
+        "summary": "Telegram pump-and-dump group directing users to unknown token.",
     },
     {
         "code": "SUPPORT",
@@ -49,7 +49,7 @@ STATUS_NOTES: Dict[str, List[str]] = {
     ],
     "in_review": [
         "Analyst assigned; reviewing blockchain transfers.",
-        "Review in progress; awaiting victim callback.",
+        "Review in progress; awaiting user callback.",
     ],
     "accepted": [
         "Validated as active scam. Prepare evidence package.",

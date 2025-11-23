@@ -1,14 +1,16 @@
 # i4g System Architecture
 
-> **Document Version**: 1.0
-> **Last Updated**: October 30, 2025
+> **Document Version**: 1.1
+> **Last Updated**: November 7, 2025
 > **Audience**: Engineers, technical stakeholders, university partners
 
 ---
 
 ## Executive Summary
 
-**i4g** is a cloud-native, AI-powered platform that helps scam victims document fraud and generate law enforcement reports. The system uses a **privacy-by-design** architecture where personally identifiable information (PII) is tokenized immediately upon upload and stored separately from case data.
+**i4g** is a cloud-native, AI-powered platform that helps scam users document fraud and generate law enforcement reports. The system uses a **privacy-by-design** architecture where personally identifiable information (PII) is tokenized immediately upon upload and stored separately from case data.
+
+You now run two first-party consoles. The **Next.js portal** on Cloud Run serves victims, volunteer analysts, and law enforcement officers through server-side proxy routes that preserve the privacy guarantees described below. The **Streamlit operations console** stays online for internal developers and sys-admins who need dashboards, data analytics, and live ingestion telemetry without exposing those tools to external users.
 
 **Key Design Principles**:
 1. **Zero Trust**: No analyst ever sees raw PII
@@ -24,12 +26,12 @@
 ┌──────────────────────────────────────────────────────────┐
 │                      User Layer                          │
 │  ┌──────────┐      ┌──────────┐      ┌──────────┐        │
-│  │  Victim  │      │ Analyst  │      │   LEO    │        │
+│  │  User    │      │ Analyst  │      │   LEO    │        │
 │  └────┬─────┘      └────┬─────┘      └────┬─────┘        │
 └───────┼─────────────────┼─────────────────┼──────────────┘
-        │                 │                 │
-        │ HTTPS           │ HTTPS           │ HTTPS
-        │                 │                 │
+    │                 │                 │
+    │ HTTPS           │ HTTPS           │ HTTPS
+    │                 │                 │
 ┌───────┼─────────────────┼─────────────────┼──────────────┐
 │       │     GCP Cloud Run (us-central1)   │              │
 │  ┌────▼─────────────────▼─────────────────▼────┐         │
@@ -37,13 +39,14 @@
 │  └──┬─────────────────────┬────────────────────┘         │
 │     │                     │                              │
 │  ┌──▼─────────┐      ┌────▼──────────┐                   │
-│  │  FastAPI   │      │  Streamlit    │                   │
-│  │  Backend   │      │  Dashboard    │                   │
+│  │  FastAPI   │      │  Next.js      │                   │
+│  │  Backend   │      │  Analyst      │                   │
+│  │  (Python)  │      │  Console      │                   │
 │  └──┬─────────┘      └────┬──────────┘                   │
 └─────┼─────────────────────┼──────────────────────────────┘
-      │                     │
-      │   Firestore API     │
-      │                     │
+  │                     │
+  │   Firestore API     │
+  │                     │
 ┌─────▼─────────────────────▼──────────────────────────────┐
 │                  Data Layer (GCP)                        │
 │  ┌──────────────┐  ┌────────────┐  ┌───────────┐         │
@@ -92,29 +95,48 @@
 - `POST /api/cases/{id}/approve` - Generate LEO report
 - `GET /api/health` - Health check
 
-Note: The `POST /api/cases` endpoint above is listed as a planned victim-facing intake route in the architecture. In the current implementation this exact endpoint is not present — case intake is handled via the review queue and review-related routes (see `src/i4g/api/review.py` and the `/reviews` router). Consider this endpoint "planned" until a dedicated intake route is added.
+Note: The `POST /api/cases` endpoint above is listed as a planned user-facing intake route in the architecture. In the current implementation this exact endpoint is not present — case intake is handled via the review queue and review-related routes (see `src/i4g/api/review.py` and the `/reviews` router). Consider this endpoint "planned" until a dedicated intake route is added.
 
 ---
 
-### 2. **Streamlit Dashboard**
+### 2. **Experience Layer**
+
+#### Next.js External Portal
 
 **Responsibilities**:
-- Analyst login (OAuth 2.0 flow)
-- Case list view with filters
-- Case detail view with evidence thumbnails
-- PII masking display (███████)
-- Bulk operations (assign, export CSV)
+- Orchestrate the full victim → analyst → law enforcement workflow with OAuth-backed authentication
+- Expose search, review, approval, and report delivery experiences through a React UI that mirrors the FastAPI contracts
+- Render case detail pages with evidence thumbnails, inline entity highlighting, and Discovery Engine powered search facets
+- Provide bulk report exports, smoke-test hooks, and future citizen-facing intake forms without revealing backend secrets
 
 **Technology Stack**:
-- Python 3.11
-- Streamlit 1.28+
-- Custom CSS for PII redaction
-- Google OAuth 2.0 client library
+- Node.js 20 (Cloud Run)
+- Next.js 15 App Router with React 19 RC and TypeScript
+- Tailwind CSS, `@i4g/ui-kit`, and shared design tokens
+- `@i4g/sdk` plus proto-backed adapter selected via `I4G_API_KIND` env var
 
 **Key Features**:
-- Session state management (JWT storage)
-- Responsive design (works on tablets)
-- Real-time updates via Firestore listeners
+- Hybrid rendering (Server Components + edge-ready client interactivity)
+- Cloud Run friendly build (PNPM workspaces, multi-stage Dockerfile)
+- API route proxy that injects server-only secrets for FastAPI calls
+- Configurable mock mode for demos without backend dependencies
+
+#### Streamlit Operations Console
+
+**Responsibilities**:
+- Give internal developers and sys-admins a fast path to query cases, review ingestion telemetry, and validate Discovery Engine relevance tuning
+- Host privileged dashboards (PII handling audit trails, queue depth monitors, weekly migration metrics) without impacting the hardened external portal
+- Surface ad-hoc data science notebooks and quick visualizations that do not belong in the production-facing UI
+
+**Technology Stack**:
+- Python 3.11 with Streamlit 1.28+
+- Shared component library (`i4g.ui.widgets`) to reuse FastAPI schemas directly in widgets
+- OAuth session reuse via the same FastAPI-issued JWTs consumed by Next.js
+
+**Key Features**:
+- Runs behind Cloud Run IAM so only on-call engineers and sys-admins can launch it
+- Ships with environment toggles (`I4G_ENV`, `I4G_ANALYTICS_MODE`) to switch between local SQLite/Chroma and GCP services
+- Imports `i4g.services.discovery` directly so Discovery Engine experiments stay consistent with the backend
 
 ---
 
@@ -126,7 +148,7 @@ Note: The `POST /api/cases` endpoint above is listed as a planned victim-facing 
 /cases
   └─ {case_id}
       ├─ created_at: timestamp
-      ├─ victim_email: string
+      ├─ user_email: string
       ├─ title: string
       ├─ description: string (tokenized: <PII:SSN:7a8f2e>)
       ├─ classification: {type, confidence}
@@ -255,7 +277,7 @@ curl http://localhost:11434/api/chat -d '{
    ↓
    Upload to Cloud Storage: gs://i4g-reports/{case_id}.pdf
    ↓
-   Email victim with secure download link
+   Email user with secure download link
 ```
 
 ---
@@ -283,6 +305,8 @@ curl http://localhost:11434/api/chat -d '{
 
 ### Cloud Run Configuration
 
+API deployment (Python FastAPI):
+
 ```bash
 gcloud run deploy i4g-api \
   --image gcr.io/i4g-prod/api:latest \
@@ -297,6 +321,20 @@ gcloud run deploy i4g-api \
   --set-secrets "TOKEN_ENCRYPTION_KEY=TOKEN_ENCRYPTION_KEY:latest"
 ```
 
+Analyst console deployment (Next.js container image built via PNPM workspaces):
+
+```bash
+gcloud run deploy i4g-console \
+    --image us-central1-docker.pkg.dev/i4g-dev/applications/analyst-console:dev \
+    --region us-central1 \
+    --platform managed \
+    --allow-unauthenticated \
+    --set-env-vars NEXT_PUBLIC_USE_MOCK_DATA=false \
+    --set-env-vars I4G_API_URL=https://fastapi-gateway-y5jge5w2cq-uc.a.run.app/ \
+    --set-env-vars I4G_API_KIND=proto \
+    --set-env-vars I4G_API_KEY=dev-analyst-token
+```
+
 **Auto-Scaling**:
 - Minimum instances: 0 (scales to zero when idle)
 - Maximum instances: 10 (free tier limit)
@@ -307,33 +345,11 @@ gcloud run deploy i4g-api \
 
 ## Security Architecture
 
-### 1. **Authentication Flow (OAuth 2.0)**
+> **Note:** All IAM, authentication, and role-planning details now live in `docs/iam.md`. This section only summarizes the privacy controls already documented elsewhere.
 
-```
-1. User clicks "Sign In with Google"
-   ↓
-2. Redirect to Google consent screen
-   ↓
-3. User approves access
-   ↓
-4. Google returns authorization code
-   ↓
-5. Backend exchanges code for tokens
-   ↓
-6. Verify JWT signature
-   ↓
-7. Check if user is approved analyst (Firestore /analysts)
-   ↓
-8. Generate session token (expires in 1 hour)
-   ↓
-9. Store JWT in Streamlit session state
-   ↓
-10. All API calls include: Authorization: Bearer {JWT}
-```
+**Identity-Aware Proxy (IAP)** now fronts every Cloud Run service (FastAPI, Analyst Console, Streamlit). Users hit the standard Cloud Run URLs, are prompted by Google sign-in if needed, and traffic is forwarded only when the caller is listed in the IAP policy. This replaces the short-lived helper SPA.
 
----
-
-### 2. **PII Isolation**
+### 1. **PII Isolation**
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -351,17 +367,17 @@ gcloud run deploy i4g-api \
               ┌──────────────────┼──────────────────┐
               │                                     │
     ┌─────────▼────────┐              ┌────────────▼────────┐
-    │   PII Vault      │              │   Cases DB          │
-    │  (Encrypted)     │              │  (Tokenized)        │
-    │  Firestore       │              │  Firestore          │
-    │  /pii_vault      │              │  /cases             │
-    └──────────────────┘              └──────────┬──────────┘
+        │   PII Vault      │              │   Cases DB          │
+        │  (Encrypted)     │              │  (Tokenized)        │
+        │  Firestore       │              │  Firestore          │
+        │  /pii_vault      │              │  /cases             │
+        └──────────────────┘              └──────────┬──────────┘
           ⚠️ RESTRICTED                           │
-     (Backend SA only)                            │
-                                         ┌────────▼──────────┐
-                                         │ Analyst Dashboard │
-                                         │  (PII masked as   │
-                                         │   ███████)        │
+         (Backend SA only)                            │
+                     ┌────────▼──────────┐
+                     │ Next.js Analyst   │
+                                         │ Console (PII      │
+                                         │ masked ███████)   │
                                          └───────────────────┘
 ```
 
@@ -516,8 +532,9 @@ gcloud run services update i4g-api --traffic
 - **Vector DB**: ChromaDB (local embeddings via nomic-embed-text)
 
 ### Frontend
-- **Dashboard**: Streamlit 1.28+ (analyst UI)
-- **Styling**: Custom CSS (PII redaction, responsive design)
+- **External portal**: Next.js 15 (victim, analyst, and law enforcement UI)
+- **Operations console**: Streamlit 1.28+ (internal dashboards for developers and sys-admins)
+- **Shared styling**: Tailwind CSS design tokens + focused CSS for PII redaction and responsive layouts
 
 ### Cloud Infrastructure
 - **Hosting**: Google Cloud Platform

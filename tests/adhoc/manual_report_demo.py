@@ -19,7 +19,7 @@ if __name__ == "__main__":
         "title": "Crypto Investment Scam",
         "case_id": "CASE-2025-001",
         "date": datetime.date.today().isoformat(),
-        "summary": "Victim was contacted through social media promising high crypto returns.",
+        "summary": "User was contacted through social media promising high crypto returns.",
         "entities": {
             "people": ["John Doe", "Anna Lee"],
             "organizations": ["TrustWallet", "Binance"],

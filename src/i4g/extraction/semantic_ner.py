@@ -32,7 +32,7 @@ _EMPTY_JSON_OUTPUT_TEMPLATE = json.dumps({key: [] for key in _ENTITY_KEYS}, inde
 
 _SYSTEM_PROMPT = """
 You are an assistant whose only job is to *extract structured entities* from text for
-the purpose of victim support and law enforcement investigation. You must NOT provide
+the purpose of user support and law enforcement investigation. You must NOT provide
 operational advice or anything that enables wrongdoing.
 
 Return ONLY a JSON object with the exact top-level keys listed in the examples.

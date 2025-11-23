@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Iterator
 
 from i4g.services.factories import build_structured_store, build_vector_store
+from i4g.services.ingest_payloads import prepare_ingest_payload
 from i4g.store.ingest import IngestPipeline
 
 LOGGER = logging.getLogger("i4g.worker.jobs.ingest")
@@ -78,17 +79,30 @@ def main() -> int:
         for record in _load_jsonl(dataset_path):
             if batch_limit and processed >= batch_limit:
                 break
+            payload, diagnostics = prepare_ingest_payload(record)
             if dry_run:
-                LOGGER.info("Dry run enabled; would ingest record %s", record.get("case_id"))
+                LOGGER.info(
+                    "Dry run enabled; would ingest case_id=%s classification=%s confidence=%.2f text_source=%s",
+                    payload.get("case_id") or "generated",
+                    diagnostics["classification"],
+                    diagnostics["confidence"],
+                    diagnostics["text_source"],
+                )
                 processed += 1
                 continue
             try:
-                case_id = pipeline.ingest_classified_case(record)
+                case_id = pipeline.ingest_classified_case(payload)
                 processed += 1
-                LOGGER.info("Ingested record case_id=%s", case_id)
+                LOGGER.info(
+                    "Ingested record case_id=%s classification=%s confidence=%.2f text_source=%s",
+                    case_id,
+                    diagnostics["classification"],
+                    diagnostics["confidence"],
+                    diagnostics["text_source"],
+                )
             except Exception:  # pragma: no cover - defensive logging around ingestion pipeline
                 failures += 1
-                LOGGER.exception("Failed to ingest record case_id=%s", record.get("case_id"))
+                LOGGER.exception("Failed to ingest record case_id=%s", payload.get("case_id"))
     except Exception:  # pragma: no cover - unexpected reader failure
         LOGGER.exception("Ingestion batch aborted due to reader error")
         return 1

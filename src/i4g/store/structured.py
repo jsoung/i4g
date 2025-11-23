@@ -263,6 +263,32 @@ class StructuredStore:
                         break
             return results
 
+    def search_text(self, query: str, top_k: int = 50, offset: int = 0) -> List[ScamRecord]:
+        """Run a simple case-insensitive substring search against the text column."""
+
+        if not query:
+            return []
+
+        tokens = [token.strip() for token in query.split() if token.strip()]
+        if tokens:
+            pattern = "%" + "%".join(tokens) + "%"
+        else:
+            pattern = f"%{query.strip()}%"
+
+        pattern = pattern.lower()
+        cur = self._conn.cursor()
+        cur.execute(
+            """
+            SELECT * FROM scam_records
+            WHERE lower(text) LIKE ?
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            (pattern, top_k, offset),
+        )
+        rows = cur.fetchall()
+        return [self._row_to_record(r) for r in rows]
+
     def delete_by_id(self, case_id: str) -> bool:
         """Delete a record by case_id.
 

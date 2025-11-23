@@ -9,13 +9,13 @@
 
 ## Executive Summary
 
-This document outlines **i4g's** commitment to protecting personally identifiable information (PII) and complying with applicable data protection regulations. As a volunteer-operated non-profit assisting scam victims, we handle sensitive data including financial records, personal communications, and identity documents.
+This document outlines **i4g's** commitment to protecting personally identifiable information (PII) and complying with applicable data protection regulations. As a volunteer-operated non-profit assisting scam users, we handle sensitive data including financial records, personal communications, and identity documents.
 
 **Key Principles**:
 1. **Privacy by Design**: PII tokenization from the moment of upload
 2. **Zero Trust**: No analyst ever sees raw PII
 3. **Minimal Retention**: Data deleted within 90 days unless legally required
-4. **Transparency**: Victims control their data (export, delete)
+4. **Transparency**: Users control their data (export, delete)
 
 ---
 
@@ -25,8 +25,8 @@ This document outlines **i4g's** commitment to protecting personally identifiabl
 **Applies when**: Partnering with universities (e.g., University of Alabama graduate students as analysts)
 
 **Requirements**:
-- Annual FERPA training for all analysts accessing victim data through university accounts
-- Parental consent for victims under 18
+- Annual FERPA training for all analysts accessing user data through university accounts
+- Parental consent for users under 18
 - No disclosure of educational records without consent
 
 **Implementation**:
@@ -37,7 +37,7 @@ This document outlines **i4g's** commitment to protecting personally identifiabl
 ---
 
 ### 2. **GDPR/CCPA** (EU General Data Protection Regulation / California Consumer Privacy Act)
-**Applies when**: Victims from EU or California
+**Applies when**: Users from EU or California
 
 **Key Rights**:
 - **Right to Access**: Export all data in JSON format (\`/api/cases/{case_id}/export\`)
@@ -52,7 +52,7 @@ This document outlines **i4g's** commitment to protecting personally identifiabl
 
 **Timeline**:
 - **Discovery to Assessment**: 24 hours
-- **Notification to Victims**: 72 hours (most states)
+- **Notification to Users**: 72 hours (most states)
 - **Notification to Regulators**: Varies (CA: immediate if >500 residents)
 
 **Thresholds**:
@@ -80,7 +80,7 @@ This document outlines **i4g's** commitment to protecting personally identifiabl
 - **Raw Input**: "My SSN is 123-45-6789 and I lost $5,000"
 - **Stored in DB**: "My SSN is <PII:SSN:7a8f2e> and I lost $5,000"
 - **Analyst View**: "My SSN is ███████ and I lost $5,000"
-- **LEO Report**: "My SSN is 123-45-6789 and I lost $5,000" (with victim consent)
+- **LEO Report**: "My SSN is 123-45-6789 and I lost $5,000" (with user consent)
 
 ---
 
@@ -114,7 +114,7 @@ This document outlines **i4g's** commitment to protecting personally identifiabl
 **Role-Based Permissions**:
 ```yaml
 roles:
-  victim:
+  user:
     - view_own_case
     - update_own_case
     - delete_own_case
@@ -182,7 +182,7 @@ roles:
 
 **Questions**:
 - Was PII accessed? (Check \`/pii_vault\` read logs)
-- Who was affected? (Cross-reference \`case_id\` with victim emails)
+- Who was affected? (Cross-reference \`case_id\` with user emails)
 - How was the breach achieved? (Review authentication logs)
 
 **Tools**:
@@ -199,11 +199,11 @@ roles:
 - **CCPA**: "Without unreasonable delay"
 - **State laws**: Varies (most 30-90 days)
 
-**Victim Notification Template**:
+**User Notification Template**:
 ```
 Subject: Important Security Notice About Your i4g Case
 
-Dear [Victim Name],
+Dear [User Name],
 
 We are writing to inform you that on [Date], we detected unauthorized access to 
 our systems. This incident may have affected your personal information submitted 
@@ -269,7 +269,7 @@ i4g Project Lead
 
 ## Third-Party Data Sharing
 
-**Policy**: i4g does NOT share victim data with third parties except:
+**Policy**: i4g does NOT share user data with third parties except:
 
 1. **Law Enforcement**: With valid subpoena or court order
    - Process: LEO submits request to \`legal@i4g.org\`
@@ -280,7 +280,7 @@ i4g Project Lead
    - Approval: IRB (Institutional Review Board) required
    - Format: Aggregated statistics, no case-level detail
 
-3. **Victim's Consent**: Explicit opt-in for sharing with financial institutions
+3. **User's Consent**: Explicit opt-in for sharing with financial institutions
 
 ---
 
