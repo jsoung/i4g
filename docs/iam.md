@@ -37,7 +37,7 @@ This document is the single source of truth for how we authenticate users, autho
 | Streamlit Operations Console | Internal dashboards & queues | `https://streamlit-analyst-ui-y5jge5w2cq-uc.a.run.app/` | `sa-app` runtime | Protected by IAP; analysts/admins only. |
 | Next.js Analyst Console | External portal | `https://i4g-console-y5jge5w2cq-uc.a.run.app/` | `sa-app` runtime | Protected by IAP; uses FastAPI APIs under the hood. |
 
-All three application services currently reuse the shared runtime service account (`sa-app`). Terraform now owns both the Cloud Run `roles/run.invoker` binding (runtime + IAP service agent) and the IAP `roles/iap.httpsResourceAccessor` policy via the `i4g_analyst_members` input.
+All three application services currently reuse the shared runtime service account (`sa-app`). Terraform now owns both the Cloud Run `roles/run.invoker` binding (runtime + IAP service agent) and the IAP `roles/iap.httpsResourceAccessor` policy via the `i4g_analyst_members` input, which now points at the Workspace group `group:gcp-i4g-analyst@intelligenceforgood.org`. Project-level `roles/owner` grants flow through the sister variable `i4g_admin_members`, mapped to `group:gcp-i4g-admin@intelligenceforgood.org`.
 
 ---
 
@@ -50,7 +50,7 @@ All three application services currently reuse the shared runtime service accoun
 - **CLI / service integrations:** Engineers can still run `gcloud auth print-identity-token --audiences=<run-url>` and call Cloud Run programmatically. When invoking through IAP, include the `X-Goog-IAP-JWT-Assertion` header (gcloud and client libraries handle this automatically). For debugging, you may also bypass IAP by running the service locally with mock auth.
 
 ### 4.2 Medium-Term Enhancements (in parallel)
-- Replace per-user bindings with Google Group bindings (`group:i4g-analysts@googlegroups.com`, `group:i4g-leo@...`) so onboarding/offboarding requires only Workspace group membership changes.
+- Replace per-user bindings with Google Group bindings (`group:gcp-i4g-analyst@intelligenceforgood.org`, `group:gcp-i4g-leo@intelligenceforgood.org`) so onboarding/offboarding requires only Workspace group membership changes.
 - Add device-based checks by pairing IAP with BeyondCorp Enterprise or Context-Aware Access policies (post-Milestone 3).
 - Introduce per-persona Cloud Run services, each with its own IAP policy and rate limits, to isolate analyst vs. LEO experiences.
 
@@ -67,17 +67,22 @@ All three application services currently reuse the shared runtime service accoun
    - `sa-app`: shared by FastAPI, Streamlit, and the Next.js analyst console. Roles: `roles/datastore.user`, `roles/storage.objectViewer`, `roles/secretmanager.secretAccessor`, `roles/run.invoker` (self), `roles/logging.logWriter`, plus Discovery Engine search role.
    - `sa-ingest`, `sa-report`, `sa-vault`, `sa-infra`: keep existing least-privilege grants (see Terraform modules).
 
-2. **Cloud Run + IAP Policy Management**
+2. **Workspace Groups & Human Roles**
+   - `gcp-i4g-admin@intelligenceforgood.org` holds the break-glass administrator role. Terraform variable `i4g_admin_members` grants this group `roles/owner` on each project so we can rotate humans without touching IAM bindings.
+   - `gcp-i4g-analyst@intelligenceforgood.org` represents the analyst persona. Terraform variable `i4g_analyst_members` feeds this group into Cloud Run and IAP so onboarding/offboarding happens via Workspace membership only.
+   - Law-enforcement and partner cohorts will receive their own Google Groups before we ship those personas.
+
+3. **Cloud Run + IAP Policy Management**
    - Terraform now manages both the Cloud Run `roles/run.invoker` binding (runtime service account + IAP service agent + any extra service accounts) *and* the IAP `roles/iap.httpsResourceAccessor` policy for each service. Both derive from `i4g_analyst_members` plus optional per-service overrides.
    - Requirement: maintain this list via tfvars or Google Groups; avoid manual IAM edits so Terraform remains authoritative.
 
-3. **Data Plane Permissions**
+4. **Data Plane Permissions**
    - Firestore: analysts read only assigned cases; PII vault locked to backend service account.
    - Cloud Storage: uniform bucket-level access; signed URLs for user downloads/uploads.
    - Vertex AI Search / future vector stores: custom roles bound to runtime SAs.
    - Secret Manager: versioned secrets per service account; rotate quarterly.
 
-4. **Audit & Monitoring**
+5. **Audit & Monitoring**
    - Cloud Audit Logs retained ≥400 days.
    - Daily Terraform drift check (planned).
    - Streaming alerts for IAM policy changes, authentication failures, and Quick Auth Portal usage anomalies.
@@ -118,7 +123,7 @@ Terraform is the source of truth, but if we need an emergency change before a pl
          --service=i4g-console \
          --project=i4g-dev \
          --region=us-central1 \
-         --member=group:i4g-analysts@googlegroups.com \
+         --member=group:gcp-i4g-analyst@intelligenceforgood.org \
          --role=roles/iap.httpsResourceAccessor
       ```
 3. **Repeat for FastAPI and Streamlit** as needed; Terraform will reconcile the bindings on the next apply.
@@ -147,8 +152,8 @@ Open questions to track:
 
 ## 8. Operational Runbook Highlights
 
-- **Group Management:** Manage `i4g-analysts@googlegroups.com` and `i4g-leo@googlegroups.com` manually until we automate via Workspace Admin APIs. Document membership changes in `planning/change_log.md`.
-- **Terraform Inputs:** `i4g_analyst_members` list should contain Google Groups, not individuals, after the transition. Keep dev/prod tfvars in sync.
+- **Group Management:** Manage `gcp-i4g-analyst@intelligenceforgood.org`, `gcp-i4g-admin@intelligenceforgood.org`, and the upcoming persona-specific lists manually until we automate via Workspace Admin APIs. Document membership changes in `planning/change_log.md`.
+- **Terraform Inputs:** `i4g_analyst_members` is pinned to `group:gcp-i4g-analyst@intelligenceforgood.org` and `i4g_admin_members` to `group:gcp-i4g-admin@intelligenceforgood.org`. Keep dev/prod tfvars in sync and update Workspace groups rather than editing tfvars when onboarding.
 - **Incident Response:** On suspected credential leak, (1) remove the user from the Google Group, (2) rotate secrets via Secret Manager, (3) re-run Terraform to enforce IAM bindings, (4) rotate the IAP OAuth client secret (new Secret Manager version) if needed.
 - **Logging & Metrics:** Track `403` responses from Cloud Run; correlate with IAP audit logs to detect auth friction or brute-force attempts.
 
