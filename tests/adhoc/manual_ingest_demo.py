@@ -1,40 +1,49 @@
-"""
-Manual smoke test for i4g ingestion and retrieval pipeline.
+"""Manual smoke test for the ingestion/retrieval pipeline."""
 
-⚠️ This is NOT an automated unit test.
-Run manually to verify end-to-end integration using real Ollama + Chroma.
+from __future__ import annotations
 
-Usage:
-    python tests/adhoc/manual_ingest_demo.py
-
-It will:
-1. Initialize StructuredStore + VectorStore.
-2. Ingest two realistic scam case samples.
-3. Perform a similarity query.
-4. Print formatted results.
-
-Requirements:
-- Ollama service running locally (`ollama serve`)
-- Model installed: `ollama pull nomic-embed-text`
-- Chroma installed via `pip install chromadb`
-"""
-
+import argparse
 import pprint
 from pathlib import Path
+from typing import Sequence
 
 from i4g.store.ingest import IngestPipeline
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
 
+DEFAULT_STRUCTURED_DB = Path("data/manual_demo/structured_demo.db")
+DEFAULT_VECTOR_DIR = Path("data/manual_demo/chroma")
 
-def main() -> None:
-    base_dir = Path("data/manual_demo")
-    base_dir.mkdir(parents=True, exist_ok=True)
 
-    structured_db = base_dir / "structured_demo.db"
-    vector_dir = base_dir / "chroma"
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Return CLI arguments describing where to persist demo data."""
 
-    # Initialize pipeline components
+    parser = argparse.ArgumentParser(description="Manual ingestion/retrieval smoke test")
+    parser.add_argument(
+        "--structured-db",
+        type=Path,
+        default=DEFAULT_STRUCTURED_DB,
+        help="Path to the SQLite database used for structured cases",
+    )
+    parser.add_argument(
+        "--vector-dir",
+        type=Path,
+        default=DEFAULT_VECTOR_DIR,
+        help="Directory used for the Chroma vector store",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    """Entry point for the manual ingestion demo."""
+
+    args = parse_args(argv)
+    structured_db = args.structured_db
+    vector_dir = args.vector_dir
+
+    structured_db.parent.mkdir(parents=True, exist_ok=True)
+    vector_dir.mkdir(parents=True, exist_ok=True)
+
     structured_store = StructuredStore(str(structured_db))
     vector_store = VectorStore(persist_dir=str(vector_dir))
     pipeline = IngestPipeline(structured_store=structured_store, vector_store=vector_store)

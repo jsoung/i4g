@@ -24,6 +24,7 @@ annotated-types==0.7.0
     # via pydantic
 anyio==4.11.0
     # via
+    #   google-genai
     #   httpx
     #   openai
     #   pytest-anyio
@@ -81,7 +82,9 @@ cfgv==3.4.0
 chardet==5.2.0
     # via paddlex
 charset-normalizer==3.4.4
-    # via requests
+    # via
+    #   reportlab
+    #   requests
 chromadb==1.2.2
     # via langchain-chroma
 click==8.3.0
@@ -119,6 +122,8 @@ distro==1.9.0
     # via
     #   openai
     #   posthog
+docstring-parser==0.17.0
+    # via google-cloud-aiplatform
 durationpy==0.10
     # via kubernetes
 einops==0.8.1
@@ -157,9 +162,12 @@ gitpython==3.1.45
 google-api-core[grpc]==2.27.0
     # via
     #   google-api-python-client
+    #   google-cloud-aiplatform
+    #   google-cloud-bigquery
     #   google-cloud-core
     #   google-cloud-discoveryengine
     #   google-cloud-firestore
+    #   google-cloud-resource-manager
     #   google-cloud-secret-manager
     #   google-cloud-storage
 google-api-python-client==2.185.0
@@ -170,11 +178,15 @@ google-auth==2.41.1
     #   google-api-python-client
     #   google-auth-httplib2
     #   google-auth-oauthlib
+    #   google-cloud-aiplatform
+    #   google-cloud-bigquery
     #   google-cloud-core
     #   google-cloud-discoveryengine
     #   google-cloud-firestore
+    #   google-cloud-resource-manager
     #   google-cloud-secret-manager
     #   google-cloud-storage
+    #   google-genai
     #   kubernetes
 google-auth-httplib2==0.2.0
     # via
@@ -182,24 +194,37 @@ google-auth-httplib2==0.2.0
     #   i4g (pyproject.toml)
 google-auth-oauthlib==1.2.2
     # via i4g (pyproject.toml)
+google-cloud-aiplatform==1.128.0
+    # via i4g (pyproject.toml)
+google-cloud-bigquery==3.38.0
+    # via google-cloud-aiplatform
 google-cloud-core==2.5.0
     # via
+    #   google-cloud-bigquery
     #   google-cloud-firestore
     #   google-cloud-storage
 google-cloud-discoveryengine==0.15.0
     # via i4g (pyproject.toml)
 google-cloud-firestore==2.21.0
     # via i4g (pyproject.toml)
+google-cloud-resource-manager==1.15.0
+    # via google-cloud-aiplatform
 google-cloud-secret-manager==2.25.0
     # via i4g (pyproject.toml)
 google-cloud-storage==3.5.0
-    # via i4g (pyproject.toml)
+    # via
+    #   google-cloud-aiplatform
+    #   i4g (pyproject.toml)
 google-crc32c==1.7.1
     # via
     #   google-cloud-storage
     #   google-resumable-media
+google-genai==1.52.0
+    # via google-cloud-aiplatform
 google-resumable-media==2.7.2
-    # via google-cloud-storage
+    # via
+    #   google-cloud-bigquery
+    #   google-cloud-storage
 googleapis-common-protos[grpc]==1.71.0
     # via
     #   google-api-core
@@ -207,12 +232,15 @@ googleapis-common-protos[grpc]==1.71.0
     #   grpcio-status
     #   opentelemetry-exporter-otlp-proto-grpc
 grpc-google-iam-v1==0.14.3
-    # via google-cloud-secret-manager
+    # via
+    #   google-cloud-resource-manager
+    #   google-cloud-secret-manager
 grpcio==1.76.0
     # via
     #   chromadb
     #   google-api-core
     #   google-cloud-discoveryengine
+    #   google-cloud-resource-manager
     #   google-cloud-secret-manager
     #   googleapis-common-protos
     #   grpc-google-iam-v1
@@ -238,6 +266,8 @@ httpx==0.28.1
     # via
     #   chromadb
     #   datasets
+    #   google-genai
+    #   i4g (pyproject.toml)
     #   langgraph-sdk
     #   langsmith
     #   ollama
@@ -410,7 +440,9 @@ openai==2.6.1
 opencv-contrib-python==4.10.0.84
     # via paddlex
 openpyxl==3.1.5
-    # via paddlex
+    # via
+    #   i4g (pyproject.toml)
+    #   paddlex
 opentelemetry-api==1.38.0
     # via
     #   chromadb
@@ -448,6 +480,8 @@ packaging==25.0
     #   build
     #   datasets
     #   faiss-cpu
+    #   google-cloud-aiplatform
+    #   google-cloud-bigquery
     #   huggingface-hub
     #   langchain-core
     #   langsmith
@@ -471,6 +505,7 @@ pillow==12.0.0
     #   i4g (pyproject.toml)
     #   paddlex
     #   pytesseract
+    #   reportlab
     #   streamlit
 pip-tools==7.5.2
     # via i4g (pyproject.toml)
@@ -495,14 +530,18 @@ propcache==0.4.1
 proto-plus==1.26.1
     # via
     #   google-api-core
+    #   google-cloud-aiplatform
     #   google-cloud-discoveryengine
     #   google-cloud-firestore
+    #   google-cloud-resource-manager
     #   google-cloud-secret-manager
 protobuf==5.29.5
     # via
     #   google-api-core
+    #   google-cloud-aiplatform
     #   google-cloud-discoveryengine
     #   google-cloud-firestore
+    #   google-cloud-resource-manager
     #   google-cloud-secret-manager
     #   googleapis-common-protos
     #   grpc-google-iam-v1
@@ -538,6 +577,8 @@ pydantic==2.12.3
     # via
     #   chromadb
     #   fastapi
+    #   google-cloud-aiplatform
+    #   google-genai
     #   i4g (pyproject.toml)
     #   langchain
     #   langchain-classic
@@ -591,6 +632,7 @@ python-bidi==0.6.7
     # via paddlex
 python-dateutil==2.9.0.post0
     # via
+    #   google-cloud-bigquery
     #   kubernetes
     #   pandas
     #   posthog
@@ -626,13 +668,17 @@ regex==2025.10.23
     #   i4g (pyproject.toml)
     #   paddlex
     #   tiktoken
+reportlab==4.4.5
+    # via i4g (pyproject.toml)
 requests==2.32.5
     # via
     #   aistudio-sdk
     #   azure-core
     #   datasets
     #   google-api-core
+    #   google-cloud-bigquery
     #   google-cloud-storage
+    #   google-genai
     #   huggingface-hub
     #   i4g (pyproject.toml)
     #   kubernetes
@@ -679,7 +725,9 @@ scipy==1.16.2
 sentencepiece==0.2.1
     # via paddlex
 shapely==2.1.2
-    # via paddlex
+    # via
+    #   google-cloud-aiplatform
+    #   paddlex
 shellingham==1.5.4
     # via typer
 six==1.17.0
@@ -712,6 +760,7 @@ sympy==1.14.0
 tenacity==9.1.2
     # via
     #   chromadb
+    #   google-genai
     #   langchain-community
     #   langchain-core
     #   streamlit
@@ -754,6 +803,8 @@ typing-extensions==4.15.0
     #   beautifulsoup4
     #   chromadb
     #   fastapi
+    #   google-cloud-aiplatform
+    #   google-genai
     #   grpcio
     #   huggingface-hub
     #   langchain-core
@@ -808,7 +859,9 @@ wcwidth==0.2.14
 websocket-client==1.9.0
     # via kubernetes
 websockets==15.0.1
-    # via uvicorn
+    # via
+    #   google-genai
+    #   uvicorn
 wheel==0.45.1
     # via pip-tools
 xxhash==3.6.0

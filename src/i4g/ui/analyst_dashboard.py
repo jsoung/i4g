@@ -15,6 +15,7 @@ It supports:
 from __future__ import annotations
 
 import json
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -39,6 +40,17 @@ TAG_PAL = [
     "#C5E1A5",
     "#B2DFDB",
 ]
+
+ACCOUNT_CATEGORY_OPTIONS = ["bank", "crypto", "payments", "ip", "browser", "asn"]
+ACCOUNT_FORMAT_OPTIONS = ["pdf", "xlsx", "csv", "json"]
+ACCOUNT_LIST_MAX_TOP_K = ui_api.SETTINGS.account_list.max_top_k or 500
+
+
+def _date_to_iso(value: date, *, use_end_of_day: bool = False) -> str:
+    """Convert a naive date to an ISO-8601 string spanning the day."""
+
+    boundary = time(hour=23, minute=59, second=59) if use_end_of_day else time(hour=0, minute=0, second=0)
+    return datetime.combine(value, boundary).replace(tzinfo=timezone.utc).isoformat()
 
 
 def run_search(params: Dict[str, Any], offset: int) -> None:
@@ -550,7 +562,156 @@ with st.sidebar.expander("Saved searches", expanded=False):
 st.session_state["history_limit"] = st.session_state.get("history_limit_slider", st.session_state["history_limit"])
 
 
-render_discovery_engine_panel()
+if ui_api.vertex_search_available():
+    render_discovery_engine_panel()
+else:
+    st.info("Install `google-cloud-discoveryengine` and `google-cloud-aiplatform` to enable the Vertex search panel.")
+
+
+st.divider()
+st.subheader("📊 Account list extraction")
+
+account_cols = st.columns([2, 1])
+with account_cols[0]:
+    st.markdown("#### Configure request")
+    with st.form("account_list_form"):
+        today = date.today()
+        default_start = st.session_state.get("account_list_start_date") or (today.replace(day=1))
+        default_end = st.session_state.get("account_list_end_date") or today
+        start_date = st.date_input(
+            "Start date",
+            value=default_start,
+            max_value=today,
+            help="Oldest case activity to include.",
+        )
+        end_date = st.date_input(
+            "End date",
+            value=default_end,
+            min_value=start_date,
+            max_value=today,
+            help="Latest case activity to include.",
+        )
+        categories = st.multiselect(
+            "Indicator categories",
+            options=ACCOUNT_CATEGORY_OPTIONS,
+            default=st.session_state.get("account_list_categories") or ACCOUNT_CATEGORY_OPTIONS[:3],
+            help="Filter to specific financial indicator categories.",
+        )
+        top_k = st.slider(
+            "Indicators to return",
+            min_value=1,
+            max_value=max(ACCOUNT_LIST_MAX_TOP_K, 5),
+            value=min(st.session_state.get("account_list_top_k", 100), ACCOUNT_LIST_MAX_TOP_K),
+            help=f"Service limit: {ACCOUNT_LIST_MAX_TOP_K} records.",
+        )
+        output_formats = st.multiselect(
+            "Output formats",
+            options=ACCOUNT_FORMAT_OPTIONS,
+            default=st.session_state.get("account_list_output_formats") or ["pdf", "xlsx"],
+            help="Optional artifact formats to generate.",
+        )
+        include_sources = st.checkbox(
+            "Include supporting documents",
+            value=st.session_state.get("account_list_include_sources", True),
+            help="Attach the case excerpts that justified each indicator.",
+        )
+        submitted_account_request = st.form_submit_button("Run extraction")
+
+        if submitted_account_request:
+            if start_date > end_date:
+                st.error("Start date must be on or before the end date.")
+            else:
+                st.session_state["account_list_start_date"] = start_date
+                st.session_state["account_list_end_date"] = end_date
+                st.session_state["account_list_categories"] = categories
+                st.session_state["account_list_top_k"] = int(top_k)
+                st.session_state["account_list_output_formats"] = output_formats
+                st.session_state["account_list_include_sources"] = include_sources
+
+                payload: Dict[str, Any] = {
+                    "start_time": _date_to_iso(start_date, use_end_of_day=False),
+                    "end_time": _date_to_iso(end_date, use_end_of_day=True),
+                    "categories": categories,
+                    "top_k": int(top_k),
+                    "include_sources": include_sources,
+                    "output_formats": output_formats,
+                }
+
+                # Remove optional keys when empty to avoid noisy payloads.
+                payload = {key: value for key, value in payload.items() if value not in (None, [], {})}
+
+                with st.spinner("Requesting extraction from /accounts/extract..."):
+                    try:
+                        response = ui_api.run_account_list_extraction(payload)
+                        st.session_state["account_list_last_result"] = response
+                        st.session_state["account_list_error"] = None
+                        st.success(f"Extraction complete · request_id={response.get('request_id')}")
+                    except Exception as exc:
+                        st.session_state["account_list_error"] = str(exc)
+                        st.error(f"Account list extraction failed: {exc}")
+
+with account_cols[1]:
+    st.markdown("#### Latest result")
+    account_error = st.session_state.get("account_list_error")
+    if account_error:
+        st.error(account_error)
+    latest_result = st.session_state.get("account_list_last_result")
+    if latest_result:
+        indicators = latest_result.get("indicators", [])
+        st.metric("Indicators returned", len(indicators))
+        st.caption(f"Generated at {latest_result.get('generated_at', 'unknown')}")
+
+        metadata = latest_result.get("metadata") or {}
+        summary_rows = [
+            {"Field": "Request ID", "Value": latest_result.get("request_id", "unknown")},
+            {"Field": "Generated at", "Value": latest_result.get("generated_at", "unknown")},
+            {"Field": "Categories", "Value": metadata.get("category_count", "n/a")},
+            {"Field": "Indicators (deduped)", "Value": metadata.get("indicator_count", len(indicators))},
+            {"Field": "Requested top_k", "Value": metadata.get("requested_top_k", "n/a")},
+        ]
+        st.table(summary_rows)
+
+        artifacts = latest_result.get("artifacts") or {}
+        if artifacts:
+            st.markdown("**Artifacts**")
+            for label, uri in artifacts.items():
+                if isinstance(uri, str) and uri.startswith(("http://", "https://")):
+                    st.markdown(f"- **{label}** → [{uri}]({uri})")
+                else:
+                    st.code(f"{label}: {uri}")
+
+        warnings = latest_result.get("warnings") or []
+        for warning in warnings:
+            st.warning(warning)
+
+        st.download_button(
+            label="Download raw JSON",
+            data=json.dumps(latest_result, indent=2),
+            file_name="account_list_result.json",
+            mime="application/json",
+            key="account_list_download_btn",
+        )
+    else:
+        st.caption("Run an extraction to see results here.")
+
+latest_result = st.session_state.get("account_list_last_result") or {}
+latest_indicators = latest_result.get("indicators") or []
+if latest_indicators:
+    st.markdown("#### Extracted indicators")
+    st.dataframe(latest_indicators, use_container_width=True)
+else:
+    st.caption("No indicator records loaded yet.")
+
+sources = latest_result.get("sources") or []
+if sources:
+    st.markdown("#### Source documents")
+    for doc in sources:
+        title = doc.get("title") or doc.get("case_id") or "Document"
+        with st.expander(f"{title} · score={doc.get('score', 'n/a')}", expanded=False):
+            st.caption(f"Case {doc.get('case_id')} · dataset={doc.get('dataset') or 'unknown'}")
+            excerpt = doc.get("excerpt") or doc.get("content")
+            if excerpt:
+                st.write(excerpt)
 
 
 if not st.session_state.get("intake_items") and st.session_state.get("intake_error") is None:

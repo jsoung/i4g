@@ -9,13 +9,25 @@ from typing import Sequence as Seq
 
 import httpx
 import streamlit as st
-from google.cloud import discoveryengine_v1beta as discoveryengine
-from google.protobuf import json_format
+
+try:
+    from google.cloud import discoveryengine_v1beta as discoveryengine
+    from google.protobuf import json_format
+except ImportError:  # pragma: no cover - optional dependency
+    discoveryengine = None  # type: ignore[assignment]
+    json_format = None  # type: ignore[assignment]
+
+HAS_VERTEX_SEARCH = discoveryengine is not None and json_format is not None
 
 
 @st.cache_resource
-def _search_client() -> discoveryengine.SearchServiceClient:
+def _search_client() -> Any:
     """Reuse a single Discovery Engine client to avoid reconnect overhead."""
+
+    if not HAS_VERTEX_SEARCH:
+        raise RuntimeError(
+            "Discovery Engine SDK not installed. Install `google-cloud-discoveryengine` to enable the Vertex search panel."
+        )
     return discoveryengine.SearchServiceClient()
 
 
@@ -109,6 +121,12 @@ def perform_vertex_search(params: Dict[str, Any]) -> List[Dict[str, Any]]:
     return formatted_results
 
 
+def vertex_search_available() -> bool:
+    """Expose whether the Discovery Engine client dependencies are installed."""
+
+    return HAS_VERTEX_SEARCH
+
+
 def api_client() -> httpx.Client:
     base = st.session_state.get("api_base", API_BASE_URL)
     key = st.session_state.get("api_key", API_KEY)
@@ -127,6 +145,21 @@ def intake_client() -> httpx.Client:
     key = st.session_state.get("api_key", API_KEY)
     intake_base = f"{base}/intakes"
     return httpx.Client(base_url=intake_base, headers={"X-API-KEY": key}, timeout=30.0)
+
+
+def account_list_client() -> httpx.Client:
+    base = st.session_state.get("api_base", API_BASE_URL).rstrip("/")
+    key = st.session_state.get("api_key", API_KEY)
+    accounts_base = f"{base}/accounts"
+    headers = {"X-API-KEY": key, "X-ACCOUNTLIST-KEY": key}
+    return httpx.Client(base_url=accounts_base, headers=headers, timeout=60.0)
+
+
+def run_account_list_extraction(payload: Dict[str, Any]) -> Dict[str, Any]:
+    client = account_list_client()
+    response = client.post("/extract", json=payload)
+    response.raise_for_status()
+    return response.json()
 
 
 def fetch_queue(status: str = "queued", limit: int = 50) -> List[Dict[str, Any]]:
@@ -372,4 +405,7 @@ __all__ = [
     "list_intakes",
     "fetch_intake",
     "fetch_intake_job",
+    "account_list_client",
+    "run_account_list_extraction",
+    "vertex_search_available",
 ]

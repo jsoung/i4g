@@ -22,13 +22,26 @@ class HybridRetriever:
         self,
         structured_store: Optional["StructuredStore"] = None,
         vector_store: Optional["VectorStore"] = None,
+        *,
+        enable_vector: bool = True,
     ) -> None:
         """Initialize the retriever with optional backend overrides."""
 
         self.structured_store = structured_store or build_structured_store()
+        self._vector_error = False
+
+        if vector_store is not None:
+            self.vector_store = vector_store
+            return
+
+        if not enable_vector:
+            self.vector_store = None
+            self._vector_error = True
+            LOGGER.info("Vector search disabled via configuration; using structured/text retrieval only")
+            return
+
         try:
-            self.vector_store = vector_store or build_vector_store()
-            self._vector_error = False
+            self.vector_store = build_vector_store()
         except Exception as exc:  # pragma: no cover - defensive fallback
             LOGGER.warning("Vector store unavailable; falling back to structured-only search: %s", exc, exc_info=True)
             self.vector_store = None

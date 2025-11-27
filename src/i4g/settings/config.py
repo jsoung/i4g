@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import AliasChoices, BaseModel, Field, model_validator
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_VAR_NAME = "I4G_ENV"
@@ -47,7 +48,17 @@ def _env_file_candidates(env: str) -> list[Path]:
     ]
 
 
-class RuntimeSettings(BaseModel):
+def _read_env_value(*keys: str) -> str | None:
+    """Return the first present environment variable from ``keys``."""
+
+    for key in keys:
+        value = os.getenv(key)
+        if value is not None:
+            return value
+    return None
+
+
+class RuntimeSettings(BaseSettings):
     """Process-level runtime controls."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -58,7 +69,7 @@ class RuntimeSettings(BaseModel):
     )
 
 
-class APISettings(BaseModel):
+class APISettings(BaseSettings):
     """API endpoint configuration shared by CLI + dashboards."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -73,7 +84,7 @@ class APISettings(BaseModel):
     )
 
 
-class IdentitySettings(BaseModel):
+class IdentitySettings(BaseSettings):
     """Identity provider wiring for auth-enabled services."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -100,7 +111,7 @@ class IdentitySettings(BaseModel):
     )
 
 
-class StorageSettings(BaseModel):
+class StorageSettings(BaseSettings):
     """Structured + blob storage configuration."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -111,7 +122,7 @@ class StorageSettings(BaseModel):
     )
     sqlite_path: Path = Field(
         default=PROJECT_ROOT / "data" / "i4g_store.db",
-        validation_alias=AliasChoices("SQLITE_PATH", "STORAGE__SQLITE_PATH"),
+        # validation_alias=AliasChoices("SQLITE_PATH", "STORAGE__SQLITE_PATH"),
     )
     firestore_project: str | None = Field(
         default=None,
@@ -131,7 +142,7 @@ class StorageSettings(BaseModel):
     )
     reports_bucket: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("STORAGE_REPORTS_BUCKET", "STORAGE__REPORTS_BUCKET"),
+        # validation_alias=AliasChoices("STORAGE_REPORTS_BUCKET", "STORAGE__REPORTS_BUCKET"),
     )
     cloudsql_instance: str | None = Field(
         default=None,
@@ -143,7 +154,7 @@ class StorageSettings(BaseModel):
     )
 
 
-class VectorSettings(BaseModel):
+class VectorSettings(BaseSettings):
     """Vector store configuration supporting multiple backends."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -162,7 +173,7 @@ class VectorSettings(BaseModel):
     )
     chroma_dir: Path = Field(
         default=PROJECT_ROOT / "data" / "chroma_store",
-        validation_alias=AliasChoices("VECTOR_CHROMA_DIR", "VECTOR__CHROMA_DIR"),
+        # validation_alias=AliasChoices("VECTOR_CHROMA_DIR", "VECTOR__CHROMA_DIR"),
     )
     faiss_dir: Path = Field(
         default=PROJECT_ROOT / "data" / "faiss_store",
@@ -186,7 +197,7 @@ class VectorSettings(BaseModel):
     )
 
 
-class LLMSettings(BaseModel):
+class LLMSettings(BaseSettings):
     """Large language model provider settings."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -221,7 +232,7 @@ class LLMSettings(BaseModel):
     )
 
 
-class SecretsSettings(BaseModel):
+class SecretsSettings(BaseSettings):
     """Secret resolution strategy (local vs Secret Manager)."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -240,7 +251,7 @@ class SecretsSettings(BaseModel):
     )
 
 
-class IngestionSettings(BaseModel):
+class IngestionSettings(BaseSettings):
     """Scheduler + job configuration for ingestion workflows."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -263,7 +274,7 @@ class IngestionSettings(BaseModel):
     )
 
 
-class ObservabilitySettings(BaseModel):
+class ObservabilitySettings(BaseSettings):
     """Logging, tracing, and metrics configuration."""
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -282,6 +293,49 @@ class ObservabilitySettings(BaseModel):
     )
 
 
+class AccountListSettings(BaseSettings):
+    """Account list extraction configuration."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("ACCOUNT_LIST_ENABLED", "ACCOUNT_LIST__ENABLED"),
+    )
+    require_api_key: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("ACCOUNT_LIST_REQUIRE_API_KEY", "ACCOUNT_LIST__REQUIRE_API_KEY"),
+    )
+    api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ACCOUNT_LIST_API_KEY", "ACCOUNT_LIST__API_KEY"),
+    )
+    header_name: str = Field(
+        default="X-ACCOUNTLIST-KEY",
+        validation_alias=AliasChoices("ACCOUNT_LIST_HEADER_NAME", "ACCOUNT_LIST__HEADER_NAME"),
+    )
+    max_top_k: int = Field(
+        default=250,
+        validation_alias=AliasChoices("ACCOUNT_LIST_MAX_TOP_K", "ACCOUNT_LIST__MAX_TOP_K"),
+    )
+    default_formats: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("ACCOUNT_LIST_DEFAULT_FORMATS", "ACCOUNT_LIST__DEFAULT_FORMATS"),
+    )
+    artifact_prefix: str = Field(
+        default="account_list",
+        validation_alias=AliasChoices("ACCOUNT_LIST_ARTIFACT_PREFIX", "ACCOUNT_LIST__ARTIFACT_PREFIX"),
+    )
+    drive_folder_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ACCOUNT_LIST_DRIVE_FOLDER_ID", "ACCOUNT_LIST__DRIVE_FOLDER_ID"),
+    )
+    enable_vector: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("ACCOUNT_LIST_ENABLE_VECTOR", "ACCOUNT_LIST__ENABLE_VECTOR"),
+    )
+
+
 class Settings(BaseSettings):
     """Top-level configuration model with nested sections for each subsystem."""
 
@@ -291,11 +345,11 @@ class Settings(BaseSettings):
     )
     project_root: Path = Field(
         default=PROJECT_ROOT,
-        validation_alias=AliasChoices("PROJECT_ROOT", "RUNTIME__PROJECT_ROOT"),
+        # validation_alias=AliasChoices("PROJECT_ROOT", "RUNTIME__PROJECT_ROOT"),
     )
     data_dir: Path = Field(
         default_factory=lambda: PROJECT_ROOT / "data",
-        validation_alias=AliasChoices("DATA_DIR", "RUNTIME__DATA_DIR"),
+        # validation_alias=AliasChoices("DATA_DIR", "RUNTIME__DATA_DIR"),
     )
     runtime: RuntimeSettings = Field(default_factory=RuntimeSettings)
     api: APISettings = Field(default_factory=APISettings)
@@ -306,6 +360,7 @@ class Settings(BaseSettings):
     secrets: SecretsSettings = Field(default_factory=SecretsSettings)
     ingestion: IngestionSettings = Field(default_factory=IngestionSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
+    account_list: AccountListSettings = Field(default_factory=AccountListSettings)
     env_files: tuple[Path, ...] = Field(default_factory=tuple, exclude=True)
 
     model_config = SettingsConfigDict(
@@ -400,6 +455,57 @@ class Settings(BaseSettings):
 
             observability_update = {"structured_logging": False, "otlp_endpoint": None}
             object.__setattr__(self, "observability", self.observability.model_copy(update=observability_update))
+
+        provider_override = _read_env_value(
+            "I4G_LLM__PROVIDER",
+            "I4G_LLM_PROVIDER",
+            "LLM__PROVIDER",
+            "LLM_PROVIDER",
+        )
+        if provider_override:
+            llm_updates = {"provider": provider_override.strip().lower()}
+            object.__setattr__(self, "llm", self.llm.model_copy(update=llm_updates))
+
+        account_list_updates: dict[str, object] = {}
+        header_override = _read_env_value(
+            "I4G_ACCOUNT_LIST__HEADER_NAME",
+            "I4G_ACCOUNT_LIST_HEADER_NAME",
+            "ACCOUNT_LIST__HEADER_NAME",
+            "ACCOUNT_LIST_HEADER_NAME",
+        )
+        if header_override:
+            account_list_updates["header_name"] = header_override.strip()
+
+        require_override = _read_env_value(
+            "I4G_ACCOUNT_LIST__REQUIRE_API_KEY",
+            "I4G_ACCOUNT_LIST_REQUIRE_API_KEY",
+            "ACCOUNT_LIST__REQUIRE_API_KEY",
+            "ACCOUNT_LIST_REQUIRE_API_KEY",
+        )
+        if require_override is not None:
+            lowered = require_override.strip().lower()
+            account_list_updates["require_api_key"] = lowered not in {"false", "0", "off", "no"}
+
+        formats_override = _read_env_value(
+            "I4G_ACCOUNT_LIST__DEFAULT_FORMATS",
+            "I4G_ACCOUNT_LIST_DEFAULT_FORMATS",
+            "ACCOUNT_LIST__DEFAULT_FORMATS",
+            "ACCOUNT_LIST_DEFAULT_FORMATS",
+        )
+        if formats_override:
+            parsed_formats: list[str] = []
+            try:
+                candidate = json.loads(formats_override)
+                if isinstance(candidate, list):
+                    parsed_formats = [str(item).strip() for item in candidate if str(item).strip()]
+            except json.JSONDecodeError:
+                pass
+            if not parsed_formats:
+                parsed_formats = [chunk.strip() for chunk in formats_override.split(",") if chunk.strip()]
+            account_list_updates["default_formats"] = parsed_formats
+
+        if account_list_updates:
+            object.__setattr__(self, "account_list", self.account_list.model_copy(update=account_list_updates))
 
         return self
 

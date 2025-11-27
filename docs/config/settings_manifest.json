@@ -1,0 +1,658 @@
+{
+  "generated_at": "2025-11-27T22:06:10.085357+00:00",
+  "source": "src/i4g/settings/config.py",
+  "env_prefix": "I4G_",
+  "fields": [
+    {
+      "path": "account_list.api_key",
+      "section": "account_list",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__API_KEY",
+        "ACCOUNT_LIST_API_KEY",
+        "ACCOUNT_LIST__API_KEY"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "account_list.artifact_prefix",
+      "section": "account_list",
+      "type": "str",
+      "default": "account_list",
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__ARTIFACT_PREFIX",
+        "ACCOUNT_LIST_ARTIFACT_PREFIX",
+        "ACCOUNT_LIST__ARTIFACT_PREFIX"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "account_list.default_formats",
+      "section": "account_list",
+      "type": "list[str]",
+      "default": [],
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__DEFAULT_FORMATS",
+        "ACCOUNT_LIST_DEFAULT_FORMATS",
+        "ACCOUNT_LIST__DEFAULT_FORMATS"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "account_list.drive_folder_id",
+      "section": "account_list",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__DRIVE_FOLDER_ID",
+        "ACCOUNT_LIST_DRIVE_FOLDER_ID",
+        "ACCOUNT_LIST__DRIVE_FOLDER_ID"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "account_list.enable_vector",
+      "section": "account_list",
+      "type": "bool",
+      "default": true,
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__ENABLE_VECTOR",
+        "ACCOUNT_LIST_ENABLE_VECTOR",
+        "ACCOUNT_LIST__ENABLE_VECTOR"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "account_list.enabled",
+      "section": "account_list",
+      "type": "bool",
+      "default": true,
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__ENABLED",
+        "ACCOUNT_LIST_ENABLED",
+        "ACCOUNT_LIST__ENABLED"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "account_list.header_name",
+      "section": "account_list",
+      "type": "str",
+      "default": "X-ACCOUNTLIST-KEY",
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__HEADER_NAME",
+        "ACCOUNT_LIST_HEADER_NAME",
+        "ACCOUNT_LIST__HEADER_NAME"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "account_list.max_top_k",
+      "section": "account_list",
+      "type": "int",
+      "default": 250,
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__MAX_TOP_K",
+        "ACCOUNT_LIST_MAX_TOP_K",
+        "ACCOUNT_LIST__MAX_TOP_K"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "account_list.require_api_key",
+      "section": "account_list",
+      "type": "bool",
+      "default": true,
+      "env_vars": [
+        "I4G_ACCOUNT_LIST__REQUIRE_API_KEY",
+        "ACCOUNT_LIST_REQUIRE_API_KEY",
+        "ACCOUNT_LIST__REQUIRE_API_KEY"
+      ],
+      "description": "Account list extraction configuration."
+    },
+    {
+      "path": "api.base_url",
+      "section": "api",
+      "type": "str",
+      "default": "http://127.0.0.1:8000",
+      "env_vars": [
+        "I4G_API__BASE_URL",
+        "API_URL",
+        "API__BASE_URL"
+      ],
+      "description": "API endpoint configuration shared by CLI + dashboards."
+    },
+    {
+      "path": "api.key",
+      "section": "api",
+      "type": "str",
+      "default": "dev-analyst-token",
+      "env_vars": [
+        "I4G_API__KEY",
+        "API_KEY",
+        "API__KEY"
+      ],
+      "description": "API endpoint configuration shared by CLI + dashboards."
+    },
+    {
+      "path": "data_dir",
+      "section": "data_dir",
+      "type": "Path",
+      "default": "/Users/jerry/Work/project/i4g/data",
+      "env_vars": [
+        "I4G_DATA_DIR"
+      ],
+      "description": "Top-level configuration model with nested sections for each subsystem."
+    },
+    {
+      "path": "env",
+      "section": "env",
+      "type": "str",
+      "default": "local",
+      "env_vars": [
+        "I4G_ENV",
+        "ENV",
+        "ENVIRONMENT",
+        "RUNTIME__ENV"
+      ],
+      "description": "Top-level configuration model with nested sections for each subsystem."
+    },
+    {
+      "path": "identity.audience",
+      "section": "identity",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_IDENTITY__AUDIENCE",
+        "IDENTITY_AUDIENCE",
+        "IDENTITY__AUDIENCE"
+      ],
+      "description": "Identity provider wiring for auth-enabled services."
+    },
+    {
+      "path": "identity.client_id",
+      "section": "identity",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_IDENTITY__CLIENT_ID",
+        "IDENTITY_CLIENT_ID",
+        "IDENTITY__CLIENT_ID"
+      ],
+      "description": "Identity provider wiring for auth-enabled services."
+    },
+    {
+      "path": "identity.disable_auth",
+      "section": "identity",
+      "type": "bool",
+      "default": false,
+      "env_vars": [
+        "I4G_IDENTITY__DISABLE_AUTH",
+        "IDENTITY_DISABLE_AUTH",
+        "IDENTITY__DISABLE_AUTH"
+      ],
+      "description": "Identity provider wiring for auth-enabled services."
+    },
+    {
+      "path": "identity.issuer",
+      "section": "identity",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_IDENTITY__ISSUER",
+        "IDENTITY_ISSUER",
+        "IDENTITY__ISSUER"
+      ],
+      "description": "Identity provider wiring for auth-enabled services."
+    },
+    {
+      "path": "identity.provider",
+      "section": "identity",
+      "type": "Literal['mock', 'google_identity', 'authentik', 'firebase']",
+      "default": "mock",
+      "env_vars": [
+        "I4G_IDENTITY__PROVIDER",
+        "IDENTITY_PROVIDER",
+        "IDENTITY__PROVIDER"
+      ],
+      "description": "Identity provider wiring for auth-enabled services."
+    },
+    {
+      "path": "ingestion.default_region",
+      "section": "ingestion",
+      "type": "str",
+      "default": "us-central1",
+      "env_vars": [
+        "I4G_INGESTION__DEFAULT_REGION",
+        "INGESTION_DEFAULT_REGION",
+        "INGESTION__DEFAULT_REGION"
+      ],
+      "description": "Scheduler + job configuration for ingestion workflows."
+    },
+    {
+      "path": "ingestion.default_service_account",
+      "section": "ingestion",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_INGESTION__DEFAULT_SERVICE_ACCOUNT",
+        "INGESTION_SERVICE_ACCOUNT",
+        "INGESTION__SERVICE_ACCOUNT"
+      ],
+      "description": "Scheduler + job configuration for ingestion workflows."
+    },
+    {
+      "path": "ingestion.enable_scheduled_jobs",
+      "section": "ingestion",
+      "type": "bool",
+      "default": false,
+      "env_vars": [
+        "I4G_INGESTION__ENABLE_SCHEDULED_JOBS",
+        "INGESTION_ENABLE_SCHEDULED_JOBS",
+        "INGESTION__ENABLE_SCHEDULED_JOBS"
+      ],
+      "description": "Scheduler + job configuration for ingestion workflows."
+    },
+    {
+      "path": "ingestion.scheduler_project",
+      "section": "ingestion",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_INGESTION__SCHEDULER_PROJECT",
+        "INGESTION_SCHEDULER_PROJECT",
+        "INGESTION__SCHEDULER_PROJECT"
+      ],
+      "description": "Scheduler + job configuration for ingestion workflows."
+    },
+    {
+      "path": "llm.chat_model",
+      "section": "llm",
+      "type": "str",
+      "default": "llama3",
+      "env_vars": [
+        "I4G_LLM__CHAT_MODEL",
+        "LLM_CHAT_MODEL",
+        "LLM__CHAT_MODEL"
+      ],
+      "description": "Large language model provider settings."
+    },
+    {
+      "path": "llm.ollama_base_url",
+      "section": "llm",
+      "type": "str",
+      "default": "http://127.0.0.1:11434",
+      "env_vars": [
+        "I4G_LLM__OLLAMA_BASE_URL",
+        "OLLAMA_BASE_URL",
+        "LLM__OLLAMA_BASE_URL"
+      ],
+      "description": "Large language model provider settings."
+    },
+    {
+      "path": "llm.provider",
+      "section": "llm",
+      "type": "Literal['ollama', 'vertex_ai', 'mock']",
+      "default": "ollama",
+      "env_vars": [
+        "I4G_LLM__PROVIDER",
+        "LLM_PROVIDER",
+        "LLM__PROVIDER"
+      ],
+      "description": "Large language model provider settings."
+    },
+    {
+      "path": "llm.temperature",
+      "section": "llm",
+      "type": "float",
+      "default": 0.1,
+      "env_vars": [
+        "I4G_LLM__TEMPERATURE",
+        "LLM_TEMPERATURE",
+        "LLM__TEMPERATURE"
+      ],
+      "description": "Large language model provider settings."
+    },
+    {
+      "path": "llm.vertex_ai_location",
+      "section": "llm",
+      "type": "str | NoneType",
+      "default": "us-central1",
+      "env_vars": [
+        "I4G_LLM__VERTEX_AI_LOCATION",
+        "LLM_VERTEX_AI_LOCATION",
+        "LLM__VERTEX_AI__LOCATION"
+      ],
+      "description": "Large language model provider settings."
+    },
+    {
+      "path": "llm.vertex_ai_model",
+      "section": "llm",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_LLM__VERTEX_AI_MODEL",
+        "LLM_VERTEX_AI_MODEL",
+        "LLM__VERTEX_AI__MODEL"
+      ],
+      "description": "Large language model provider settings."
+    },
+    {
+      "path": "llm.vertex_ai_project",
+      "section": "llm",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_LLM__VERTEX_AI_PROJECT",
+        "LLM_VERTEX_AI_PROJECT",
+        "LLM__VERTEX_AI__PROJECT"
+      ],
+      "description": "Large language model provider settings."
+    },
+    {
+      "path": "observability.otlp_endpoint",
+      "section": "observability",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_OBSERVABILITY__OTLP_ENDPOINT",
+        "OBS_OTLP_ENDPOINT",
+        "OBSERVABILITY__OTLP_ENDPOINT"
+      ],
+      "description": "Logging, tracing, and metrics configuration."
+    },
+    {
+      "path": "observability.structured_logging",
+      "section": "observability",
+      "type": "bool",
+      "default": true,
+      "env_vars": [
+        "I4G_OBSERVABILITY__STRUCTURED_LOGGING",
+        "OBS_STRUCTURED_LOGGING",
+        "OBSERVABILITY__STRUCTURED_LOGGING"
+      ],
+      "description": "Logging, tracing, and metrics configuration."
+    },
+    {
+      "path": "observability.trace_sample_rate",
+      "section": "observability",
+      "type": "float",
+      "default": 0.0,
+      "env_vars": [
+        "I4G_OBSERVABILITY__TRACE_SAMPLE_RATE",
+        "OBS_TRACE_SAMPLE_RATE",
+        "OBSERVABILITY__TRACE_SAMPLE_RATE"
+      ],
+      "description": "Logging, tracing, and metrics configuration."
+    },
+    {
+      "path": "project_root",
+      "section": "project_root",
+      "type": "Path",
+      "default": "/Users/jerry/Work/project/i4g",
+      "env_vars": [
+        "I4G_PROJECT_ROOT"
+      ],
+      "description": "Top-level configuration model with nested sections for each subsystem."
+    },
+    {
+      "path": "runtime.log_level",
+      "section": "runtime",
+      "type": "str",
+      "default": "INFO",
+      "env_vars": [
+        "I4G_RUNTIME__LOG_LEVEL",
+        "LOG_LEVEL",
+        "RUNTIME__LOG_LEVEL"
+      ],
+      "description": "Process-level runtime controls."
+    },
+    {
+      "path": "secrets.local_env_file",
+      "section": "secrets",
+      "type": "Path | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_SECRETS__LOCAL_ENV_FILE",
+        "SECRETS_LOCAL_ENV_FILE",
+        "SECRETS__LOCAL_ENV_FILE"
+      ],
+      "description": "Secret resolution strategy (local vs Secret Manager)."
+    },
+    {
+      "path": "secrets.project",
+      "section": "secrets",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_SECRETS__PROJECT",
+        "SECRETS_PROJECT",
+        "SECRETS__PROJECT"
+      ],
+      "description": "Secret resolution strategy (local vs Secret Manager)."
+    },
+    {
+      "path": "secrets.use_secret_manager",
+      "section": "secrets",
+      "type": "bool",
+      "default": false,
+      "env_vars": [
+        "I4G_SECRETS__USE_SECRET_MANAGER",
+        "SECRETS_USE_SECRET_MANAGER",
+        "SECRETS__USE_SECRET_MANAGER"
+      ],
+      "description": "Secret resolution strategy (local vs Secret Manager)."
+    },
+    {
+      "path": "storage.cloudsql_database",
+      "section": "storage",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_STORAGE__CLOUDSQL_DATABASE",
+        "CLOUDSQL_DATABASE",
+        "STORAGE__CLOUDSQL__DATABASE"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "storage.cloudsql_instance",
+      "section": "storage",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_STORAGE__CLOUDSQL_INSTANCE",
+        "CLOUDSQL_INSTANCE",
+        "STORAGE__CLOUDSQL__INSTANCE"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "storage.evidence_bucket",
+      "section": "storage",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_STORAGE__EVIDENCE_BUCKET",
+        "STORAGE_EVIDENCE_BUCKET",
+        "STORAGE__EVIDENCE_BUCKET"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "storage.evidence_local_dir",
+      "section": "storage",
+      "type": "Path",
+      "default": "/Users/jerry/Work/project/i4g/data/evidence",
+      "env_vars": [
+        "I4G_STORAGE__EVIDENCE_LOCAL_DIR",
+        "STORAGE_EVIDENCE_LOCAL_DIR",
+        "STORAGE__EVIDENCE__LOCAL_DIR"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "storage.firestore_collection",
+      "section": "storage",
+      "type": "str",
+      "default": "cases",
+      "env_vars": [
+        "I4G_STORAGE__FIRESTORE_COLLECTION",
+        "FIRESTORE_COLLECTION",
+        "STORAGE__FIRESTORE__COLLECTION"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "storage.firestore_project",
+      "section": "storage",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_STORAGE__FIRESTORE_PROJECT",
+        "FIRESTORE_PROJECT",
+        "STORAGE__FIRESTORE__PROJECT"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "storage.reports_bucket",
+      "section": "storage",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_STORAGE__REPORTS_BUCKET"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "storage.sqlite_path",
+      "section": "storage",
+      "type": "Path",
+      "default": "/Users/jerry/Work/project/i4g/data/i4g_store.db",
+      "env_vars": [
+        "I4G_STORAGE__SQLITE_PATH"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "storage.structured_backend",
+      "section": "storage",
+      "type": "Literal['sqlite', 'firestore', 'cloudsql']",
+      "default": "sqlite",
+      "env_vars": [
+        "I4G_STORAGE__STRUCTURED_BACKEND",
+        "STRUCTURED_BACKEND",
+        "STORAGE__STRUCTURED_BACKEND"
+      ],
+      "description": "Structured + blob storage configuration."
+    },
+    {
+      "path": "vector.backend",
+      "section": "vector",
+      "type": "Literal['chroma', 'faiss', 'pgvector', 'vertex_ai']",
+      "default": "chroma",
+      "env_vars": [
+        "I4G_VECTOR__BACKEND",
+        "VECTOR_BACKEND",
+        "VECTOR__BACKEND"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    },
+    {
+      "path": "vector.chroma_dir",
+      "section": "vector",
+      "type": "Path",
+      "default": "/Users/jerry/Work/project/i4g/data/chroma_store",
+      "env_vars": [
+        "I4G_VECTOR__CHROMA_DIR"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    },
+    {
+      "path": "vector.collection",
+      "section": "vector",
+      "type": "str",
+      "default": "i4g_vectors",
+      "env_vars": [
+        "I4G_VECTOR__COLLECTION",
+        "VECTOR_COLLECTION",
+        "VECTOR__COLLECTION"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    },
+    {
+      "path": "vector.embedding_model",
+      "section": "vector",
+      "type": "str",
+      "default": "nomic-embed-text",
+      "env_vars": [
+        "I4G_VECTOR__EMBEDDING_MODEL",
+        "EMBED_MODEL",
+        "VECTOR__EMBED_MODEL"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    },
+    {
+      "path": "vector.faiss_dir",
+      "section": "vector",
+      "type": "Path",
+      "default": "/Users/jerry/Work/project/i4g/data/faiss_store",
+      "env_vars": [
+        "I4G_VECTOR__FAISS_DIR",
+        "VECTOR_FAISS_DIR",
+        "VECTOR__FAISS_DIR"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    },
+    {
+      "path": "vector.pgvector_dsn",
+      "section": "vector",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_VECTOR__PGVECTOR_DSN",
+        "VECTOR_PGVECTOR_DSN",
+        "VECTOR__PGVECTOR__DSN"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    },
+    {
+      "path": "vector.vertex_ai_index",
+      "section": "vector",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_VECTOR__VERTEX_AI_INDEX",
+        "VECTOR_VERTEX_AI_INDEX",
+        "VECTOR__VERTEX_AI__INDEX"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    },
+    {
+      "path": "vector.vertex_ai_location",
+      "section": "vector",
+      "type": "str | NoneType",
+      "default": "us-central1",
+      "env_vars": [
+        "I4G_VECTOR__VERTEX_AI_LOCATION",
+        "VECTOR_VERTEX_AI_LOCATION",
+        "VECTOR__VERTEX_AI__LOCATION"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    },
+    {
+      "path": "vector.vertex_ai_project",
+      "section": "vector",
+      "type": "str | NoneType",
+      "default": null,
+      "env_vars": [
+        "I4G_VECTOR__VERTEX_AI_PROJECT",
+        "VECTOR_VERTEX_AI_PROJECT",
+        "VECTOR__VERTEX_AI__PROJECT"
+      ],
+      "description": "Vector store configuration supporting multiple backends."
+    }
+  ]
+}

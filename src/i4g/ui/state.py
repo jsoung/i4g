@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import date, timedelta
 from typing import Any
 
 import streamlit as st
@@ -17,6 +18,9 @@ def ensure_session_defaults() -> None:
 
     default_api_base = os.getenv("I4G_API__BASE_URL") or os.getenv("I4G_API_URL") or SETTINGS.api.base_url
     default_api_key = os.getenv("I4G_API__KEY") or os.getenv("I4G_API_KEY") or SETTINGS.api.key
+
+    today = date.today()
+    default_start = today - timedelta(days=14)
 
     vertex_project = os.getenv("I4G_VERTEX_SEARCH_PROJECT") or (SETTINGS.vector.vertex_ai_project or "")
     vertex_location = os.getenv("I4G_VERTEX_SEARCH_LOCATION") or (SETTINGS.vector.vertex_ai_location or "global")
@@ -66,6 +70,14 @@ def ensure_session_defaults() -> None:
         "vertex_search_results": None,
         "vertex_search_error": None,
         "vertex_search_params": None,
+        "account_list_start_date": default_start,
+        "account_list_end_date": today,
+        "account_list_categories": ["bank", "crypto", "payments"],
+        "account_list_top_k": 100,
+        "account_list_output_formats": ["pdf", "xlsx"],
+        "account_list_include_sources": True,
+        "account_list_last_result": None,
+        "account_list_error": None,
     }
 
     for key, value in defaults.items():

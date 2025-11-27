@@ -8,6 +8,7 @@ from typing import Dict
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 
+from i4g.api.account_list import router as account_list_router
 from i4g.api.discovery import router as discovery_router
 from i4g.api.intake import router as intake_router
 from i4g.api.review import router as review_router
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(title="i4g Analyst Review API", version="0.1")
     app.include_router(review_router, prefix="/reviews", tags=["reviews"])
+    app.include_router(account_list_router)
     app.include_router(discovery_router)
     app.include_router(intake_router)
     app.include_router(task_router)

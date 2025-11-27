@@ -1,7 +1,7 @@
 # i4g System Architecture
 
 > **Document Version**: 1.1
-> **Last Updated**: November 7, 2025
+> **Last Updated**: November 26, 2025
 > **Audience**: Engineers, technical stakeholders, university partners
 
 ---
@@ -137,6 +137,25 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 - Runs behind Cloud Run IAM so only on-call engineers and sys-admins can launch it
 - Ships with environment toggles (`I4G_ENV`, `I4G_ANALYTICS_MODE`) to switch between local SQLite/Chroma and GCP services
 - Imports `i4g.services.discovery` directly so Discovery Engine experiments stay consistent with the backend
+
+### 3a. **Account List Extraction Service**
+
+**Responsibilities**:
+- Expose `POST /accounts/extract` for on-demand analyst runs with API-key enforcement (`X-ACCOUNTLIST-KEY`).
+- Coordinate retrieval (`FinancialEntityRetriever`), LLM extraction (`AccountEntityExtractor`), and artifact generation (`AccountListExporter`).
+- Publish CSV/JSON/XLSX/PDF outputs to the local reports directory, Cloud Storage, or Google Drive (when configured) and return signed links to the caller and the Streamlit console.
+- Power the Cloud Run job `account-list` (scheduled via Cloud Scheduler) so recurring exports share the exact same code path as the interactive API.
+
+**Technology Stack**:
+- Python 3.11 shared package (`src/i4g/services/account_list/*`).
+- LangChain + Ollama locally (Vertex AI/Gemini ready once service accounts are wired).
+- ReportLab + OpenPyXL for artifact rendering.
+- Cloud Run job container (`i4g-account-job` entrypoint) plus optional Google Drive uploads via ADC scopes.
+
+**Key Features**:
+- Category catalog (bank, crypto, payments today; IP/ASN/browser planned) driven by configuration so new indicators only need prompt/query definitions.
+- Deduplication + metadata summary stored alongside artifacts, surfaced in the Streamlit dashboard via a summary/status table.
+- Manual smoke harness (`tests/adhoc/account_list_export_smoke.py`) to verify exporter plumbing without hitting the LLM stack.
 
 ---
 

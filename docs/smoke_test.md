@@ -96,7 +96,55 @@ Dry run enabled; would ingest case_id=...
 Ingestion complete: processed=3 failures=0
 ```
 
-### 3. Optional Local Checks
+### 3. Account List Extraction (Local API + Job)
+
+1. With the FastAPI server from the prerequisites still running, issue an authenticated
+   request to the new `/accounts/extract` endpoint. The example below narrows the search window
+   and limits results so the run finishes quickly:
+   ```bash
+   curl -sS -X POST "http://127.0.0.1:8000/accounts/extract" \
+     -H "Content-Type: application/json" \
+     -H "X-ACCOUNTLIST-KEY: dev-analyst-token" \
+     -d '{
+       "start_time": "2025-11-01T00:00:00Z",
+       "end_time": "2025-11-15T23:59:59Z",
+       "top_k": 25,
+       "output_formats": ["pdf", "xlsx"]
+     }' | jq '{request_id: .request_id, indicators: (.indicators | length), warnings: .warnings}'
+   ```
+   Expect a JSON payload that lists at least a few indicators plus any warnings for missing
+   categories. The artifacts section will contain filesystem paths under `data/reports/account_list`
+   when `output_formats` is supplied.
+2. Exercise the Cloud Run job entrypoint locally. Start with a dry run to confirm configuration:
+   ```bash
+   env \
+     I4G_ACCOUNT_JOB__WINDOW_DAYS=15 \
+     I4G_ACCOUNT_JOB__CATEGORIES=bank,crypto,payments \
+     I4G_ACCOUNT_JOB__OUTPUT_FORMATS=pdf,xlsx \
+     I4G_ACCOUNT_JOB__DRY_RUN=true \
+     I4G_RUNTIME__LOG_LEVEL=INFO \
+     conda run -n i4g i4g-account-job
+   ```
+   Logs should show the computed window plus `Dry run enabled; skipping execution.`
+3. Re-run without the dry-run flag so artifacts are generated locally. The command is identical
+   minus `I4G_ACCOUNT_JOB__DRY_RUN=true`. Verify that PDFs/XLSX files land in
+   `data/reports/account_list/` (or the configured reports bucket / Drive folder when those env vars
+   are set) and that the log line `Artifacts generated: {...}` appears.
+
+#### Account list exporter smoke (mock data)
+
+When you only need to confirm that the exporter wiring works (local filesystem, Drive, or Cloud
+Storage) without hitting the retriever/LLM stack, run the dedicated mock script:
+
+```bash
+conda run -n i4g python tests/adhoc/account_list_export_smoke.py --output-dir data/reports/account_list_smoke
+```
+
+The script fabricates a handful of source documents, passes them through stub retriever/extractor
+components, and writes CSV/JSON/XLSX/PDF artifacts via `AccountListService`. The output paths are
+printed to STDOUT so you can verify Drive/`gs://` uploads or inspect the local files directly.
+
+### 4. Optional Local Checks
 
 - **Streamlit Analyst Dashboard:** Once the FastAPI smoke test succeeds, launch the dashboard (`conda run -n i4g streamlit run src/i4g/ui/analyst_dashboard.py`) and verify that intakes and queue actions render.
 - **Vertex Retrieval Smoke:** If you have GCP credentials for Discovery Engine, run `conda run -n i4g python scripts/smoke_vertex_retrieval.py --project <project> --data-store-id <data_store>` to validate the managed search stack. This requires access to the Artifact Registry dataset and may be skipped locally.
@@ -106,6 +154,21 @@ Document successful runs (or failures) in `planning/change_log.md` when they dri
 ## GCP Smoke Tests (Dev Environment)
 
 These steps ensure the deployed services, Cloud Run jobs, and shared storage paths cooperate in the dev project. Authenticate with `gcloud auth login` (and `gcloud config set project i4g-dev`) before continuing.
+
+> **Terraform drift warning**
+> The `process-intakes` and `account-list` jobs are Terraform-managed. It’s fine to temporarily override their container command/args or env vars with `gcloud run jobs update` while running a smoke test, but you must roll those overrides back afterward or Terraform plans will show persistent diffs. Before changing a job, capture the current command/args so you can restore them:
+> ```bash
+> gcloud run jobs describe process-intakes \
+>   --project i4g-dev --region us-central1 \
+>   --format='value(spec.template.spec.template.spec.containers[0].command)'
+> ```
+> After the test, clear any ad-hoc overrides (command/args/env) or re-run the exact `gcloud run jobs update ...` block from Terraform to put the job back into sync. For example, if you set a custom command while debugging:
+> ```bash
+> gcloud run jobs update process-intakes \
+>   --project i4g-dev --region us-central1 \
+>   --clear-command --clear-args
+> ```
+> Repeat the same pattern for `account-list` (swap the job name) so `terraform plan` stays clean for both services.
 
 ### Prerequisites
 
@@ -194,3 +257,58 @@ You should see `Execution [...] has successfully completed.` in the CLI output.
    Expected result mirrors the local check (`processed` / `completed`).
 
 Keep a short note in `planning/change_log.md` each time you run the cloud smoke to track regressions or environment drift.
+
+### 5. Account List Cloud Run Job (Dev)
+
+This flow validates the scheduled exporter that now backs the analyst reports.
+
+1. Configure the Cloud Run job environment once so static settings match the dev project. Replace
+   the bucket/folder placeholders with real values:
+   ```bash
+   gcloud run jobs update account-list \
+     --project i4g-dev \
+     --region us-central1 \
+     --container=container-0 \
+     --update-env-vars=I4G_RUNTIME__LOG_LEVEL=INFO,\
+   I4G_ACCOUNT_JOB__WINDOW_DAYS=15,\
+   I4G_ACCOUNT_JOB__CATEGORIES=bank,crypto,payments,\
+   I4G_ACCOUNT_JOB__OUTPUT_FORMATS=pdf,xlsx,\
+   I4G_ACCOUNT_JOB__INCLUDE_SOURCES=true,\
+   I4G_ACCOUNT_LIST__DRIVE_FOLDER_ID=<drive-folder-id>,\
+   I4G_STORAGE__REPORTS_BUCKET=<reports-bucket>
+   ```
+   The nested `I4G_ACCOUNT_LIST__*` and `I4G_STORAGE__*` env vars ensure exporters can publish to
+   Google Drive or Cloud Storage the same way they do locally. You can omit Drive settings if the
+   reports bucket is sufficient.
+2. Execute the job in dry-run mode first to confirm settings parsed correctly:
+   ```bash
+   gcloud run jobs execute account-list \
+     --project i4g-dev \
+     --region us-central1 \
+     --wait \
+     --container=container-0 \
+     --update-env-vars=I4G_ACCOUNT_JOB__DRY_RUN=true
+   ```
+   Look for `Dry run enabled; skipping execution.` inside the execution logs. Remove the dry-run
+   override for the actual export:
+   ```bash
+   gcloud run jobs execute account-list \
+     --project i4g-dev \
+     --region us-central1 \
+     --wait \
+     --container=container-0
+   ```
+3. Inspect Cloud Logging for the execution to confirm counts and artifact uploads:
+   ```bash
+   gcloud logging read \
+     "resource.type=cloud_run_job AND resource.labels.job_name=account-list" \
+     --project i4g-dev --limit 50 --format text
+   ```
+   Expect `Account list run ... completed` plus an `Artifacts generated: {...}` line that references
+   Drive links or `gs://` paths.
+4. If you publish to Cloud Storage, list the report objects to verify timestamps:
+   ```bash
+   gsutil ls -r gs://<reports-bucket>/account_list/
+   ```
+   When Drive uploads are enabled, also spot-check the shared folder for the new files. Record the
+   run (success or failure) in `planning/change_log.md` to capture operational history.

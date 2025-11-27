@@ -135,6 +135,10 @@ def rebuild_manual_demo() -> None:
         [
             sys.executable,
             "tests/adhoc/manual_ingest_demo.py",
+            "--structured-db",
+            str(SQLITE_DB),
+            "--vector-dir",
+            str(CHROMA_DIR),
         ]
     )
 
