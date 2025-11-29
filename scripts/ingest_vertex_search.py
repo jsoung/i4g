@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ingest JSONL scam cases into a Vertex AI Search (Discovery Engine) data store.
+"""Ingest JSONL scam cases into a Vertex AI Search (Discovery) data store.
 
 Example usage:
 
@@ -31,12 +31,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--project",
         required=True,
-        help="Google Cloud project that owns the Discovery Engine data store.",
+        help="Google Cloud project that owns the Discovery data store.",
     )
     parser.add_argument(
         "--location",
         default="global",
-        help="Discovery Engine location (default: global).",
+        help="Discovery location (default: global).",
     )
     parser.add_argument(
         "--branch-id",
@@ -46,7 +46,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--data-store-id",
         required=True,
-        help="Discovery Engine data store identifier.",
+        help="Discovery data store identifier.",
     )
     parser.add_argument(
         "--jsonl",

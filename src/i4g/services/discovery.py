@@ -1,4 +1,4 @@
-"""Shared helpers for Google Discovery Engine search flows."""
+"""Shared helpers for Google Discovery search flows."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from i4g.settings import get_settings
 
 @dataclass(frozen=True)
 class DiscoveryDefaults:
-    """Resolved environment defaults used for Discovery Engine queries."""
+    """Resolved environment defaults used for Discovery queries."""
 
     project: str
     location: str
@@ -39,7 +39,7 @@ class DiscoverySearchParams:
 
 
 def _load_defaults() -> DiscoveryDefaults:
-    """Resolve Discovery Engine defaults from env vars + settings."""
+    """Resolve Discovery defaults from env vars + settings."""
 
     settings = get_settings()
     project = os.getenv("I4G_VERTEX_SEARCH_PROJECT") or (settings.vector.vertex_ai_project or "")
@@ -49,7 +49,7 @@ def _load_defaults() -> DiscoveryDefaults:
 
     if not project or not data_store:
         raise RuntimeError(
-            "Discovery Engine defaults are missing. Set I4G_VERTEX_SEARCH_PROJECT and "
+            "Discovery defaults are missing. Set I4G_VERTEX_SEARCH_PROJECT and "
             "I4G_VERTEX_SEARCH_DATA_STORE environment variables."
         )
 
@@ -89,13 +89,13 @@ def _convert_struct(value: Any) -> Any:
 
 @lru_cache(maxsize=1)
 def _search_client() -> discoveryengine.SearchServiceClient:
-    """Cache the Discovery Engine client to avoid reconnect overhead."""
+    """Cache the Discovery client to avoid reconnect overhead."""
 
     return discoveryengine.SearchServiceClient()
 
 
 def _parse_boost_spec(boost_json: Optional[str]) -> Optional[discoveryengine.SearchRequest.BoostSpec]:
-    """Convert BoostSpec JSON into the protobuf type Discovery Engine expects."""
+    """Convert BoostSpec JSON into the protobuf type Discovery expects."""
 
     if not boost_json:
         return None
@@ -111,7 +111,7 @@ def _parse_boost_spec(boost_json: Optional[str]) -> Optional[discoveryengine.Sea
 
 
 def run_discovery_search(params: DiscoverySearchParams) -> Dict[str, Any]:
-    """Execute a Discovery Engine search and return structured results.
+    """Execute a Discovery search and return structured results.
 
     Args:
         params: Normalized search inputs.
@@ -144,7 +144,7 @@ def run_discovery_search(params: DiscoverySearchParams) -> Dict[str, Any]:
     try:
         search_response = client.search(request=request)
     except Exception as exc:  # pragma: no cover - network/backend failure
-        raise RuntimeError(f"Discovery Engine search failed: {exc}") from exc
+        raise RuntimeError(f"Discovery search failed: {exc}") from exc
 
     formatted: List[Dict[str, Any]] = []
     raw_results = list(search_response)

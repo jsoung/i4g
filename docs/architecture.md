@@ -1,7 +1,7 @@
 # i4g System Architecture
 
 > **Document Version**: 1.1
-> **Last Updated**: November 26, 2025
+> **Last Updated**: November 29, 2025
 > **Audience**: Engineers, technical stakeholders, university partners
 
 ---
@@ -106,7 +106,7 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 **Responsibilities**:
 - Orchestrate the full victim → analyst → law enforcement workflow with OAuth-backed authentication
 - Expose search, review, approval, and report delivery experiences through a React UI that mirrors the FastAPI contracts
-- Render case detail pages with evidence thumbnails, inline entity highlighting, and Discovery Engine powered search facets
+- Render case detail pages with evidence thumbnails, inline entity highlighting, and Discovery powered search facets
 - Provide bulk report exports, smoke-test hooks, and future citizen-facing intake forms without revealing backend secrets
 
 **Technology Stack**:
@@ -124,7 +124,7 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 #### Streamlit Operations Console
 
 **Responsibilities**:
-- Give internal developers and sys-admins a fast path to query cases, review ingestion telemetry, and validate Discovery Engine relevance tuning
+- Give internal developers and sys-admins a fast path to query cases, review ingestion telemetry, and validate Discovery relevance tuning
 - Host privileged dashboards (PII handling audit trails, queue depth monitors, weekly migration metrics) without impacting the hardened external portal
 - Surface ad-hoc data science notebooks and quick visualizations that do not belong in the production-facing UI
 
@@ -136,7 +136,7 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 **Key Features**:
 - Runs behind Cloud Run IAM so only on-call engineers and sys-admins can launch it
 - Ships with environment toggles (`I4G_ENV`, `I4G_ANALYTICS_MODE`) to switch between local SQLite/Chroma and GCP services
-- Imports `i4g.services.discovery` directly so Discovery Engine experiments stay consistent with the backend
+- Imports `i4g.services.discovery` directly so Discovery experiments stay consistent with the backend
 
 ### 3a. **Account List Extraction Service**
 
@@ -156,6 +156,7 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 - Category catalog (bank, crypto, payments today; IP/ASN/browser planned) driven by configuration so new indicators only need prompt/query definitions.
 - Deduplication + metadata summary stored alongside artifacts, surfaced in the Streamlit dashboard via a summary/status table.
 - Manual smoke harness (`tests/adhoc/account_list_export_smoke.py`) to verify exporter plumbing without hitting the LLM stack.
+- FastAPI also exposes `/accounts/runs`, enabling the analyst console’s new `/accounts` page to trigger manual runs, refresh audit history via server-side API routes, and expose artifact links / warnings inline without leaking service credentials to the browser.
 
 ---
 

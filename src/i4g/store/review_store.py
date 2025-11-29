@@ -185,6 +185,20 @@ class ReviewStore:
             )
         return action_id
 
+    def ensure_placeholder_review(self, review_id: str, *, case_id: str) -> None:
+        """Create a queue placeholder so system logs have a review context."""
+
+        now = datetime.now(timezone.utc).isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO review_queue (review_id, case_id, queued_at, priority, status, last_updated)
+                VALUES (?, ?, ?, 'system', 'queued', ?)
+                ON CONFLICT(review_id) DO NOTHING
+                """,
+                (review_id, case_id, now, now),
+            )
+
     def get_actions(self, review_id: str) -> List[Dict[str, Any]]:
         """Return all actions associated with a review."""
         with self._connect() as conn:

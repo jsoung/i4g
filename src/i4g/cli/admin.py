@@ -372,22 +372,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     query.set_defaults(func=run_query)
 
-    vertex = sub.add_parser("vertex-search", help="Query Vertex AI Search (Discovery Engine) data store.")
+    vertex = sub.add_parser("vertex-search", help="Query Vertex AI Search (Discovery) data store.")
     vertex.add_argument("query", help="Free-text query string to execute.")
     vertex.add_argument(
         "--project",
         default=SETTINGS.vector.vertex_ai_project,
-        help="Google Cloud project containing the Discovery Engine data store.",
+        help="Google Cloud project containing the Discovery data store.",
     )
     vertex.add_argument(
         "--location",
         default=SETTINGS.vector.vertex_ai_location or "global",
-        help="Discovery Engine location (default: global).",
+        help="Discovery location (default: global).",
     )
     vertex.add_argument(
         "--data-store-id",
         required=True,
-        help="Discovery Engine data store identifier.",
+        help="Discovery data store identifier.",
     )
     vertex.add_argument(
         "--serving-config-id",
@@ -403,7 +403,7 @@ def build_parser() -> argparse.ArgumentParser:
     vertex.add_argument(
         "--filter",
         dest="filter_expression",
-        help="Optional filter expression (Discovery Engine filter syntax).",
+        help="Optional filter expression (Discovery filter syntax).",
     )
     vertex.add_argument(
         "--boost-json",

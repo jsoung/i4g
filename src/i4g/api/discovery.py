@@ -1,4 +1,4 @@
-"""FastAPI router exposing Discovery Engine search."""
+"""FastAPI router exposing Discovery search."""
 
 from __future__ import annotations
 
@@ -11,16 +11,16 @@ router = APIRouter(prefix="/discovery", tags=["discovery"])
 
 @router.get("/search")
 def discovery_search(
-    query: str = Query(..., min_length=1, description="User-provided Discovery Engine query string."),
+    query: str = Query(..., min_length=1, description="User-provided Discovery query string."),
     page_size: int = Query(10, ge=1, le=50, description="Number of results to return."),
-    project: str | None = Query(None, description="Optional override for the Discovery Engine project."),
-    location: str | None = Query(None, description="Optional override for the Discovery Engine location."),
+    project: str | None = Query(None, description="Optional override for the Discovery project."),
+    location: str | None = Query(None, description="Optional override for the Discovery location."),
     data_store_id: str | None = Query(None, description="Optional override for the data store ID."),
     serving_config_id: str | None = Query(None, description="Optional override for the serving config."),
-    filter_expression: str | None = Query(None, alias="filter", description="Discovery Engine filter expression."),
+    filter_expression: str | None = Query(None, alias="filter", description="Discovery filter expression."),
     boost_json: str | None = Query(None, alias="boost", description="JSON BoostSpec payload."),
 ):
-    """Execute a Discovery Engine search using shared i4g defaults."""
+    """Execute a Discovery search using shared i4g defaults."""
 
     try:
         params = get_default_discovery_params(query=query, page_size=page_size)

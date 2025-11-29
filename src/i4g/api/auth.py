@@ -13,6 +13,12 @@ _API_TOKENS = {
 }
 
 
+def is_valid_api_token(token: Optional[str]) -> bool:
+    """Return True when the provided API key resolves to a known user."""
+
+    return bool(token and token in _API_TOKENS)
+
+
 def require_token(x_api_key: Optional[str] = Header(None)):
     """Validate API key header and return user info.
 

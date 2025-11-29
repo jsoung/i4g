@@ -1,5 +1,6 @@
 """Account list extraction service primitives."""
 
+from .audit import log_account_list_run
 from .exporters import AccountListExporter
 from .models import AccountListRequest, AccountListResult, FinancialIndicator, IndicatorCategory, SourceDocument
 from .queries import IndicatorQuery, get_indicator_query, list_indicator_queries
@@ -14,6 +15,7 @@ __all__ = [
     "IndicatorCategory",
     "IndicatorQuery",
     "SourceDocument",
+    "log_account_list_run",
     "get_indicator_query",
     "list_indicator_queries",
 ]

@@ -64,7 +64,7 @@ All three application services currently reuse the shared runtime service accoun
 ## 5. Authorization & Service Accounts
 
 1. **Runtime Service Accounts**
-   - `sa-app`: shared by FastAPI, Streamlit, and the Next.js analyst console. Roles: `roles/datastore.user`, `roles/storage.objectViewer`, `roles/secretmanager.secretAccessor`, `roles/run.invoker` (self), `roles/logging.logWriter`, plus Discovery Engine search role.
+   - `sa-app`: shared by FastAPI, Streamlit, and the Next.js analyst console. Roles: `roles/datastore.user`, `roles/storage.objectViewer`, `roles/secretmanager.secretAccessor`, `roles/run.invoker` (self), `roles/logging.logWriter`, plus Discovery search role.
    - `sa-ingest`, `sa-report`, `sa-vault`, `sa-infra`: keep existing least-privilege grants (see Terraform modules).
 
 2. **Workspace Groups & Human Roles**

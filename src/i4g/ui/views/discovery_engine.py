@@ -1,4 +1,4 @@
-"""Discovery Engine search panel for the Streamlit dashboard."""
+"""Discovery search panel for the Streamlit dashboard."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ from i4g.ui.api import perform_vertex_search
 
 
 def render_discovery_engine_panel() -> None:
-    """Render the Discovery Engine search controls and results."""
+    """Render the Discovery search controls and results."""
 
     st.divider()
-    st.subheader("🌐 Discovery Engine (Vertex AI) search")
+    st.subheader("🌐 Discovery (Vertex AI) search")
 
     with st.form("vertex_search_form"):
         st.text_input(
@@ -34,14 +34,14 @@ def render_discovery_engine_panel() -> None:
         st.text_input(
             "Filter expression",
             key="vertex_search_filter",
-            help='Discovery Engine filter syntax, e.g. tags: ANY("account-security").',
+            help='Discovery filter syntax, e.g. tags: ANY("account-security").',
         )
         st.text_area(
             "Boost JSON",
             key="vertex_search_boost_json",
             help="Optional SearchRequest.BoostSpec payload for ranking experiments.",
         )
-        vertex_submitted = st.form_submit_button("Run Discovery Engine search", width="stretch")
+        vertex_submitted = st.form_submit_button("Run Discovery search", width="stretch")
 
     show_raw_toggle = st.checkbox("Show raw JSON for each result", key="vertex_search_show_raw")
 
@@ -75,11 +75,11 @@ def render_discovery_engine_panel() -> None:
             st.session_state["vertex_search_error"] = "Provide the Google Cloud project ID."
             st.session_state["vertex_search_results"] = None
         elif not data_store_value:
-            st.session_state["vertex_search_error"] = "Provide the Discovery Engine data store ID."
+            st.session_state["vertex_search_error"] = "Provide the Discovery data store ID."
             st.session_state["vertex_search_results"] = None
         else:
             try:
-                with st.spinner("Querying Discovery Engine..."):
+                with st.spinner("Querying Discovery..."):
                     vertex_results = perform_vertex_search(params)
             except RuntimeError as exc:
                 st.session_state["vertex_search_results"] = None
@@ -90,13 +90,13 @@ def render_discovery_engine_panel() -> None:
 
     vertex_error = st.session_state.get("vertex_search_error")
     if vertex_error:
-        st.error(f"Discovery Engine search failed: {vertex_error}")
+        st.error(f"Discovery search failed: {vertex_error}")
 
     vertex_results_state: Optional[List[Dict[str, Any]]] = st.session_state.get("vertex_search_results")
     vertex_params = st.session_state.get("vertex_search_params") or {}
 
     if vertex_results_state:
-        st.subheader("🔎 Discovery Engine results")
+        st.subheader("🔎 Discovery results")
         st.caption(
             f"{len(vertex_results_state)} result(s) · page size {vertex_params.get('page_size', 'n/a')} · "
             f"data store {vertex_params.get('data_store_id', 'n/a')}"
@@ -161,4 +161,4 @@ def render_discovery_engine_panel() -> None:
 
             st.markdown("---")
     elif vertex_results_state == [] and vertex_params:
-        st.info("Discovery Engine returned no matches. Try adjusting the query or filters.")
+        st.info("Discovery returned no matches. Try adjusting the query or filters.")

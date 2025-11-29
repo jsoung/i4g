@@ -42,10 +42,10 @@ class _StubExporter:
     def __init__(self) -> None:
         self.invocations: int = 0
 
-    def export(self, result: object, formats: List[str]) -> Dict[str, str]:
+    def export(self, result: object, formats: List[str]):
         self.invocations += 1
         assert "csv" in formats
-        return {"csv": "/tmp/account_list.csv"}
+        return {"csv": "/tmp/account_list.csv"}, []
 
 
 def test_service_generates_artifacts():
@@ -67,3 +67,22 @@ def test_service_generates_artifacts():
     assert result.indicators
     assert result.artifacts["csv"] == "/tmp/account_list.csv"
     assert not result.warnings
+
+
+def test_service_merges_exporter_warnings():
+    class _WarnExporter(_StubExporter):
+        def export(self, result: object, formats: List[str]):
+            payload, _ = super().export(result, formats)
+            return payload, ["Drive upload failed"]
+
+    service = AccountListService(
+        retriever=_StubRetriever(),
+        extractor=_StubExtractor(),
+        exporter=_WarnExporter(),
+    )
+
+    request = AccountListRequest(categories=["bank"], output_formats=["csv"])
+
+    result = service.run(request)
+
+    assert "Drive upload failed" in result.warnings

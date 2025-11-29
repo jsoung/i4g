@@ -7,7 +7,7 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 
-from i4g.services.account_list import AccountListRequest, AccountListResult, AccountListService
+from i4g.services.account_list import AccountListRequest, AccountListResult, AccountListService, log_account_list_run
 from i4g.settings import Settings, get_settings
 
 LOGGER = logging.getLogger("i4g.worker.jobs.account_list")
@@ -96,12 +96,14 @@ def _build_service() -> AccountListService:
     return AccountListService()
 
 
-def _log_result_summary(result: AccountListResult) -> None:
+def _log_result_summary(result: AccountListResult, *, actor: str) -> None:
     LOGGER.info(
-        "Account list run %s completed: indicators=%s sources=%s",
+        "Account list run %s completed by %s: indicators=%s sources=%s warnings=%s",
         result.request_id,
+        actor,
         len(result.indicators),
         len(result.sources),
+        len(result.warnings),
     )
     if result.artifacts:
         LOGGER.info("Artifacts generated: %s", result.artifacts)
@@ -119,6 +121,7 @@ def main() -> int:
     except Exception:
         LOGGER.exception("Unable to load settings for account job")
         return 1
+    actor = f"account_job:{getattr(settings, 'env', 'unknown')}"
 
     try:
         request = _build_request_from_env(settings)
@@ -149,7 +152,14 @@ def main() -> int:
         LOGGER.exception("Account list extraction failed")
         return 1
 
-    _log_result_summary(result)
+    _log_result_summary(result, actor=actor)
+    try:
+        log_account_list_run(actor=actor, source="worker", result=result)
+    except Exception:  # pragma: no cover - defensive path
+        LOGGER.exception(
+            "Failed to write account list audit entry",
+            extra={"request_id": result.request_id},
+        )
     return 0
 
 

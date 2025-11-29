@@ -85,14 +85,21 @@ class AccountListService:
         artifact_formats = request.output_formats or self.settings.account_list.default_formats or []
         if artifact_formats:
             try:
-                artifacts = self.exporter.export(result, artifact_formats)
+                artifacts, export_warnings = self.exporter.export(result, artifact_formats)
             except Exception:  # pragma: no cover - filesystem failures
                 LOGGER.exception("Failed to export account list artifacts for %s", request_id)
                 warnings.append("Artifact generation failed; check server logs")
                 result = result.model_copy(update={"warnings": list(warnings)})
             else:
+                if export_warnings:
+                    warnings.extend(export_warnings)
+                payload: Dict[str, object] = {}
                 if artifacts:
-                    result = result.model_copy(update={"artifacts": artifacts})
+                    payload["artifacts"] = artifacts
+                if warnings:
+                    payload["warnings"] = list(warnings)
+                if payload:
+                    result = result.model_copy(update=payload)
         return result
 
     @staticmethod

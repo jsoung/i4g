@@ -208,7 +208,7 @@ Once these assets exist, the downstream scripts referenced below will find usabl
 
 ## Vertex AI Search Retrieval PoC
 
-For the hosted Discovery Engine workflows (Terraform setup, ingestion script, CLI query helpers, filters, and boosting examples) see `docs/retrieval_gcp_guide.md`. That guide tracks the GCP environment separately from the local sandbox to keep each workflow focused.
+For the hosted Discovery workflows (Terraform setup, ingestion script, CLI query helpers, filters, and boosting examples) see `docs/retrieval_gcp_guide.md`. That guide tracks the GCP environment separately from the local sandbox to keep each workflow focused.
 
 ### Hugging Face API Tokens
 
@@ -347,7 +347,7 @@ Install locally with `pip install -e .` to expose `i4g-admin` everywhere; run `i
 
 ### Terraforming GCP Resources
 
-Infrastructure lives under the sibling `infra/` tree. For module layout, workflow steps, and Discovery Engine prerequisites (including the quota-project command), follow the instructions in `infra/README.md`.
+Infrastructure lives under the sibling `infra/` tree. For module layout, workflow steps, and Discovery prerequisites (including the quota-project command), follow the instructions in `infra/README.md`.
 
 ### Publishing the FastAPI Image to Artifact Registry
 
@@ -375,7 +375,7 @@ When you need to re-test Streamlit changes quickly, you can reuse the `streamlit
             --push .
         ```
 
-2. Force Cloud Run to pull the new digest, keeping existing env vars and supplying the Discovery Engine defaults:
+2. Force Cloud Run to pull the new digest, keeping existing env vars and supplying the Discovery defaults:
 
     ```bash
         gcloud run services update streamlit-analyst-ui \

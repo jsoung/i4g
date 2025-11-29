@@ -104,7 +104,7 @@ Ingestion complete: processed=3 failures=0
    ```bash
    curl -sS -X POST "http://127.0.0.1:8000/accounts/extract" \
      -H "Content-Type: application/json" \
-     -H "X-ACCOUNTLIST-KEY: dev-analyst-token" \
+     -H "X-API-KEY: dev-analyst-token" \
      -d '{
        "start_time": "2025-11-01T00:00:00Z",
        "end_time": "2025-11-15T23:59:59Z",
@@ -130,6 +130,14 @@ Ingestion complete: processed=3 failures=0
    minus `I4G_ACCOUNT_JOB__DRY_RUN=true`. Verify that PDFs/XLSX files land in
    `data/reports/account_list/` (or the configured reports bucket / Drive folder when those env vars
    are set) and that the log line `Artifacts generated: {...}` appears.
+4. Use the run-history endpoint to confirm the API logged the execution. Both the dedicated
+   account-list key and the analyst `X-API-KEY` work thanks to the new fallback:
+   ```bash
+   curl -s "http://127.0.0.1:8000/accounts/runs?limit=3" \
+     -H "X-API-KEY: dev-analyst-token" | jq '{count, latest: .runs[0] | {request_id, indicator_count, artifacts}}'
+   ```
+   Expect at least one entry whose `request_id` matches the manual run above. The analyst console’s
+   `/accounts` page calls the same endpoint to populate its history table.
 
 #### Account list exporter smoke (mock data)
 
@@ -147,7 +155,7 @@ printed to STDOUT so you can verify Drive/`gs://` uploads or inspect the local f
 ### 4. Optional Local Checks
 
 - **Streamlit Analyst Dashboard:** Once the FastAPI smoke test succeeds, launch the dashboard (`conda run -n i4g streamlit run src/i4g/ui/analyst_dashboard.py`) and verify that intakes and queue actions render.
-- **Vertex Retrieval Smoke:** If you have GCP credentials for Discovery Engine, run `conda run -n i4g python scripts/smoke_vertex_retrieval.py --project <project> --data-store-id <data_store>` to validate the managed search stack. This requires access to the Artifact Registry dataset and may be skipped locally.
+- **Vertex Retrieval Smoke:** If you have GCP credentials for Discovery, run `conda run -n i4g python scripts/smoke_vertex_retrieval.py --project <project> --data-store-id <data_store>` to validate the managed search stack. This requires access to the Artifact Registry dataset and may be skipped locally.
 
 Document successful runs (or failures) in `planning/change_log.md` when they drive code or infrastructure updates.
 

@@ -8,7 +8,7 @@ import logging
 import mimetypes
 from datetime import timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, List
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -83,10 +83,11 @@ class AccountListExporter:
         }
         self._drive_service = drive_service or self._build_drive_client()
 
-    def export(self, result: AccountListResult, formats: Iterable[str]) -> Dict[str, str]:
-        """Write artifacts for the requested formats and return their paths."""
+    def export(self, result: AccountListResult, formats: Iterable[str]) -> tuple[Dict[str, str], List[str]]:
+        """Write artifacts for the requested formats and return their paths/warnings."""
 
         artifacts: Dict[str, str] = {}
+        warnings: List[str] = []
         for fmt in formats:
             normalized = fmt.lower().strip()
             if not normalized:
@@ -94,10 +95,15 @@ class AccountListExporter:
             handler = getattr(self, f"_export_{normalized}", None)
             if handler is None:
                 LOGGER.warning("Unsupported account list artifact format: %s", normalized)
+                warnings.append(f"Unsupported artifact format skipped: {normalized}")
                 continue
-            path = handler(result)
-            artifacts[normalized] = self._finalize_artifact(path)
-        return artifacts
+            try:
+                path = handler(result)
+                artifacts[normalized] = self._finalize_artifact(path, warnings, format_name=normalized)
+            except Exception as exc:  # pragma: no cover - file I/O edge cases
+                LOGGER.exception("Failed to generate %s artifact", normalized)
+                warnings.append(f"{normalized.upper()} artifact generation failed: {exc}")
+        return artifacts, warnings
 
     # ------------------------------------------------------------------
     # Individual format handlers
@@ -222,16 +228,25 @@ class AccountListExporter:
         filename = f"{safe_request_id}_{timestamp}.{suffix}"
         return self.base_dir / filename
 
-    def _finalize_artifact(self, local_path: Path) -> str:
+    def _finalize_artifact(self, local_path: Path, warnings: List[str], *, format_name: str) -> str:
         content_type = self._content_types.get(local_path.suffix.lstrip(".").lower())
         content_type = content_type or mimetypes.guess_type(local_path.name)[0] or "application/octet-stream"
 
-        drive_link = self._upload_to_drive(local_path, content_type)
-        if drive_link:
-            return drive_link
+        if self._drive_folder_id and self._drive_service:
+            try:
+                return self._upload_to_drive(local_path, content_type)
+            except Exception as exc:  # pragma: no cover - Drive client failures
+                warning = f"Drive upload failed for {format_name} artifact: {exc}"
+                warnings.append(warning)
+                LOGGER.warning(warning)
 
         if self._bucket is not None:
-            return self._upload_to_gcs(local_path, content_type)
+            try:
+                return self._upload_to_gcs(local_path, content_type)
+            except Exception as exc:  # pragma: no cover - GCS failures
+                warning = f"GCS upload failed for {format_name} artifact: {exc}"
+                warnings.append(warning)
+                LOGGER.warning(warning)
 
         return str(local_path)
 
@@ -262,35 +277,31 @@ class AccountListExporter:
             LOGGER.exception("Failed to build Drive client")
             return None
 
-    def _upload_to_drive(self, local_path: Path, content_type: str) -> str | None:
+    def _upload_to_drive(self, local_path: Path, content_type: str) -> str:
         if not self._drive_folder_id or not self._drive_service:
-            return None
+            raise RuntimeError("Drive uploads not configured")
         try:
             from googleapiclient.http import MediaFileUpload
-        except ImportError:  # pragma: no cover
-            LOGGER.warning("Drive upload skipped: googleapiclient missing")
-            return None
+        except ImportError as exc:  # pragma: no cover
+            raise RuntimeError("googleapiclient missing for Drive uploads") from exc
 
-        try:
-            media = MediaFileUpload(str(local_path), mimetype=content_type, resumable=False)
-            metadata = {
-                "name": local_path.name,
-                "parents": [self._drive_folder_id],
-            }
-            request = self._drive_service.files().create(  # type: ignore[union-attr]
-                body=metadata,
-                media_body=media,
-                fields="id,webViewLink,webContentLink",
-                supportsAllDrives=True,
-            )
-            file_info = request.execute()
-        except Exception:  # pragma: no cover - Drive API errors logged
-            LOGGER.exception("Drive upload failed for %s", local_path.name)
-            return None
-
+        media = MediaFileUpload(str(local_path), mimetype=content_type, resumable=False)
+        metadata = {
+            "name": local_path.name,
+            "parents": [self._drive_folder_id],
+        }
+        request = self._drive_service.files().create(  # type: ignore[union-attr]
+            body=metadata,
+            media_body=media,
+            fields="id,webViewLink,webContentLink",
+            supportsAllDrives=True,
+        )
+        file_info = request.execute()
         link = file_info.get("webViewLink") or file_info.get("webContentLink")
         if not link and file_info.get("id"):
             link = f"https://drive.google.com/file/d/{file_info['id']}/view"
+        if not link:
+            raise RuntimeError("Drive upload returned no shareable link")
         return link
 
 

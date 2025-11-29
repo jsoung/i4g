@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from i4g.settings import get_settings
 from i4g.store.retriever import HybridRetriever
@@ -20,6 +21,19 @@ _VECTOR_ENV_KEYS: Tuple[str, ...] = (
     "I4G_ACCOUNT_LIST_ENABLE_VECTOR",
     "ACCOUNT_LIST_ENABLE_VECTOR",
 )
+
+
+def _coerce_metadata(value: object) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, dict):
+                return parsed
+        except ValueError:
+            return {}
+    return {}
 
 
 def _to_datetime(value: object) -> datetime | None:
@@ -104,22 +118,29 @@ class FinancialEntityRetriever:
         documents: List[SourceDocument] = []
         for entry in response.get("results", []):
             record = entry.get("record") or {}
-            content = record.get("text") or record.get("summary") or ""
+            vector_entry = entry.get("vector") or {}
+            content = record.get("text") or record.get("summary") or vector_entry.get("text") or ""
             if not content:
                 continue
-            metadata = record.get("metadata") or {}
-            created_at = _to_datetime(record.get("created_at") or metadata.get("created_at"))
+            metadata = _coerce_metadata(record.get("metadata"))
+            vector_metadata = _coerce_metadata(vector_entry.get("metadata"))
+            combined_metadata = metadata or vector_metadata
+            created_at = _to_datetime(
+                record.get("created_at") or combined_metadata.get("created_at") or vector_entry.get("created_at")
+            )
             if not _within_range(created_at, start_time, end_time):
                 continue
             document = SourceDocument(
-                case_id=record.get("case_id") or entry.get("case_id") or "unknown",
+                case_id=(record.get("case_id") or vector_entry.get("case_id") or entry.get("case_id") or "unknown"),
                 content=content,
-                dataset=metadata.get("dataset") or metadata.get("source"),
-                title=record.get("title") or metadata.get("title"),
-                classification=record.get("classification"),
+                dataset=(
+                    combined_metadata.get("dataset") or combined_metadata.get("source") or vector_entry.get("dataset")
+                ),
+                title=record.get("title") or combined_metadata.get("title"),
+                classification=record.get("classification") or vector_entry.get("classification"),
                 created_at=created_at,
-                score=entry.get("score"),
-                excerpt=metadata.get("excerpt"),
+                score=entry.get("score") or vector_entry.get("score"),
+                excerpt=combined_metadata.get("excerpt"),
             )
             documents.append(document)
             if len(documents) >= indicator_query.max_documents:

@@ -1,4 +1,4 @@
-"""HTTP and Discovery Engine helpers for the Streamlit analyst dashboard."""
+"""HTTP and Discovery helpers for the Streamlit analyst dashboard."""
 
 from __future__ import annotations
 
@@ -22,11 +22,11 @@ HAS_VERTEX_SEARCH = discoveryengine is not None and json_format is not None
 
 @st.cache_resource
 def _search_client() -> Any:
-    """Reuse a single Discovery Engine client to avoid reconnect overhead."""
+    """Reuse a single Discovery client to avoid reconnect overhead."""
 
     if not HAS_VERTEX_SEARCH:
         raise RuntimeError(
-            "Discovery Engine SDK not installed. Install `google-cloud-discoveryengine` to enable the Vertex search panel."
+            "Discovery SDK not installed. Install `google-cloud-discoveryengine` to enable the Vertex search panel."
         )
     return discoveryengine.SearchServiceClient()
 
@@ -122,7 +122,7 @@ def perform_vertex_search(params: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def vertex_search_available() -> bool:
-    """Expose whether the Discovery Engine client dependencies are installed."""
+    """Expose whether the Discovery client dependencies are installed."""
 
     return HAS_VERTEX_SEARCH
 
