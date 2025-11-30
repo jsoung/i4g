@@ -23,6 +23,9 @@ import google.api_core.exceptions
 from google.cloud import discoveryengine_v1beta as discoveryengine
 from google.protobuf import json_format
 
+from i4g.services.ingest_payloads import prepare_ingest_payload
+from i4g.services.vertex_documents import build_vertex_document
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -53,6 +56,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=Path,
         required=True,
         help="Path to JSON Lines file containing synthetic scam cases.",
+    )
+    parser.add_argument(
+        "--dataset",
+        help="Dataset identifier injected into each document when the JSONL record omits one.",
     )
     parser.add_argument(
         "--batch-size",
@@ -96,28 +103,29 @@ def load_records(path: Path) -> Iterator[dict]:
                 raise ValueError(msg) from exc
 
 
-def document_from_record(record: dict) -> discoveryengine.Document:
-    if "case_id" not in record:
-        raise ValueError("Each record must contain a 'case_id' field.")
+def _enrich_record(record: dict, default_dataset: str | None = None) -> dict:
+    """Merge normalized ingest metadata back into the raw record."""
 
-    # Copy to avoid mutating the original record while shaping the payload.
-    struct_payload = dict(record)
-    case_id = struct_payload.pop("case_id")
-    text = struct_payload.get("text", "")
-
-    # Make sure a top-level content field exists for keyword search.
-    struct_payload.setdefault("content", text)
-
-    document = discoveryengine.Document()
-    document.id = case_id
-    document.struct_data = struct_payload
-    document.content = discoveryengine.Document.Content(
-        raw_bytes=text.encode("utf-8"),
-        mime_type="text/plain",
-    )
-    document.json_data = json.dumps(record, ensure_ascii=False)
-
-    return document
+    payload, _ = prepare_ingest_payload(record, default_dataset=default_dataset)
+    enriched = dict(record)
+    for key in (
+        "case_id",
+        "dataset",
+        "categories",
+        "indicator_ids",
+        "fraud_type",
+        "fraud_confidence",
+        "tags",
+        "summary",
+        "channel",
+        "timestamp",
+        "structured_fields",
+        "metadata",
+    ):
+        value = payload.get(key)
+        if value is not None:
+            enriched[key] = value
+    return enriched
 
 
 def chunked(iterable: Iterable[discoveryengine.Document], size: int) -> Iterator[List[discoveryengine.Document]]:
@@ -145,7 +153,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         LOGGER.warning("No records found; nothing to ingest.")
         return 0
 
-    documents = [document_from_record(record) for record in records]
+    enriched_records = [_enrich_record(record, args.dataset) for record in records]
+    documents = [build_vertex_document(record, default_dataset=args.dataset) for record in enriched_records]
 
     if args.dry_run:
         preview = documents[0]

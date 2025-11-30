@@ -149,6 +149,22 @@ Use double underscores to drill into nested fields (for example `I4G_STORAGE__EV
 
 There are also targeted demos under `tests/adhoc/` if you want to exercise a single feature (OCR, extraction, reporting, etc.); check the README in that folder for usage details.
 
+## Database Migrations
+
+Dual-extraction work now ships with Alembic migrations. Apply the latest schema before running
+local demos or CLI jobs:
+
+```bash
+python -m alembic upgrade head
+```
+
+The command automatically targets the SQLite path from `settings.storage.sqlite_path`. To apply
+migrations against Cloud SQL/AlloyDB, export `I4G_DATABASE_URL` (or `ALEMBIC_DATABASE_URL`) with a
+Postgres connection string and rerun the upgrade command.
+
+`scripts/bootstrap_local_sandbox.py` runs migrations for you, but keep the command above handy for
+CI/CD and ops workflows.
+
 ## Restoring Sample Data & Artifacts
 
 If you cleaned out the `data/` directory (or are onboarding to a fresh clone), start with the consolidated helper below to rebuild everything in one step:

@@ -11,15 +11,20 @@ The scenarios are split into two groups:
 
 ### Prerequisites
 
-1. Populate local demo artifacts if you have a fresh checkout:
+1. Apply the latest migrations so the SQLite store matches the dual-write schema:
+  ```bash
+  conda run -n i4g python -m alembic upgrade head
+  ```
+  (Set `I4G_DATABASE_URL` before running the command if you need to target a non-default database.)
+2. Populate local demo artifacts if you have a fresh checkout:
    ```bash
    conda run -n i4g python scripts/bootstrap_local_sandbox.py --reset
    ```
-2. Launch the FastAPI service in a dedicated terminal. Keep it running while you execute the tests:
+3. Launch the FastAPI service in a dedicated terminal. Keep it running while you execute the tests:
    ```bash
    conda run -n i4g uvicorn i4g.api.app:app --host 127.0.0.1 --port 8000
    ```
-3. Ensure the analyst token `dev-analyst-token` exists (it ships with the repo). Adjust commands if you use a different key.
+4. Ensure the analyst token `dev-analyst-token` exists (it ships with the repo). Adjust commands if you use a different key.
 
 ### 1. FastAPI Intake Submission + Intake Job (API mode)
 
@@ -95,6 +100,140 @@ Expected log excerpts:
 Dry run enabled; would ingest case_id=...
 Ingestion complete: processed=3 failures=0
 ```
+
+### 2b. Ingestion Job Dual Write + Vector Check (CLI)
+
+Run two passes of the worker to cover SQL dual writes and the vector store, then assert the tracker row with the
+new verification helper.
+
+1. **Dual-write baseline (vector disabled).** Execute the job against the retrieval PoC dataset and capture the
+   emitted `run_id`:
+   ```bash
+   env \
+     I4G_INGEST__JSONL_PATH=$PWD/data/retrieval_poc/cases.jsonl \
+     I4G_INGEST__DATASET_NAME=retrieval_poc \
+     I4G_INGEST__BATCH_LIMIT=5 \
+     I4G_INGEST__ENABLE_VECTOR=false \
+     I4G_RUNTIME__LOG_LEVEL=INFO \
+     conda run -n i4g i4g-ingest-job
+   ```
+   Expected log highlights:
+   ```
+   Starting ingestion run b2b67300-9493-4d8e-8418-0928df3b000e (dataset=retrieval_poc)
+   Writing SQL case romance_bitcoin-012 ...
+   Ingestion run b2b67300-9493-4d8e-8418-0928df3b000e complete: processed=5 vector_writes=0 failures=0
+   ```
+   When you have Firestore access (emulator or GCP), include `I4G_INGEST__ENABLE_FIRESTORE=true` in the env block.
+   The job log will emit `enable_firestore=true` and increment `ingestion_runs.firestore_writes`, confirming the
+   Firestore fan-out.
+2. **Vector-enabled validation.** Re-run the worker with vectors enabled to ensure embeddings are generated and
+   recorded in the tracker row. Use the larger demo dataset so the verification step has enough cases to assert.
+   ```bash
+   env \
+     I4G_INGEST__JSONL_PATH=$PWD/data/retrieval_poc/cases.jsonl \
+     I4G_INGEST__DATASET_NAME=cases \
+     I4G_INGEST__BATCH_LIMIT=0 \
+     I4G_INGEST__ENABLE_VECTOR=true \
+     I4G_RUNTIME__LOG_LEVEL=INFO \
+     conda run -n i4g i4g-ingest-job
+   ```
+   Expect `vector_enabled=true` plus `vertex_writes` counts that match the case count.
+3. **Automated verification.** Instead of a manual SQLAlchemy snippet, run the helper script to assert the run
+   metrics. Target the dataset you just ingested (or pass `--run-id` if you copied it from the logs):
+   ```bash
+   conda run -n i4g python scripts/verify_ingestion_run.py \
+     --dataset cases \
+     --min-case-count 50 \
+     --require-vector-enabled \
+     --max-retry-count 0 \
+     --verbose
+   ```
+   Successful output prints the selected row followed by a summary such as
+   `✅ run_id=... dataset=cases status=succeeded cases=50 sql=50 firestore=0 vertex=50 retries=0`. Adjust the flags
+   when validating other datasets (for example `--expect-sql-writes 5` or `--status partial`).
+4. **Optional Vertex spot check.** Use the admin helper to confirm the dataset landed in Vertex AI:
+   ```bash
+   conda run -n i4g i4g-admin vertex-search "visa office" \
+     --project ${I4G_VERTEX_SEARCH_PROJECT:-i4g-dev} \
+     --location ${I4G_VERTEX_SEARCH_LOCATION:-global} \
+     --data-store-id ${I4G_VERTEX_SEARCH_DATA_STORE:-retrieval-poc} \
+     --page-size 3 \
+     --filter 'dataset: ANY("retrieval_poc")'
+   ```
+   Expect the queries to surface the newly ingested case IDs with `dataset`, `categories`, and `indicator_ids`
+   populated.
+
+### 2c. Ingestion Retry Job (CLI)
+
+Use this flow to prove the retry queue fills when a backend fails and that the retry worker drains it cleanly.
+
+1. **Force a Firestore failure to seed the queue.** Re-run the ingestion job with Firestore enabled but point the
+   Firestore client at a closed port so writes fail _after_ SQL succeeds. Make sure you temporarily run with the
+   `dev` settings profile so Firestore configuration is honoured (local overrides disable it).
+   ```bash
+   env \
+     I4G_ENV=dev \
+     I4G_INGEST__JSONL_PATH=$PWD/data/retrieval_poc/cases.jsonl \
+     I4G_INGEST__DATASET_NAME=retry_demo \
+     I4G_INGEST__BATCH_LIMIT=3 \
+     I4G_INGEST__ENABLE_FIRESTORE=true \
+     I4G_INGEST__ENABLE_VECTOR=false \
+     I4G_STORAGE__FIRESTORE_PROJECT=i4g-dev \
+     FIRESTORE_EMULATOR_HOST=127.0.0.1:8787 \
+     I4G_RUNTIME__LOG_LEVEL=INFO \
+     conda run -n i4g python -m i4g.worker.jobs.ingest
+   ```
+  Leave the emulator **stopped** for this step—the bogus host triggers connection-refused errors that enqueue
+  retries (watch the worker logs for the stack traces). Copy the emitted `run_id`; you will need it for verification.
+2. **Inspect the queue without mutating it.**
+   ```bash
+   env \
+     I4G_ENV=dev \
+     I4G_STORAGE__FIRESTORE_PROJECT=i4g-dev \
+     FIRESTORE_EMULATOR_HOST=127.0.0.1:8787 \
+     I4G_INGEST_RETRY__DRY_RUN=true \
+     I4G_RUNTIME__LOG_LEVEL=INFO \
+     conda run -n i4g python -m i4g.worker.jobs.ingest_retry
+   ```
+   The dry run prints each pending entry so you can confirm the payloads match the failed Firestore writes.
+3. **Execute the retry worker for real.** Start a Firestore emulator (requires Java 21+) or point the job at a real
+   Firestore instance so replays succeed. Example emulator workflow:
+   ```bash
+   # separate terminal
+   env JAVA_HOME=/opt/homebrew/opt/openjdk@21 \
+       PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH" \
+       gcloud beta emulators firestore start --host-port=127.0.0.1:8787 --project i4g-dev
+   ```
+   Then rerun the retry worker without the dry-run flag:
+   ```bash
+   env \
+     I4G_ENV=dev \
+     I4G_STORAGE__FIRESTORE_PROJECT=i4g-dev \
+     FIRESTORE_EMULATOR_HOST=127.0.0.1:8787 \
+     I4G_RUNTIME__LOG_LEVEL=INFO \
+     conda run -n i4g python -m i4g.worker.jobs.ingest_retry
+   ```
+   - When the queue is empty you should see `No ingestion retry entries ready; exiting`.
+   - With queued work the job logs each backend replay, deletes successful entries, and either re-schedules or drops
+     failures based on `settings.ingestion.max_retries`. Stop the emulator (`Ctrl+C` or `kill <pid>`) once the run completes.
+4. **Validate the ingestion run record.** Use the helper script before and after the replay to confirm the run
+   recorded the retries and that the queue drained:
+   ```bash
+   # Before the replay (expect retries > 0)
+   conda run -n i4g python scripts/verify_ingestion_run.py \
+     --run-id <run_id_from_step_1> \
+     --status succeeded \
+     --max-retry-count 3 \
+     --verbose
+
+   # After the replay (retry count unchanged but queue empty)
+   conda run -n i4g python scripts/verify_ingestion_run.py \
+     --run-id <run_id_from_step_1> \
+     --status succeeded \
+     --max-retry-count 3
+   ```
+   Adjust the thresholds to match your dataset (for example `--expect-case-count 3`). Re-run the retry worker
+   command at the end to confirm it reports `No ingestion retry entries ready`.
 
 ### 3. Account List Extraction (Local API + Job)
 
@@ -320,3 +459,63 @@ This flow validates the scheduled exporter that now backs the analyst reports.
    ```
    When Drive uploads are enabled, also spot-check the shared folder for the new files. Record the
    run (success or failure) in `planning/change_log.md` to capture operational history.
+
+### 6. Ingestion Backfill + Retry (Dev)
+
+Use this procedure whenever you need to rehydrate the dual-extraction corpus in `i4g-dev` or
+validate that Vertex throttling is handled by the retry worker.
+
+1. **Run the ingestion job with dev overrides.** Execute the worker against the Retrieval PoC bundle
+  so SQL, Firestore, and Vertex all receive writes:
+  ```bash
+  env \
+    I4G_ENV=dev \
+    I4G_INGEST__JSONL_PATH=$PWD/data/retrieval_poc/cases.jsonl \
+    I4G_INGEST__DATASET_NAME=retrieval_poc_dev \
+    I4G_INGEST__ENABLE_FIRESTORE=true \
+    I4G_STORAGE__FIRESTORE_PROJECT=i4g-dev \
+    I4G_VERTEX_SEARCH_PROJECT=i4g-dev \
+    I4G_VERTEX_SEARCH_LOCATION=global \
+    I4G_VERTEX_SEARCH_DATA_STORE=retrieval-poc \
+    I4G_RUNTIME__LOG_LEVEL=INFO \
+    conda run -n i4g python -m i4g.worker.jobs.ingest
+  ```
+  Capture the `run_id` from the logs. Expect SQL/Firestore writes to match the case count (200).
+  Vertex imports may stop early if the "Document batch requests/min" quota is exceeded.
+2. **Verify the ingestion run.** Use the helper script with relaxed retry thresholds when Vertex
+  throttling occurs:
+  ```bash
+  env I4G_ENV=dev conda run -n i4g python scripts/verify_ingestion_run.py \
+    --run-id <run_id> \
+    --expect-case-count 200 \
+    --status succeeded \
+    --max-retry-count 100 \
+    --verbose
+  ```
+  The script prints case/entity counts plus backend write totals so you can snapshot the run
+  before draining retries.
+3. **Drain queued Firestore/Vertex work.** When Vertex responds with HTTP 429s, run the retry worker
+  in small batches until it reports an empty queue:
+  ```bash
+  env \
+    I4G_ENV=dev \
+    I4G_STORAGE__FIRESTORE_PROJECT=i4g-dev \
+    I4G_VERTEX_SEARCH_PROJECT=i4g-dev \
+    I4G_VERTEX_SEARCH_LOCATION=global \
+    I4G_VERTEX_SEARCH_DATA_STORE=retrieval-poc \
+    I4G_INGEST_RETRY__BATCH_LIMIT=10 \
+    I4G_RUNTIME__LOG_LEVEL=INFO \
+    conda run -n i4g python -m i4g.worker.jobs.ingest_retry
+  ```
+  Each pass logs the replayed case IDs plus `successes=/failures=/rescheduled=` totals. Repeat
+  until the worker prints `No ingestion retry entries ready; exiting`.
+4. **Re-verify and log the run.** Re-run the verification helper (same command as step 2) to record
+  the final metrics. `retry_count` remains >0 because the run tracker logs the number of retries
+  consumed, but the empty queue confirms Vertex is consistent. Document the run in
+  `planning/change_log.md` with the `run_id`, write totals, and any quota notes so future backfills
+  have history.
+5. **Plan for quota limits.** If Vertex throttling becomes chronic, either lower the ingestion
+  batch size (`I4G_INGEST__BATCH_LIMIT`) to stretch writes over time or request a higher
+  `Document batch requests per minute` quota before running larger corpora. When tuning these
+  values, also adjust `I4G_INGEST_RETRY__BATCH_LIMIT` so the retry worker respects the same rate
+  envelope.

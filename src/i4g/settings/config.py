@@ -189,11 +189,35 @@ class VectorSettings(BaseSettings):
     )
     vertex_ai_project: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("VECTOR_VERTEX_AI_PROJECT", "VECTOR__VERTEX_AI__PROJECT"),
+        validation_alias=AliasChoices(
+            "VECTOR_VERTEX_AI_PROJECT",
+            "VECTOR__VERTEX_AI__PROJECT",
+            "I4G_VERTEX_SEARCH_PROJECT",
+        ),
     )
     vertex_ai_location: str | None = Field(
         default="us-central1",
-        validation_alias=AliasChoices("VECTOR_VERTEX_AI_LOCATION", "VECTOR__VERTEX_AI__LOCATION"),
+        validation_alias=AliasChoices(
+            "VECTOR_VERTEX_AI_LOCATION",
+            "VECTOR__VERTEX_AI__LOCATION",
+            "I4G_VERTEX_SEARCH_LOCATION",
+        ),
+    )
+    vertex_ai_data_store: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "VECTOR_VERTEX_AI_DATA_STORE",
+            "VECTOR__VERTEX_AI__DATA_STORE",
+            "I4G_VERTEX_SEARCH_DATA_STORE",
+        ),
+    )
+    vertex_ai_branch: str = Field(
+        default="default_branch",
+        validation_alias=AliasChoices(
+            "VECTOR_VERTEX_AI_BRANCH",
+            "VECTOR__VERTEX_AI__BRANCH",
+            "I4G_VERTEX_SEARCH_BRANCH",
+        ),
     )
 
 
@@ -271,6 +295,78 @@ class IngestionSettings(BaseSettings):
     default_service_account: str | None = Field(
         default=None,
         validation_alias=AliasChoices("INGESTION_SERVICE_ACCOUNT", "INGESTION__SERVICE_ACCOUNT"),
+    )
+    enable_sql: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "INGEST_ENABLE_SQL",
+            "INGEST__ENABLE_SQL",
+            "INGESTION_ENABLE_SQL",
+            "INGESTION__ENABLE_SQL",
+        ),
+    )
+    enable_firestore: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "INGEST_ENABLE_FIRESTORE",
+            "INGEST__ENABLE_FIRESTORE",
+            "INGESTION_ENABLE_FIRESTORE",
+            "INGESTION__ENABLE_FIRESTORE",
+        ),
+    )
+    enable_vertex: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "INGEST_ENABLE_VERTEX",
+            "INGEST__ENABLE_VERTEX",
+            "INGESTION_ENABLE_VERTEX",
+            "INGESTION__ENABLE_VERTEX",
+        ),
+    )
+    enable_vector_store: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "INGEST_ENABLE_VECTOR",
+            "INGEST__ENABLE_VECTOR",
+            "INGESTION_ENABLE_VECTOR",
+            "INGESTION__ENABLE_VECTOR",
+        ),
+    )
+    default_dataset: str = Field(
+        default="unknown",
+        validation_alias=AliasChoices(
+            "INGEST_DEFAULT_DATASET",
+            "INGEST__DEFAULT_DATASET",
+            "INGESTION_DEFAULT_DATASET",
+            "INGESTION__DEFAULT_DATASET",
+        ),
+    )
+    fanout_timeout_seconds: int = Field(
+        default=60,
+        validation_alias=AliasChoices(
+            "INGEST_FANOUT_TIMEOUT_SECONDS",
+            "INGEST__FANOUT_TIMEOUT_SECONDS",
+            "INGESTION_FANOUT_TIMEOUT_SECONDS",
+            "INGESTION__FANOUT_TIMEOUT_SECONDS",
+        ),
+    )
+    max_retries: int = Field(
+        default=3,
+        validation_alias=AliasChoices(
+            "INGEST_MAX_RETRIES",
+            "INGEST__MAX_RETRIES",
+            "INGESTION_MAX_RETRIES",
+            "INGESTION__MAX_RETRIES",
+        ),
+    )
+    retry_delay_seconds: int = Field(
+        default=60,
+        validation_alias=AliasChoices(
+            "INGEST_RETRY_DELAY_SECONDS",
+            "INGEST__RETRY_DELAY_SECONDS",
+            "INGESTION_RETRY_DELAY_SECONDS",
+            "INGESTION__RETRY_DELAY_SECONDS",
+        ),
     )
 
 
@@ -455,6 +551,133 @@ class Settings(BaseSettings):
 
             observability_update = {"structured_logging": False, "otlp_endpoint": None}
             object.__setattr__(self, "observability", self.observability.model_copy(update=observability_update))
+
+        ingestion_alias_updates: dict[str, object] = {}
+
+        def _legacy_env_keys(*keys: str) -> tuple[str, ...]:
+            resolved: list[str] = []
+            seen: set[str] = set()
+            for key in keys:
+                for candidate in (f"I4G_{key}", key):
+                    if candidate in seen:
+                        continue
+                    seen.add(candidate)
+                    resolved.append(candidate)
+            return tuple(resolved)
+
+        def _ingestion_bool(field: str, *keys: str) -> None:
+            value = _read_env_value(*_legacy_env_keys(*keys))
+            if value is None:
+                return
+            lowered = value.strip().lower()
+            ingestion_alias_updates[field] = lowered not in {"false", "0", "off", "no"}
+
+        def _ingestion_str(field: str, *keys: str) -> None:
+            value = _read_env_value(*_legacy_env_keys(*keys))
+            if value is None:
+                return
+            ingestion_alias_updates[field] = value.strip()
+
+        def _ingestion_int(field: str, *keys: str) -> None:
+            value = _read_env_value(*_legacy_env_keys(*keys))
+            if value is None:
+                return
+            try:
+                ingestion_alias_updates[field] = int(value.strip())
+            except ValueError:
+                pass
+
+        _ingestion_bool(
+            "enable_scheduled_jobs",
+            "INGESTION__ENABLE_SCHEDULED_JOBS",
+            "INGESTION_ENABLE_SCHEDULED_JOBS",
+            "INGEST__ENABLE_SCHEDULED_JOBS",
+            "INGEST_ENABLE_SCHEDULED_JOBS",
+        )
+        _ingestion_bool(
+            "enable_sql",
+            "INGESTION__ENABLE_SQL",
+            "INGESTION_ENABLE_SQL",
+            "INGEST__ENABLE_SQL",
+            "INGEST_ENABLE_SQL",
+        )
+        _ingestion_bool(
+            "enable_firestore",
+            "INGESTION__ENABLE_FIRESTORE",
+            "INGESTION_ENABLE_FIRESTORE",
+            "INGEST__ENABLE_FIRESTORE",
+            "INGEST_ENABLE_FIRESTORE",
+        )
+        _ingestion_bool(
+            "enable_vertex",
+            "INGESTION__ENABLE_VERTEX",
+            "INGESTION_ENABLE_VERTEX",
+            "INGEST__ENABLE_VERTEX",
+            "INGEST_ENABLE_VERTEX",
+        )
+        _ingestion_bool(
+            "enable_vector_store",
+            "INGESTION__ENABLE_VECTOR_STORE",
+            "INGESTION_ENABLE_VECTOR_STORE",
+            "INGESTION__ENABLE_VECTOR",
+            "INGESTION_ENABLE_VECTOR",
+            "INGEST__ENABLE_VECTOR_STORE",
+            "INGEST_ENABLE_VECTOR_STORE",
+            "INGEST__ENABLE_VECTOR",
+            "INGEST_ENABLE_VECTOR",
+        )
+        _ingestion_str(
+            "default_region",
+            "INGESTION__DEFAULT_REGION",
+            "INGESTION_DEFAULT_REGION",
+            "INGEST__DEFAULT_REGION",
+            "INGEST_DEFAULT_REGION",
+        )
+        _ingestion_str(
+            "scheduler_project",
+            "INGESTION__SCHEDULER_PROJECT",
+            "INGESTION_SCHEDULER_PROJECT",
+            "INGEST__SCHEDULER_PROJECT",
+            "INGEST_SCHEDULER_PROJECT",
+        )
+        _ingestion_str(
+            "default_service_account",
+            "INGESTION__SERVICE_ACCOUNT",
+            "INGESTION_SERVICE_ACCOUNT",
+            "INGEST__SERVICE_ACCOUNT",
+            "INGEST_SERVICE_ACCOUNT",
+        )
+        _ingestion_str(
+            "default_dataset",
+            "INGESTION__DEFAULT_DATASET",
+            "INGESTION_DEFAULT_DATASET",
+            "INGEST__DEFAULT_DATASET",
+            "INGEST_DEFAULT_DATASET",
+        )
+        _ingestion_int(
+            "fanout_timeout_seconds",
+            "INGESTION__FANOUT_TIMEOUT_SECONDS",
+            "INGESTION_FANOUT_TIMEOUT_SECONDS",
+            "INGEST__FANOUT_TIMEOUT_SECONDS",
+            "INGEST_FANOUT_TIMEOUT_SECONDS",
+        )
+        _ingestion_int(
+            "max_retries",
+            "INGESTION__MAX_RETRIES",
+            "INGESTION_MAX_RETRIES",
+            "INGEST__MAX_RETRIES",
+            "INGEST_MAX_RETRIES",
+        )
+        _ingestion_int(
+            "retry_delay_seconds",
+            "INGESTION__RETRY_DELAY_SECONDS",
+            "INGESTION_RETRY_DELAY_SECONDS",
+            "INGEST__RETRY_DELAY_SECONDS",
+            "INGEST_RETRY_DELAY_SECONDS",
+        )
+
+        if ingestion_alias_updates:
+            object.__setattr__(self, "ingestion", self.ingestion.model_copy(update=ingestion_alias_updates))
 
         provider_override = _read_env_value(
             "I4G_LLM__PROVIDER",

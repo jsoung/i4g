@@ -69,3 +69,44 @@ def test_account_list_env_overrides(monkeypatch: object) -> None:
     assert overridden_settings.account_list.header_name == "X-ACCOUNT-LIST-OVERRIDE"
     assert overridden_settings.account_list.require_api_key is False
     assert overridden_settings.account_list.default_formats == ["pdf", "xlsx"]
+
+
+def test_ingestion_sql_toggle_env_overrides(monkeypatch: object) -> None:
+    """Ensure ingestion fan-out toggles respect environment overrides."""
+
+    _clear_env(
+        monkeypatch,
+        "I4G_INGEST__ENABLE_SQL",
+        "I4G_INGEST__ENABLE_FIRESTORE",
+        "I4G_INGEST__ENABLE_VERTEX",
+        "I4G_INGEST__DEFAULT_DATASET",
+        "I4G_INGEST__MAX_RETRIES",
+        "I4G_INGEST__RETRY_DELAY_SECONDS",
+        "I4G_INGESTION__RETRY_DELAY_SECONDS",
+    )
+
+    default_settings = reload_settings(env="dev")
+    assert default_settings.ingestion.enable_sql is True
+    assert default_settings.ingestion.enable_firestore is False
+    assert default_settings.ingestion.enable_vertex is False
+    assert default_settings.ingestion.enable_vector_store is True
+    assert default_settings.ingestion.default_dataset == "unknown"
+    assert default_settings.ingestion.max_retries == 3
+    assert default_settings.ingestion.retry_delay_seconds == 60
+
+    _set_env(monkeypatch, "I4G_INGEST__ENABLE_SQL", "false")
+    _set_env(monkeypatch, "I4G_INGEST__ENABLE_FIRESTORE", "true")
+    _set_env(monkeypatch, "I4G_INGEST__ENABLE_VERTEX", "true")
+    _set_env(monkeypatch, "I4G_INGEST__DEFAULT_DATASET", "account_list")
+    _set_env(monkeypatch, "I4G_INGEST__MAX_RETRIES", "5")
+    _set_env(monkeypatch, "I4G_INGEST__ENABLE_VECTOR", "false")
+    _set_env(monkeypatch, "I4G_INGESTION__RETRY_DELAY_SECONDS", "120")
+
+    overridden = reload_settings(env="dev")
+    assert overridden.ingestion.enable_sql is False
+    assert overridden.ingestion.enable_firestore is True
+    assert overridden.ingestion.enable_vertex is True
+    assert overridden.ingestion.enable_vector_store is False
+    assert overridden.ingestion.default_dataset == "account_list"
+    assert overridden.ingestion.max_retries == 5
+    assert overridden.ingestion.retry_delay_seconds == 120

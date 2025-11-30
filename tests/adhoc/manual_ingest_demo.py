@@ -83,7 +83,8 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     print("🚀 Ingesting sample cases...")
     for s in samples:
-        cid = pipeline.ingest_classified_case(s)
+        result = pipeline.ingest_classified_case(s)
+        cid = result.case_id
         print(f"   → Stored case_id: {cid}")
     print()
 

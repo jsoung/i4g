@@ -63,7 +63,7 @@ class LocalPipelineIntakeJobRunner:
 
         payload, diagnostics = prepare_ingest_payload(intake)
 
-        case_id = pipeline.ingest_classified_case(payload)
+        ingest_result = pipeline.ingest_classified_case(payload)
         result_metadata = {
             "classification": diagnostics["classification"],
             "confidence": diagnostics["confidence"],
@@ -71,7 +71,7 @@ class LocalPipelineIntakeJobRunner:
             "entities_source": diagnostics["entities_source"],
             "runner": self.name,
         }
-        return IntakeJobResult(case_id=case_id, metadata=result_metadata)
+        return IntakeJobResult(case_id=ingest_result.case_id, metadata=result_metadata)
 
 
 __all__ = ["IntakeJobResult", "IntakeJobRunner", "LocalPipelineIntakeJobRunner"]

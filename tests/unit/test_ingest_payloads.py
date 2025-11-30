@@ -22,6 +22,7 @@ def test_prepare_payload_prefers_record_text_and_entities():
     assert payload["entities"] == {"email": [{"value": "test@example.com"}]}
     assert payload["fraud_type"] == "advance_fee"
     assert payload["fraud_confidence"] == 0.9
+    assert payload["metadata"]["classification"] == "should_not_override"
     assert diagnostics["classification"] == "advance_fee"
     assert diagnostics["text_source"] == "record.text"
     assert diagnostics["entities_source"] == "record.entities"
@@ -63,3 +64,63 @@ def test_prepare_payload_handles_missing_fields_gracefully():
     assert payload["entities"] == {}
     assert diagnostics["text_source"] == "none"
     assert diagnostics["entities_source"] == "none"
+
+
+def test_prepare_payload_adds_dataset_and_category_metadata():
+    record = {
+        "category": "romance",
+        "metadata": {
+            "dataset": "meta-dataset",
+            "indicator_ids": [
+                {"indicator_id": "indicator-1"},
+                {"value": "indicator-2"},
+            ],
+            "tags": ["romance", "crypto"],
+            "summary": "visa office",
+            "channel": "chat",
+        },
+    }
+
+    payload, _ = prepare_ingest_payload(record, default_dataset="fallback-dataset")
+
+    assert payload["dataset"] == "meta-dataset"
+    assert payload["categories"] == ["romance"]
+    assert payload["indicator_ids"] == ["indicator-1", "indicator-2"]
+    assert payload["summary"] == "visa office"
+    assert payload["tags"] == ["romance", "crypto"]
+    assert payload["channel"] == "chat"
+
+
+def test_prepare_payload_uses_default_dataset_when_missing():
+    record = {
+        "metadata": {},
+    }
+
+    payload, _ = prepare_ingest_payload(record, default_dataset="retrieval_poc")
+
+    assert payload["dataset"] == "retrieval_poc"
+
+
+def test_prepare_payload_copies_document_fields():
+    record = {
+        "case_id": "case-9",
+        "text": "body",
+        "document_id": "doc-1",
+        "document_title": "title",
+        "source_url": "https://example.com",
+        "tags": ["tag1", "tag2"],
+        "structured_fields": {"payment_method": "crypto"},
+        "metadata": {"risk_level": "high", "language": "en"},
+        "ground_truth_label": "template-1",
+    }
+
+    payload, _ = prepare_ingest_payload(record)
+
+    assert payload["document_id"] == "doc-1"
+    assert payload["document_title"] == "title"
+    assert payload["source_url"] == "https://example.com"
+    assert payload["tags"] == ["tag1", "tag2"]
+    assert payload["structured_fields"] == {"payment_method": "crypto"}
+    assert payload["risk_level"] == "high"
+    assert payload["language"] == "en"
+    assert payload["ground_truth_label"] == "template-1"

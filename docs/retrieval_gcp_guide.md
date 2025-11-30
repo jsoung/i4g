@@ -22,6 +22,7 @@ python scripts/ingest_vertex_search.py \
     --project i4g-dev \
     --location global \
     --data-store-id retrieval-poc \
+    --dataset retrieval_poc \
     --jsonl data/retrieval_poc/cases.jsonl
 ```
 
@@ -30,6 +31,8 @@ Key flags:
 - `--dry-run` — parse the first record and log the protobuf payload without calling Discovery.
 - `--batch-size` — tune the number of documents sent per import batch (default 50).
 - `--reconcile-mode` — choose between incremental and full replacement (`INCREMENTAL` by default).
+- `--dataset` — optional identifier that is injected into each document when the JSONL record omits a
+    `dataset` field (useful for synthetic bundles that predate the dataset metadata).
 
 What changed recently:
 
@@ -44,6 +47,26 @@ INFO Ingestion complete: 200 succeeded, 0 failed, total input 200
 ```
 
 If `error_samples` are reported, rerun with `--verbose` and check the payload for malformed fields.
+
+### Document Contract Updates (new)
+
+The downstream dual-write pipeline and the Vertex import script now expect a few additional metadata
+fields so Discovery filters can target specific bundles and indicator groups:
+
+- `dataset` — identifier describing the source bundle (e.g., `retrieval_poc`). The ingestion job
+    injects this automatically via `prepare_ingest_payload(..., default_dataset=...)`, so CLI runs only
+    need to supply the dataset name via `I4G_INGEST__DATASET_NAME` or the JSONL records themselves.
+- `categories` — normalized list of scam categories/tags. The helper inspects `categories`,
+    `category`, and `tags` fields to ensure Discovery receives a consistent array for filtering.
+- `indicator_ids` — stable IDs for any structured indicators the case generated. JSONL records can
+    provide explicit IDs; otherwise, metadata dictionaries with `indicator_id`, `id`, or `value`
+    entries are promoted into a flat list.
+
+When you run `scripts/ingest_vertex_search.py`, the `structData` payload now includes these keys for
+every document, enabling precise filters such as `dataset: ANY("retrieval_poc") AND indicator_ids:
+ANY("wallet_verification")`. The ingestion worker (`i4g-ingest-job`) reuses the same builder so
+real-time dual-write runs push the enriched documents to Vertex without invoking the standalone
+script.
 
 ---
 

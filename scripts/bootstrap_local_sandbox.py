@@ -160,6 +160,19 @@ def seed_review_cases() -> None:
         ]
     )
 
+def apply_migrations() -> None:
+    """Apply Alembic migrations before seeding structured data."""
+
+    run(
+        [
+            sys.executable,
+            "-m",
+            "alembic",
+            "upgrade",
+            "head",
+        ]
+    )
+
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Bootstrap local sandbox data")
@@ -176,6 +189,8 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.reset:
         reset_artifacts(skip_ocr=args.skip_ocr, skip_vector=args.skip_vector)
+
+    apply_migrations()
 
     if not BUNDLES_DIR.exists() or not any(BUNDLES_DIR.glob("*.jsonl")):
         build_bundles()

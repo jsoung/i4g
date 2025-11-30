@@ -1,7 +1,7 @@
 # i4g System Architecture
 
 > **Document Version**: 1.1
-> **Last Updated**: November 29, 2025
+> **Last Updated**: November 30, 2025
 > **Audience**: Engineers, technical stakeholders, university partners
 
 ---
@@ -49,11 +49,21 @@ You now run two first-party consoles. The **Next.js portal** on Cloud Run serves
   │                     │
 ┌─────▼─────────────────────▼──────────────────────────────┐
 │                  Data Layer (GCP)                        │
-│  ┌──────────────┐  ┌────────────┐  ┌───────────┐         │
-│  │  Firestore   │  │   Cloud    │  │  Secret   │         │
-│  │   (NoSQL)    │  │  Storage   │  │  Manager  │         │
-│  └──────┬───────┘  └────────────┘  └───────────┘         │
+│  ┌──────────────┐  ┌────────────┐  ┌───────────┐  ┌────────────┐
+│  │  Firestore   │  │   Cloud    │  │  Secret   │  │ Vertex AI  │
+│  │   (NoSQL)    │  │  Storage   │  │  Manager  │  │  Search    │
+│  └──────┬───────┘  └────────────┘  └───────────┘  └────────────┘
 └─────────┼────────────────────────────────────────────────┘
+          │
+          │  Cloud SQL (ingestion + entity tables)
+          │
+┌─────────▼────────────────────────────────────────────────┐
+│                 Dual Extraction Indexes                  │
+│  ┌──────────────┐    ┌───────────────┐                   │
+│  │ Cloud SQL /  │    │ Vertex AI     │                   │
+│  │ AlloyDB      │    │ Search Corpus │                   │
+│  └──────────────┘    └───────────────┘                   │
+└─────────┬────────────────────────────────────────────────┘
           │
           │ HTTP (localhost:11434)
           │
@@ -157,6 +167,30 @@ Note: The `POST /api/cases` endpoint above is listed as a planned user-facing in
 - Deduplication + metadata summary stored alongside artifacts, surfaced in the Streamlit dashboard via a summary/status table.
 - Manual smoke harness (`tests/adhoc/account_list_export_smoke.py`) to verify exporter plumbing without hitting the LLM stack.
 - FastAPI also exposes `/accounts/runs`, enabling the analyst console’s new `/accounts` page to trigger manual runs, refresh audit history via server-side API routes, and expose artifact links / warnings inline without leaking service credentials to the browser.
+
+---
+
+### 3b. **Dual Extraction Ingestion Pipeline**
+
+**Responsibilities**:
+- Normalize Discovery bundles into structured case/entity payloads (`ingest_payloads.prepare_ingest_payload`).
+- Execute `i4g.worker.jobs.ingest`, which orchestrates entity extraction, SQL writes (`SqlWriter`), Firestore fan-out (`FirestoreWriter`), and Vertex AI Search document imports (`VertexWriter`).
+- Persist ingestion run metrics plus retry payloads so operators can audit progress (`IngestionRunTracker`) and replay failed Firestore/Vertex batches via `i4g.worker.jobs.ingest_retry`.
+
+**Technology Stack**:
+- Python workers launched locally or via Cloud Run jobs using `conda run -n i4g python -m i4g.worker.jobs.{ingest,ingest_retry}`.
+- Cloud SQL / SQLite for `cases`, `entities`, and `ingestion_runs`; Firestore for analyst-facing case documents; Vertex AI Search (`retrieval-poc`) for semantic retrieval.
+- Settings-driven toggles (`I4G_STORAGE__FIRESTORE_PROJECT`, `I4G_VERTEX_SEARCH_*`, `I4G_INGEST_RETRY__BATCH_LIMIT`) resolved by `i4g.settings.get_settings()` so environment overrides stay declarative.
+
+**Key Features**:
+- Run tracking (`scripts/verify_ingestion_run.py`) records case/entity counts plus backend-specific write totals, enabling reproducible smokes across local/dev/prod.
+- `_maybe_enqueue_retry` serializes the SQL result + payload + error, allowing the retry worker to rehydrate the exact Firestore/Vertex writes without repeating entity extraction.
+- Retry worker operates in dry-run or live mode, reporting successes/failures per backend; batches can be tuned to stay under rate limits.
+
+**Operational Status (Nov 30, 2025)**:
+- Dev ingestion run `01993af5-09ab-4ecf-b0c8-cd86702b8edd` processed 200 `retrieval_poc_dev` cases with SQL/Firestore reaching 200 writes each; Vertex imported 155 documents before hitting the "Document batch requests/min" quota (HTTP 429 ResourceExhausted).
+- `python -m i4g.worker.jobs.ingest_retry` (batch size 10) drained the 45 queued Vertex payloads once quota recovered, so the corpus is eventually consistent even when the live run throttles.
+- Until the Vertex quota is raised, operators should stagger ingestion batches (e.g., lower ingestion job batch sizes) or schedule retry workers immediately after large ingests to finish the semantic index.
 
 ---
 

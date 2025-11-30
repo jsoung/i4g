@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 def _as_dict(value: Any) -> Dict[str, Any]:
@@ -14,6 +14,65 @@ def _coerce_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):  # pragma: no cover - defensive cast for unexpected types
         return default
+
+
+def _normalise_string_list(value: Any) -> List[str]:
+    result: List[str] = []
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped:
+            result.append(stripped)
+        return result
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            if isinstance(item, str):
+                stripped = item.strip()
+                if stripped:
+                    result.append(stripped)
+    return result
+
+
+def _normalise_indicator_ids(value: Any) -> List[str]:
+    result: List[str] = []
+
+    def _append(candidate: str | None) -> None:
+        if candidate:
+            stripped = candidate.strip()
+            if stripped:
+                result.append(stripped)
+
+    if isinstance(value, str):
+        _append(value)
+        return result
+
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            if isinstance(item, str):
+                _append(item)
+            elif isinstance(item, dict):
+                _append(item.get("indicator_id") or item.get("id") or item.get("value") or item.get("number"))
+    elif isinstance(value, dict):
+        _append(value.get("indicator_id") or value.get("id") or value.get("value") or value.get("number"))
+
+    return result
+
+
+def _extract_summary(record: Dict[str, Any], metadata: Dict[str, Any]) -> str | None:
+    summary = record.get("summary")
+    if isinstance(summary, str) and summary.strip():
+        return summary.strip()
+    meta_summary = metadata.get("summary")
+    if isinstance(meta_summary, str) and meta_summary.strip():
+        return meta_summary.strip()
+    return None
+
+
+def _extract_tags(record: Dict[str, Any], metadata: Dict[str, Any]) -> List[str]:
+    for candidate in (record.get("tags"), metadata.get("tags")):
+        tags = _normalise_string_list(candidate)
+        if tags:
+            return tags
+    return []
 
 
 def _extract_text(record: Dict[str, Any], metadata: Dict[str, Any]) -> Tuple[str, str]:
@@ -47,7 +106,33 @@ def _extract_entities(record: Dict[str, Any], metadata: Dict[str, Any]) -> Tuple
     return {}, "none"
 
 
-def prepare_ingest_payload(record: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def _extract_categories(record: Dict[str, Any], metadata: Dict[str, Any]) -> List[str]:
+    for candidate in (record.get("categories"), record.get("category"), metadata.get("categories")):
+        categories = _normalise_string_list(candidate)
+        if categories:
+            return categories
+
+    tags = _normalise_string_list(record.get("tags") or metadata.get("tags"))
+    return tags
+
+
+def _extract_indicator_ids(record: Dict[str, Any], metadata: Dict[str, Any]) -> List[str]:
+    for candidate in (
+        record.get("indicator_ids"),
+        metadata.get("indicator_ids"),
+        metadata.get("indicators"),
+    ):
+        indicator_ids = _normalise_indicator_ids(candidate)
+        if indicator_ids:
+            return indicator_ids
+    return []
+
+
+def prepare_ingest_payload(
+    record: Dict[str, Any],
+    *,
+    default_dataset: str | None = None,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Build a classification payload compatible with ``IngestPipeline``.
 
     Returns a tuple of (payload, diagnostics). The diagnostics field surfaces the
@@ -85,6 +170,22 @@ def prepare_ingest_payload(record: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict
     if explanation is None:
         explanation = metadata.get("explanation")
 
+    dataset = record.get("dataset") or metadata.get("dataset") or default_dataset
+    categories = _extract_categories(record, metadata)
+    indicator_ids = _extract_indicator_ids(record, metadata)
+    summary = _extract_summary(record, metadata)
+    tags = _extract_tags(record, metadata)
+    structured_fields = record.get("structured_fields") or metadata.get("structured_fields")
+    channel = record.get("channel") or metadata.get("channel")
+    timestamp = record.get("timestamp") or metadata.get("timestamp")
+    risk_level = record.get("risk_level") or metadata.get("risk_level")
+    language = record.get("language") or metadata.get("language")
+    label = record.get("ground_truth_label") or metadata.get("ground_truth_label")
+    source_type = record.get("source_type") or metadata.get("source_type")
+    document_id = record.get("document_id") or metadata.get("document_id")
+    document_title = record.get("document_title") or metadata.get("document_title")
+    source_url = record.get("source_url") or metadata.get("source_url")
+
     payload: Dict[str, Any] = {
         "case_id": record.get("case_id") or record.get("intake_id") or record.get("id"),
         "text": text,
@@ -94,6 +195,40 @@ def prepare_ingest_payload(record: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict
         "reasons": reasons,
         "explanation": explanation,
     }
+
+    if dataset:
+        payload["dataset"] = dataset
+    if categories:
+        payload["categories"] = categories
+        payload.setdefault("category", categories[0])
+    if indicator_ids:
+        payload["indicator_ids"] = indicator_ids
+    if summary:
+        payload["summary"] = summary
+    if channel:
+        payload["channel"] = channel
+    if timestamp:
+        payload["timestamp"] = timestamp
+    if tags:
+        payload["tags"] = tags
+    if structured_fields:
+        payload["structured_fields"] = structured_fields
+    if metadata:
+        payload["metadata"] = metadata
+    if risk_level:
+        payload["risk_level"] = risk_level
+    if language:
+        payload["language"] = language
+    if label:
+        payload["ground_truth_label"] = label
+    if source_type:
+        payload["source_type"] = source_type
+    if document_id:
+        payload["document_id"] = document_id
+    if document_title:
+        payload["document_title"] = document_title
+    if source_url:
+        payload["source_url"] = source_url
 
     diagnostics = {
         "classification": classification,

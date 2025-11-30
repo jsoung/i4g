@@ -9,12 +9,19 @@ implemented.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
+from i4g.services.firestore_writer import FirestoreWriter
+from i4g.services.vertex_writer import VertexDocumentWriter
 from i4g.settings import get_settings
 from i4g.storage import EvidenceStorage
+from i4g.store.ingestion_retry_store import IngestionRetryStore
+from i4g.store.ingestion_run_tracker import IngestionRunTracker
 from i4g.store.intake_store import IntakeStore
 from i4g.store.review_store import ReviewStore
+from i4g.store.sql import session_factory as build_sql_session_factory
+from i4g.store.sql_writer import SqlWriter
 from i4g.store.structured import StructuredStore
 from i4g.store.vector import VectorStore
 
@@ -135,3 +142,77 @@ def build_evidence_storage(*, local_dir: str | Path | None = None) -> EvidenceSt
 
     path = Path(local_dir) if isinstance(local_dir, str) else local_dir
     return EvidenceStorage(local_dir=path)
+
+
+def build_sql_writer(*, settings: "Settings" | None = None) -> SqlWriter:
+    """Create a SqlWriter bound to the configured SQLAlchemy engine."""
+
+    session_factory = build_sql_session_factory(settings=settings)
+    return SqlWriter(session_factory=session_factory)
+
+
+def build_ingestion_run_tracker(*, settings: "Settings" | None = None) -> IngestionRunTracker:
+    """Return a tracker for ingestion run metrics."""
+
+    session_factory = build_sql_session_factory(settings=settings)
+    return IngestionRunTracker(session_factory=session_factory)
+
+
+def build_ingestion_retry_store(*, settings: "Settings" | None = None) -> IngestionRetryStore:
+    """Return a store for managing ingestion retry queue entries."""
+
+    session_factory = build_sql_session_factory(settings=settings)
+    return IngestionRetryStore(session_factory=session_factory)
+
+
+def build_vertex_writer(*, settings: "Settings" | None = None) -> VertexDocumentWriter:
+    """Instantiate a Vertex document writer honoring current settings/env."""
+
+    resolved = settings or get_settings()
+    project = os.getenv("I4G_VERTEX_SEARCH_PROJECT") or resolved.vector.vertex_ai_project
+    location = os.getenv("I4G_VERTEX_SEARCH_LOCATION") or resolved.vector.vertex_ai_location or "global"
+    data_store = os.getenv("I4G_VERTEX_SEARCH_DATA_STORE") or resolved.vector.vertex_ai_data_store
+    branch = os.getenv("I4G_VERTEX_SEARCH_BRANCH") or resolved.vector.vertex_ai_branch or "default_branch"
+
+    if not project or not data_store:
+        raise RuntimeError(
+            "Vertex writer requires project and data store. Set I4G_VERTEX_SEARCH_* env vars or vector settings.",
+        )
+
+    return VertexDocumentWriter(
+        project=project,
+        location=location,
+        data_store_id=data_store,
+        branch=branch,
+        default_dataset=resolved.ingestion.default_dataset,
+        timeout_seconds=resolved.ingestion.fanout_timeout_seconds,
+    )
+
+
+def build_firestore_writer(*, settings: "Settings" | None = None) -> FirestoreWriter:
+    """Instantiate a Firestore writer aligned with storage settings."""
+
+    resolved = settings or get_settings()
+    project = resolved.storage.firestore_project
+    collection = resolved.storage.firestore_collection
+
+    if not project:
+        raise RuntimeError(
+            "Firestore writer requires storage.firestore_project; set I4G_STORAGE__FIRESTORE__PROJECT.",
+        )
+
+    return FirestoreWriter(project=project, collection=collection)
+
+
+__all__ = [
+    "build_structured_store",
+    "build_review_store",
+    "build_vector_store",
+    "build_intake_store",
+    "build_evidence_storage",
+    "build_sql_writer",
+    "build_ingestion_run_tracker",
+    "build_ingestion_retry_store",
+    "build_vertex_writer",
+    "build_firestore_writer",
+]

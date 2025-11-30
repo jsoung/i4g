@@ -50,6 +50,7 @@ dependencies = [
     "streamlit>=1.51.0,<2",
     "tqdm",
     "trio",
+    "alembic>=1.13,<2",
 ]
 
 [project.optional-dependencies]
@@ -68,6 +69,7 @@ i4g-ingest-job = "i4g.worker.jobs.ingest:main"
 i4g-report-job = "i4g.worker.jobs.report:main"
 i4g-intake-job = "i4g.worker.jobs.intake:main"
 i4g-account-job = "i4g.worker.jobs.account_list:main"
+i4g-ingest-retry-job = "i4g.worker.jobs.ingest_retry:main"
 
 [tool.hatch.version]
 path = "VERSION.txt"
