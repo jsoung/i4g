@@ -6,6 +6,18 @@ The scenarios are split into two groups:
 
 - **Local smoke tests** run entirely on your workstation using the embedded SQLite stores.
 - **GCP smoke tests** hit the deployed FastAPI gateway and Cloud Run jobs in the dev project (`i4g-dev`).
+- **UI smoke tests** boot the Next.js analyst console and verify core filters render (see below).
+
+### Analyst console (Next.js) smoke
+
+Run these from the `ui/` repo root to validate the hybrid-search experience before shipping UI changes:
+
+```bash
+pnpm --filter web exec playwright install --with-deps   # first run per machine
+pnpm --filter web test:smoke                            # boots next dev + Playwright
+```
+
+The suite opens `/search`, confirms the query box, filter sidebar, and primary actions render, and fails fast if the route or API contract regresses. Extend `apps/web/tests/smoke/` with additional assertions when you add new analyst workflows.
 
 ## Local Smoke Tests
 

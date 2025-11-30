@@ -371,6 +371,17 @@ Generated `.docx` files are written to `data/reports/` whether you trigger them 
 
 For a consolidated checklist of ingestion and intake smoke tests, see [`docs/smoke_test.md`](./smoke_test.md).
 
+## Analyst Console (Next.js UI)
+
+The analyst console lives in the sibling `ui/` workspace (PNPM + Turborepo). Install dependencies at the repo root with `pnpm install`, then run `pnpm --filter web dev` to launch the Next.js app. The console talks to the proto API directly; set `I4G_API_URL`/`I4G_API_KEY` (or rely on the mock client) before starting the server.
+
+### UI test strategy
+
+1. **Unit tests (Vitest + Testing Library).** Run `pnpm --filter web test` to exercise hooks, utilities, and React components under jsdom. Place new specs alongside the module under `apps/web/src/` or in `apps/web/tests/unit/`. Keep coverage for entity-filter builders, API payload helpers, and any non-trivial state transitions. The UI git hook enforces this by default; export `I4G_UI_PRECOMMIT_QUICK=1` only when you need a temporary lint-only pass, and make sure to rerun the full suite before pushing or opening a PR.
+2. **Smoke tests (Playwright).** Run `pnpm --filter web test:smoke` for a lightweight end-to-end check that boots `next dev` and opens `/search`. Extend `apps/web/tests/smoke/` whenever you add a new route or major workflow so deploys retain at least one canary scenario. Install browsers once per machine with `pnpm --filter web exec playwright install --with-deps`. Treat Playwright as mandatory before releases, after changing routing/server-actions, or when saved-search/history/filters touch backend contracts.
+
+Both commands respect the same env vars as Next.js, so you can point the suite at `i4g-dev` by exporting `I4G_API_URL`/`I4G_API_KEY` beforehand. Prefer running the unit suite locally before every commit and the smoke tests before cutting a release or merging sizable UI work.
+
 > ⚠️ Run commits from an activated `i4g` environment (or set `CONDA_PREFIX`/`VIRTUAL_ENV`) so the hook uses the correct Python when executing unit tests.
 > Formatter line length is set to 120 characters to match team editor settings.
 
