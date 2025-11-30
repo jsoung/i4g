@@ -450,6 +450,22 @@ class ObservabilitySettings(BaseSettings):
         default=0.0,
         validation_alias=AliasChoices("OBS_TRACE_SAMPLE_RATE", "OBSERVABILITY__TRACE_SAMPLE_RATE"),
     )
+    statsd_host: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OBS_STATSD_HOST", "OBSERVABILITY__STATSD_HOST"),
+    )
+    statsd_port: int = Field(
+        default=8125,
+        validation_alias=AliasChoices("OBS_STATSD_PORT", "OBSERVABILITY__STATSD_PORT"),
+    )
+    statsd_prefix: str = Field(
+        default="i4g",
+        validation_alias=AliasChoices("OBS_STATSD_PREFIX", "OBSERVABILITY__STATSD_PREFIX"),
+    )
+    service_name: str = Field(
+        default="i4g-backend",
+        validation_alias=AliasChoices("OBS_SERVICE_NAME", "OBSERVABILITY__SERVICE_NAME"),
+    )
 
 
 class AccountListSettings(BaseSettings):

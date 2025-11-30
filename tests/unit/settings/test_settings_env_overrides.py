@@ -152,3 +152,40 @@ def test_settings_file_override(tmp_path, monkeypatch: object) -> None:
     _set_env(monkeypatch, "I4G_INGEST__DEFAULT_DATASET", "env_dataset")
     env_override = reload_settings()
     assert env_override.ingestion.default_dataset == "env_dataset"
+
+
+def test_observability_statsd_env_overrides(monkeypatch: object) -> None:
+    """Verify StatsD-related observability settings honor env overrides."""
+
+    _clear_env(
+        monkeypatch,
+        "I4G_OBSERVABILITY__STATSD_HOST",
+        "OBSERVABILITY__STATSD_HOST",
+        "OBS_STATSD_HOST",
+        "I4G_OBSERVABILITY__STATSD_PORT",
+        "OBS_STATSD_PORT",
+        "OBSERVABILITY__STATSD_PORT",
+        "I4G_OBSERVABILITY__STATSD_PREFIX",
+        "OBS_STATSD_PREFIX",
+        "OBSERVABILITY__STATSD_PREFIX",
+        "I4G_OBSERVABILITY__SERVICE_NAME",
+        "OBS_SERVICE_NAME",
+        "OBSERVABILITY__SERVICE_NAME",
+    )
+
+    default_settings = reload_settings(env="dev")
+    assert default_settings.observability.statsd_host is None
+    assert default_settings.observability.statsd_port == 8125
+    assert default_settings.observability.statsd_prefix == "i4g"
+    assert default_settings.observability.service_name == "i4g-backend"
+
+    _set_env(monkeypatch, "I4G_OBSERVABILITY__STATSD_HOST", "127.0.0.1")
+    _set_env(monkeypatch, "I4G_OBSERVABILITY__STATSD_PORT", "18125")
+    _set_env(monkeypatch, "I4G_OBSERVABILITY__STATSD_PREFIX", "proto")
+    _set_env(monkeypatch, "I4G_OBSERVABILITY__SERVICE_NAME", "hybrid-search")
+
+    overridden = reload_settings(env="dev")
+    assert overridden.observability.statsd_host == "127.0.0.1"
+    assert overridden.observability.statsd_port == 18125
+    assert overridden.observability.statsd_prefix == "proto"
+    assert overridden.observability.service_name == "hybrid-search"

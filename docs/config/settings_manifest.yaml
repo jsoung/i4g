@@ -1,4 +1,4 @@
-generated_at: '2025-11-30T23:06:26.877596+00:00'
+generated_at: '2025-11-30T23:21:38.663100+00:00'
 source: src/i4g/settings/config.py
 env_prefix: I4G_
 fields:
@@ -358,6 +358,42 @@ fields:
   - I4G_OBSERVABILITY__OTLP_ENDPOINT
   - OBS_OTLP_ENDPOINT
   - OBSERVABILITY__OTLP_ENDPOINT
+  description: Logging, tracing, and metrics configuration.
+- path: observability.service_name
+  section: observability
+  type: str
+  default: i4g-backend
+  env_vars:
+  - I4G_OBSERVABILITY__SERVICE_NAME
+  - OBS_SERVICE_NAME
+  - OBSERVABILITY__SERVICE_NAME
+  description: Logging, tracing, and metrics configuration.
+- path: observability.statsd_host
+  section: observability
+  type: str | NoneType
+  default: null
+  env_vars:
+  - I4G_OBSERVABILITY__STATSD_HOST
+  - OBS_STATSD_HOST
+  - OBSERVABILITY__STATSD_HOST
+  description: Logging, tracing, and metrics configuration.
+- path: observability.statsd_port
+  section: observability
+  type: int
+  default: 8125
+  env_vars:
+  - I4G_OBSERVABILITY__STATSD_PORT
+  - OBS_STATSD_PORT
+  - OBSERVABILITY__STATSD_PORT
+  description: Logging, tracing, and metrics configuration.
+- path: observability.statsd_prefix
+  section: observability
+  type: str
+  default: i4g
+  env_vars:
+  - I4G_OBSERVABILITY__STATSD_PREFIX
+  - OBS_STATSD_PREFIX
+  - OBSERVABILITY__STATSD_PREFIX
   description: Logging, tracing, and metrics configuration.
 - path: observability.structured_logging
   section: observability

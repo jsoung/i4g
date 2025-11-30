@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Sequence
 
+from i4g.observability import Observability, get_observability
 from i4g.settings import Settings, get_settings
 from i4g.store.retriever import HybridRetriever
 
@@ -97,9 +98,11 @@ class HybridSearchService:
         *,
         retriever: HybridRetriever | None = None,
         settings: Settings | None = None,
+        observability: Observability | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self.retriever = retriever or HybridRetriever()
+        self.observability = observability or get_observability(component="hybrid_search", settings=self.settings)
         self._schema_cache: tuple[float, SearchSchema] | None = None
 
     # ------------------------------------------------------------------
@@ -113,7 +116,10 @@ class HybridSearchService:
         vector_top_k = query.vector_limit or limit
         structured_top_k = query.structured_limit or limit
         filters = self._build_filter_items(query)
+        metric_tags = self._metric_tags(query)
+        self.observability.increment("hybrid_search.query.total", tags=metric_tags)
 
+        start_time = time.perf_counter()
         raw = self.retriever.query(
             text=query.text,
             filters=filters or None,
@@ -121,6 +127,12 @@ class HybridSearchService:
             structured_top_k=structured_top_k,
             offset=query.offset,
             limit=limit,
+        )
+        duration_ms = (time.perf_counter() - start_time) * 1000.0
+        self.observability.record_timing(
+            "hybrid_search.query.duration_ms",
+            duration_ms,
+            tags=metric_tags,
         )
 
         raw_results = raw["results"]
@@ -140,6 +152,33 @@ class HybridSearchService:
             query=query,
         )
 
+        vector_hits = int(raw.get("vector_hits", 0) or 0)
+        structured_hits = int(raw.get("structured_hits", 0) or 0)
+        self.observability.increment(
+            "hybrid_search.results.vector_hits",
+            value=vector_hits,
+            tags=metric_tags,
+        )
+        self.observability.increment(
+            "hybrid_search.results.structured_hits",
+            value=structured_hits,
+            tags=metric_tags,
+        )
+        self.observability.increment(
+            "hybrid_search.results.returned",
+            value=len(items),
+            tags=metric_tags,
+        )
+        self._emit_query_event(
+            query=query,
+            diagnostics=diagnostics,
+            vector_hits=vector_hits,
+            structured_hits=structured_hits,
+            total=total_before_filters,
+            returned=len(items),
+            duration_ms=duration_ms,
+        )
+
         return {
             "results": [item.to_dict() for item in items],
             "count": len(items),
@@ -156,8 +195,10 @@ class HybridSearchService:
 
         cached = self._schema_from_cache()
         if cached:
+            self.observability.increment("hybrid_search.schema.cache_hit")
             return cached.to_dict()
 
+        self.observability.increment("hybrid_search.schema.cache_miss")
         schema = SearchSchema(
             indicator_types=list(self.settings.search.indicator_types),
             datasets=list(self.settings.search.dataset_presets),
@@ -403,5 +444,57 @@ class HybridSearchService:
                 "dropped_by_time_range": dropped_by_time,
                 "query_offset": query.offset,
                 "query_limit": limit,
+            },
+        }
+
+    def _metric_tags(self, query: HybridSearchQuery) -> Dict[str, str]:
+        return {
+            "text": "true" if (query.text or "").strip() else "false",
+            "entity_filters": "true" if query.entities else "false",
+            "classification_filters": str(len(query.classifications)),
+            "dataset_filters": str(len(query.datasets)),
+            "case_filters": str(len(query.case_ids)),
+            "time_filter": "true" if query.time_range else "false",
+        }
+
+    def _emit_query_event(
+        self,
+        *,
+        query: HybridSearchQuery,
+        diagnostics: Dict[str, Any],
+        vector_hits: int,
+        structured_hits: int,
+        total: int,
+        returned: int,
+        duration_ms: float,
+    ) -> None:
+        payload = {
+            "duration_ms": round(duration_ms, 3),
+            "filters": self._summarize_query(query),
+            "counts": {
+                "vector_hits": vector_hits,
+                "structured_hits": structured_hits,
+                "total": total,
+                "returned": returned,
+            },
+            "score_policy": diagnostics.get("score_policy"),
+        }
+        self.observability.emit_event("hybrid_search.query", **payload)
+
+    @staticmethod
+    def _summarize_query(query: HybridSearchQuery) -> Dict[str, Any]:
+        return {
+            "has_text": bool((query.text or "").strip()),
+            "entity_filters": len(query.entities),
+            "classification_filters": len(query.classifications),
+            "dataset_filters": len(query.datasets),
+            "loss_filters": len(query.loss_buckets),
+            "case_filters": len(query.case_ids),
+            "time_range": bool(query.time_range),
+            "limits": {
+                "limit": query.limit,
+                "vector_limit": query.vector_limit,
+                "structured_limit": query.structured_limit,
+                "offset": query.offset,
             },
         }

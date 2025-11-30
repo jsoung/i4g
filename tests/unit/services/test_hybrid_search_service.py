@@ -22,6 +22,24 @@ class _StubRetriever:
         return self.payload
 
 
+class _SpyObservability:
+    """Captures observability interactions for assertions."""
+
+    def __init__(self) -> None:
+        self.events: list[tuple[str, dict[str, object]]] = []
+        self.counters: list[tuple[str, float, dict[str, str] | None]] = []
+        self.timings: list[tuple[str, float, dict[str, str] | None]] = []
+
+    def emit_event(self, event: str, **fields: object) -> None:
+        self.events.append((event, dict(fields)))
+
+    def increment(self, metric: str, *, value: float = 1.0, tags: dict[str, str] | None = None) -> None:
+        self.counters.append((metric, value, tags))
+
+    def record_timing(self, metric: str, value_ms: float, *, tags: dict[str, str] | None = None) -> None:
+        self.timings.append((metric, value_ms, tags))
+
+
 @pytest.fixture(name="retriever_payload")
 def _retriever_payload() -> dict[str, object]:
     return {
@@ -113,6 +131,20 @@ def test_entity_filters_pass_through_to_retriever(retriever_payload):
             },
         ),
     ]
+
+
+def test_search_emits_observability_signals(retriever_payload):
+    retriever = _StubRetriever(retriever_payload)
+    spy = _SpyObservability()
+    query = HybridSearchQuery(text="romance scam", limit=5)
+    service = HybridSearchService(retriever=retriever, observability=spy)
+
+    service.search(query)
+
+    counter_names = {entry[0] for entry in spy.counters}
+    assert "hybrid_search.query.total" in counter_names
+    assert any(metric == "hybrid_search.query.duration_ms" for metric, _, _ in spy.timings)
+    assert spy.events and spy.events[-1][0] == "hybrid_search.query"
 
 
 def test_schema_reflects_search_settings_and_caches():
