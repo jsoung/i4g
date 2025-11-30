@@ -11,12 +11,14 @@ Endpoints:
 """
 
 import uuid
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from i4g.api.auth import require_token
+from i4g.services.hybrid_search import HybridSearchQuery, HybridSearchService, QueryEntityFilter, QueryTimeRange
 from i4g.store.retriever import HybridRetriever
 from i4g.store.review_store import ReviewStore
 
@@ -75,6 +77,30 @@ class SavedSearchImportRequest(BaseModel):
     tags: Optional[List[str]] = None
 
 
+class TimeRangeModel(BaseModel):
+    start: datetime
+    end: datetime
+
+
+class EntityFilterModel(BaseModel):
+    type: str
+    value: str
+    match_mode: Literal["exact", "prefix", "contains"] = "exact"
+
+
+class HybridSearchRequest(BaseModel):
+    text: Optional[str] = None
+    classifications: List[str] = Field(default_factory=list)
+    datasets: List[str] = Field(default_factory=list)
+    case_ids: List[str] = Field(default_factory=list)
+    entities: List[EntityFilterModel] = Field(default_factory=list)
+    time_range: Optional[TimeRangeModel] = None
+    limit: Optional[int] = Field(default=None, ge=1, le=100)
+    vector_limit: Optional[int] = Field(default=None, ge=1, le=100)
+    structured_limit: Optional[int] = Field(default=None, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+
+
 class BulkTagUpdateRequest(BaseModel):
     search_ids: List[str]
     add: Optional[List[str]] = None
@@ -91,6 +117,12 @@ def get_store() -> ReviewStore:
 def get_retriever() -> HybridRetriever:
     """Return a HybridRetriever instance."""
     return HybridRetriever()
+
+
+def get_hybrid_search_service() -> HybridSearchService:
+    """Return a HybridSearchService instance for dependency injection."""
+
+    return HybridSearchService()
 
 
 # -----------------------
@@ -137,25 +169,23 @@ def search_cases(
     structured_limit: Optional[int] = Query(None, ge=1, le=50),
     offset: int = Query(0, ge=0),
     page_size: Optional[int] = Query(None, ge=1, le=100, description="Maximum number of merged results to return"),
-    retriever: HybridRetriever = Depends(get_retriever),
+    search_service: HybridSearchService = Depends(get_hybrid_search_service),
     user=Depends(require_token),
     store: ReviewStore = Depends(get_store),
 ):
     """Combine semantic and structured search for analyst triage."""
-    filters: Dict[str, Any] = {}
-    if classification:
-        filters["classification"] = classification
-    if case_id:
-        filters["case_id"] = case_id
 
-    query_result = retriever.query(
+    payload = HybridSearchRequest(
         text=text,
-        filters=filters or None,
-        vector_top_k=vector_limit or limit,
-        structured_top_k=structured_limit or limit,
+        classifications=[classification] if classification else [],
+        case_ids=[case_id] if case_id else [],
+        limit=page_size or limit,
+        vector_limit=vector_limit,
+        structured_limit=structured_limit,
         offset=offset,
-        limit=page_size,
     )
+    query = _build_hybrid_query_from_request(payload)
+    query_result = search_service.search(query)
     results = query_result["results"]
     search_id = f"search:{uuid.uuid4()}"
     store.log_action(
@@ -174,6 +204,8 @@ def search_cases(
             "page_size": page_size,
             "results_count": len(results),
             "total": query_result["total"],
+            "vector_hits": query_result.get("vector_hits"),
+            "structured_hits": query_result.get("structured_hits"),
         },
     )
 
@@ -183,8 +215,8 @@ def search_cases(
         "offset": offset,
         "limit": page_size or len(results),
         "total": query_result["total"],
-        "vector_hits": query_result["vector_hits"],
-        "structured_hits": query_result["structured_hits"],
+        "vector_hits": query_result.get("vector_hits"),
+        "structured_hits": query_result.get("structured_hits"),
         "search_id": search_id,
     }
 
@@ -198,6 +230,40 @@ def search_history(
     """Return recent search audit entries."""
     actions = store.get_recent_actions(action="search", limit=limit)
     return {"events": actions, "count": len(actions)}
+
+
+@router.post("/search/query", summary="Execute advanced hybrid search with structured filters")
+def search_cases_advanced(
+    payload: HybridSearchRequest,
+    search_service: HybridSearchService = Depends(get_hybrid_search_service),
+    user=Depends(require_token),
+    store: ReviewStore = Depends(get_store),
+):
+    query = _build_hybrid_query_from_request(payload)
+    query_result = search_service.search(query)
+    search_id = f"search:{uuid.uuid4()}"
+    store.log_action(
+        review_id="search",
+        actor=user["username"],
+        action="search",
+        payload={
+            "search_id": search_id,
+            "request": payload.model_dump(),
+            "results_count": query_result["count"],
+            "total": query_result["total"],
+            "vector_hits": query_result.get("vector_hits"),
+            "structured_hits": query_result.get("structured_hits"),
+        },
+    )
+    return {**query_result, "search_id": search_id}
+
+
+@router.get("/search/schema", summary="Describe hybrid search filters for clients")
+def get_search_schema(
+    search_service: HybridSearchService = Depends(get_hybrid_search_service),
+    user=Depends(require_token),
+):
+    return search_service.schema()
 
 
 @router.post("/search/saved", summary="Create or update a saved search")
@@ -396,6 +462,33 @@ def get_review(review_id: str, store: ReviewStore = Depends(get_store)):
     if not item:
         raise HTTPException(status_code=404, detail="Review not found")
     return item
+
+
+def _build_hybrid_query_from_request(payload: HybridSearchRequest) -> HybridSearchQuery:
+    """Convert API payload into the service query dataclass."""
+
+    entities = [
+        QueryEntityFilter(type=entity.type, value=entity.value, match_mode=entity.match_mode)
+        for entity in payload.entities
+    ]
+    time_range = None
+    if payload.time_range:
+        if payload.time_range.end < payload.time_range.start:
+            raise HTTPException(status_code=400, detail="time_range.end must be after start")
+        time_range = QueryTimeRange(start=payload.time_range.start, end=payload.time_range.end)
+
+    return HybridSearchQuery(
+        text=payload.text,
+        classifications=payload.classifications,
+        datasets=payload.datasets,
+        case_ids=payload.case_ids,
+        entities=entities,
+        time_range=time_range,
+        limit=payload.limit,
+        vector_limit=payload.vector_limit,
+        structured_limit=payload.structured_limit,
+        offset=payload.offset,
+    )
 
 
 @router.post("/{review_id}/claim", summary="Claim a review")

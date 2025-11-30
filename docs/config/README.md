@@ -15,25 +15,6 @@ Usage guidance for developers and sysadmins:
 3. Store credentials in `.env.local` or Secret Manager rather than committing secrets here; laptop runs can source the file via `direnv` or the built-in dotenv loader.
 4. Keep `I4G_ENV=local` for sandbox testing; other values assume GCP services (Firestore, Cloud Storage, Vertex AI) are reachable.
 5. Machine-readable manifests live next to this page (`docs/config/settings_manifest.{json,yaml}` in proto, `config/settings.yaml` in the docs site) for automation and CI validation.
-6. Repository-wide configuration defaults now live in `config/settings.default.toml` (checked in). Developers can create `config/settings.local.toml` for laptop-specific overrides—this file is git-ignored. Both files share the same nesting as `Settings`, so a minimal local override that enables the dev ingestion profile looks like:
-
-	```toml
-	env = "dev"
-
-	[storage]
-	firestore_project = "i4g-dev"
-
-	[vector]
-	vertex_ai_project = "i4g-dev"
-	vertex_ai_data_store = "retrieval-poc"
-
-	[ingestion]
-	default_dataset = "retrieval_poc_dev"
-	enable_firestore = true
-	enable_vertex = true
-	```
-
-	Values from `settings.local.toml` override `settings.default.toml`, and both sit below real environment variables. To temporarily use an alternate config file, set `I4G_SETTINGS_FILE=/path/to/file.toml` before launching a command.
 
 This catalog is assembled by `proto/scripts/export_settings_manifest.py` directly from `src/i4g/settings/config.py`. The descriptions below are automatically generated—do not hand-edit them; change the implementation defaults and rerun the exporter instead.
 
@@ -57,17 +38,18 @@ This catalog is assembled by `proto/scripts/export_settings_manifest.py` directl
 | identity | `identity.disable_auth` | `I4G_IDENTITY__DISABLE_AUTH`<br />`IDENTITY_DISABLE_AUTH`<br />`IDENTITY__DISABLE_AUTH` | `bool` | `False` | Identity provider wiring for auth-enabled services. |
 | identity | `identity.issuer` | `I4G_IDENTITY__ISSUER`<br />`IDENTITY_ISSUER`<br />`IDENTITY__ISSUER` | `str &#124; NoneType` | `None` | Identity provider wiring for auth-enabled services. |
 | identity | `identity.provider` | `I4G_IDENTITY__PROVIDER`<br />`IDENTITY_PROVIDER`<br />`IDENTITY__PROVIDER` | `Literal['mock', 'google_identity', 'authentik', 'firebase']` | `mock` | Identity provider wiring for auth-enabled services. |
-| ingestion | `ingestion.default_dataset` | `I4G_INGESTION__DEFAULT_DATASET`<br />`I4G_INGEST__DEFAULT_DATASET`<br />`INGEST_DEFAULT_DATASET`<br />`INGEST__DEFAULT_DATASET`<br />`INGESTION_DEFAULT_DATASET`<br />`INGESTION__DEFAULT_DATASET` | `str` | `unknown` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.default_region` | `I4G_INGESTION__DEFAULT_REGION`<br />`I4G_INGEST__DEFAULT_REGION`<br />`INGESTION_DEFAULT_REGION`<br />`INGESTION__DEFAULT_REGION` | `str` | `us-central1` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.default_service_account` | `I4G_INGESTION__DEFAULT_SERVICE_ACCOUNT`<br />`I4G_INGEST__DEFAULT_SERVICE_ACCOUNT`<br />`INGESTION_SERVICE_ACCOUNT`<br />`INGESTION__SERVICE_ACCOUNT` | `str &#124; NoneType` | `None` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.enable_firestore` | `I4G_INGESTION__ENABLE_FIRESTORE`<br />`I4G_INGEST__ENABLE_FIRESTORE`<br />`INGEST_ENABLE_FIRESTORE`<br />`INGEST__ENABLE_FIRESTORE`<br />`INGESTION_ENABLE_FIRESTORE`<br />`INGESTION__ENABLE_FIRESTORE` | `bool` | `False` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.enable_scheduled_jobs` | `I4G_INGESTION__ENABLE_SCHEDULED_JOBS`<br />`I4G_INGEST__ENABLE_SCHEDULED_JOBS`<br />`INGESTION_ENABLE_SCHEDULED_JOBS`<br />`INGESTION__ENABLE_SCHEDULED_JOBS` | `bool` | `False` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.enable_sql` | `I4G_INGESTION__ENABLE_SQL`<br />`I4G_INGEST__ENABLE_SQL`<br />`INGEST_ENABLE_SQL`<br />`INGEST__ENABLE_SQL`<br />`INGESTION_ENABLE_SQL`<br />`INGESTION__ENABLE_SQL` | `bool` | `True` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.enable_vector_store` | `I4G_INGESTION__ENABLE_VECTOR_STORE`<br />`I4G_INGEST__ENABLE_VECTOR_STORE`<br />`I4G_INGEST__ENABLE_VECTOR`<br />`INGEST_ENABLE_VECTOR`<br />`INGEST__ENABLE_VECTOR`<br />`INGESTION_ENABLE_VECTOR`<br />`INGESTION__ENABLE_VECTOR` | `bool` | `True` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.enable_vertex` | `I4G_INGESTION__ENABLE_VERTEX`<br />`I4G_INGEST__ENABLE_VERTEX`<br />`INGEST_ENABLE_VERTEX`<br />`INGEST__ENABLE_VERTEX`<br />`INGESTION_ENABLE_VERTEX`<br />`INGESTION__ENABLE_VERTEX` | `bool` | `False` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.fanout_timeout_seconds` | `I4G_INGESTION__FANOUT_TIMEOUT_SECONDS`<br />`I4G_INGEST__FANOUT_TIMEOUT_SECONDS`<br />`INGEST_FANOUT_TIMEOUT_SECONDS`<br />`INGEST__FANOUT_TIMEOUT_SECONDS`<br />`INGESTION_FANOUT_TIMEOUT_SECONDS`<br />`INGESTION__FANOUT_TIMEOUT_SECONDS` | `int` | `60` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.max_retries` | `I4G_INGESTION__MAX_RETRIES`<br />`I4G_INGEST__MAX_RETRIES`<br />`INGEST_MAX_RETRIES`<br />`INGEST__MAX_RETRIES`<br />`INGESTION_MAX_RETRIES`<br />`INGESTION__MAX_RETRIES` | `int` | `3` | Scheduler + job configuration for ingestion workflows. |
-| ingestion | `ingestion.scheduler_project` | `I4G_INGESTION__SCHEDULER_PROJECT`<br />`I4G_INGEST__SCHEDULER_PROJECT`<br />`INGESTION_SCHEDULER_PROJECT`<br />`INGESTION__SCHEDULER_PROJECT` | `str &#124; NoneType` | `None` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.default_dataset` | `I4G_INGESTION__DEFAULT_DATASET`<br />`INGEST_DEFAULT_DATASET`<br />`INGEST__DEFAULT_DATASET`<br />`INGESTION_DEFAULT_DATASET`<br />`INGESTION__DEFAULT_DATASET` | `str` | `unknown` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.default_region` | `I4G_INGESTION__DEFAULT_REGION`<br />`INGESTION_DEFAULT_REGION`<br />`INGESTION__DEFAULT_REGION` | `str` | `us-central1` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.default_service_account` | `I4G_INGESTION__DEFAULT_SERVICE_ACCOUNT`<br />`INGESTION_SERVICE_ACCOUNT`<br />`INGESTION__SERVICE_ACCOUNT` | `str &#124; NoneType` | `None` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.enable_firestore` | `I4G_INGESTION__ENABLE_FIRESTORE`<br />`INGEST_ENABLE_FIRESTORE`<br />`INGEST__ENABLE_FIRESTORE`<br />`INGESTION_ENABLE_FIRESTORE`<br />`INGESTION__ENABLE_FIRESTORE` | `bool` | `False` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.enable_scheduled_jobs` | `I4G_INGESTION__ENABLE_SCHEDULED_JOBS`<br />`INGESTION_ENABLE_SCHEDULED_JOBS`<br />`INGESTION__ENABLE_SCHEDULED_JOBS` | `bool` | `False` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.enable_sql` | `I4G_INGESTION__ENABLE_SQL`<br />`INGEST_ENABLE_SQL`<br />`INGEST__ENABLE_SQL`<br />`INGESTION_ENABLE_SQL`<br />`INGESTION__ENABLE_SQL` | `bool` | `True` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.enable_vector_store` | `I4G_INGESTION__ENABLE_VECTOR_STORE`<br />`INGEST_ENABLE_VECTOR`<br />`INGEST__ENABLE_VECTOR`<br />`INGESTION_ENABLE_VECTOR`<br />`INGESTION__ENABLE_VECTOR` | `bool` | `True` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.enable_vertex` | `I4G_INGESTION__ENABLE_VERTEX`<br />`INGEST_ENABLE_VERTEX`<br />`INGEST__ENABLE_VERTEX`<br />`INGESTION_ENABLE_VERTEX`<br />`INGESTION__ENABLE_VERTEX` | `bool` | `False` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.fanout_timeout_seconds` | `I4G_INGESTION__FANOUT_TIMEOUT_SECONDS`<br />`INGEST_FANOUT_TIMEOUT_SECONDS`<br />`INGEST__FANOUT_TIMEOUT_SECONDS`<br />`INGESTION_FANOUT_TIMEOUT_SECONDS`<br />`INGESTION__FANOUT_TIMEOUT_SECONDS` | `int` | `60` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.max_retries` | `I4G_INGESTION__MAX_RETRIES`<br />`INGEST_MAX_RETRIES`<br />`INGEST__MAX_RETRIES`<br />`INGESTION_MAX_RETRIES`<br />`INGESTION__MAX_RETRIES` | `int` | `3` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.retry_delay_seconds` | `I4G_INGESTION__RETRY_DELAY_SECONDS`<br />`INGEST_RETRY_DELAY_SECONDS`<br />`INGEST__RETRY_DELAY_SECONDS`<br />`INGESTION_RETRY_DELAY_SECONDS`<br />`INGESTION__RETRY_DELAY_SECONDS` | `int` | `60` | Scheduler + job configuration for ingestion workflows. |
+| ingestion | `ingestion.scheduler_project` | `I4G_INGESTION__SCHEDULER_PROJECT`<br />`INGESTION_SCHEDULER_PROJECT`<br />`INGESTION__SCHEDULER_PROJECT` | `str &#124; NoneType` | `None` | Scheduler + job configuration for ingestion workflows. |
 | llm | `llm.chat_model` | `I4G_LLM__CHAT_MODEL`<br />`LLM_CHAT_MODEL`<br />`LLM__CHAT_MODEL` | `str` | `llama3` | Large language model provider settings. |
 | llm | `llm.ollama_base_url` | `I4G_LLM__OLLAMA_BASE_URL`<br />`OLLAMA_BASE_URL`<br />`LLM__OLLAMA_BASE_URL` | `str` | `http://127.0.0.1:11434` | Large language model provider settings. |
 | llm | `llm.provider` | `I4G_LLM__PROVIDER`<br />`LLM_PROVIDER`<br />`LLM__PROVIDER` | `Literal['ollama', 'vertex_ai', 'mock']` | `ollama` | Large language model provider settings. |
@@ -80,6 +62,15 @@ This catalog is assembled by `proto/scripts/export_settings_manifest.py` directl
 | observability | `observability.trace_sample_rate` | `I4G_OBSERVABILITY__TRACE_SAMPLE_RATE`<br />`OBS_TRACE_SAMPLE_RATE`<br />`OBSERVABILITY__TRACE_SAMPLE_RATE` | `float` | `0.0` | Logging, tracing, and metrics configuration. |
 | project_root | `project_root` | `I4G_PROJECT_ROOT` | `Path` | `/Users/jerry/Work/project/i4g` | Top-level configuration model with nested sections for each subsystem. |
 | runtime | `runtime.log_level` | `I4G_RUNTIME__LOG_LEVEL`<br />`LOG_LEVEL`<br />`RUNTIME__LOG_LEVEL` | `str` | `INFO` | Process-level runtime controls. |
+| search | `search.classification_presets` | `I4G_SEARCH__CLASSIFICATION_PRESETS`<br />`SEARCH_CLASSIFICATION_PRESETS`<br />`SEARCH__CLASSIFICATION_PRESETS` | `list[str]` | `[]` | Hybrid search tuning parameters and schema presets. |
+| search | `search.dataset_presets` | `I4G_SEARCH__DATASET_PRESETS`<br />`SEARCH_DATASET_PRESETS`<br />`SEARCH__DATASET_PRESETS` | `list[str]` | `[]` | Hybrid search tuning parameters and schema presets. |
+| search | `search.default_limit` | `I4G_SEARCH__DEFAULT_LIMIT`<br />`SEARCH_DEFAULT_LIMIT`<br />`SEARCH__DEFAULT_LIMIT` | `int` | `25` | Hybrid search tuning parameters and schema presets. |
+| search | `search.indicator_types` | `I4G_SEARCH__INDICATOR_TYPES`<br />`SEARCH_INDICATOR_TYPES`<br />`SEARCH__INDICATOR_TYPES` | `list[str]` | `["bank_account", "crypto_wallet", "email", "phone", "ip_address", "asn", "browser_agent", "url", "merchant"]` | Hybrid search tuning parameters and schema presets. |
+| search | `search.loss_buckets` | `I4G_SEARCH__LOSS_BUCKETS`<br />`SEARCH_LOSS_BUCKETS`<br />`SEARCH__LOSS_BUCKETS` | `list[str]` | `["<10k", "10k-50k", ">50k"]` | Hybrid search tuning parameters and schema presets. |
+| search | `search.schema_cache_ttl_seconds` | `I4G_SEARCH__SCHEMA_CACHE_TTL_SECONDS`<br />`SEARCH_SCHEMA_CACHE_TTL`<br />`SEARCH__SCHEMA_CACHE_TTL` | `int` | `300` | Hybrid search tuning parameters and schema presets. |
+| search | `search.semantic_weight` | `I4G_SEARCH__SEMANTIC_WEIGHT`<br />`SEARCH_SEMANTIC_WEIGHT`<br />`SEARCH__SEMANTIC_WEIGHT` | `float` | `0.65` | Hybrid search tuning parameters and schema presets. |
+| search | `search.structured_weight` | `I4G_SEARCH__STRUCTURED_WEIGHT`<br />`SEARCH_STRUCTURED_WEIGHT`<br />`SEARCH__STRUCTURED_WEIGHT` | `float` | `0.35` | Hybrid search tuning parameters and schema presets. |
+| search | `search.time_presets` | `I4G_SEARCH__TIME_PRESETS`<br />`SEARCH_TIME_PRESETS`<br />`SEARCH__TIME_PRESETS` | `list[str]` | `["7d", "30d", "90d"]` | Hybrid search tuning parameters and schema presets. |
 | secrets | `secrets.local_env_file` | `I4G_SECRETS__LOCAL_ENV_FILE`<br />`SECRETS_LOCAL_ENV_FILE`<br />`SECRETS__LOCAL_ENV_FILE` | `Path &#124; NoneType` | `None` | Secret resolution strategy (local vs Secret Manager). |
 | secrets | `secrets.project` | `I4G_SECRETS__PROJECT`<br />`SECRETS_PROJECT`<br />`SECRETS__PROJECT` | `str &#124; NoneType` | `None` | Secret resolution strategy (local vs Secret Manager). |
 | secrets | `secrets.use_secret_manager` | `I4G_SECRETS__USE_SECRET_MANAGER`<br />`SECRETS_USE_SECRET_MANAGER`<br />`SECRETS__USE_SECRET_MANAGER` | `bool` | `False` | Secret resolution strategy (local vs Secret Manager). |
@@ -98,9 +89,11 @@ This catalog is assembled by `proto/scripts/export_settings_manifest.py` directl
 | vector | `vector.embedding_model` | `I4G_VECTOR__EMBEDDING_MODEL`<br />`EMBED_MODEL`<br />`VECTOR__EMBED_MODEL` | `str` | `nomic-embed-text` | Vector store configuration supporting multiple backends. |
 | vector | `vector.faiss_dir` | `I4G_VECTOR__FAISS_DIR`<br />`VECTOR_FAISS_DIR`<br />`VECTOR__FAISS_DIR` | `Path` | `/Users/jerry/Work/project/i4g/data/faiss_store` | Vector store configuration supporting multiple backends. |
 | vector | `vector.pgvector_dsn` | `I4G_VECTOR__PGVECTOR_DSN`<br />`VECTOR_PGVECTOR_DSN`<br />`VECTOR__PGVECTOR__DSN` | `str &#124; NoneType` | `None` | Vector store configuration supporting multiple backends. |
+| vector | `vector.vertex_ai_branch` | `I4G_VECTOR__VERTEX_AI_BRANCH`<br />`VECTOR_VERTEX_AI_BRANCH`<br />`VECTOR__VERTEX_AI__BRANCH`<br />`I4G_VERTEX_SEARCH_BRANCH` | `str` | `default_branch` | Vector store configuration supporting multiple backends. |
+| vector | `vector.vertex_ai_data_store` | `I4G_VECTOR__VERTEX_AI_DATA_STORE`<br />`VECTOR_VERTEX_AI_DATA_STORE`<br />`VECTOR__VERTEX_AI__DATA_STORE`<br />`I4G_VERTEX_SEARCH_DATA_STORE` | `str &#124; NoneType` | `None` | Vector store configuration supporting multiple backends. |
 | vector | `vector.vertex_ai_index` | `I4G_VECTOR__VERTEX_AI_INDEX`<br />`VECTOR_VERTEX_AI_INDEX`<br />`VECTOR__VERTEX_AI__INDEX` | `str &#124; NoneType` | `None` | Vector store configuration supporting multiple backends. |
-| vector | `vector.vertex_ai_location` | `I4G_VECTOR__VERTEX_AI_LOCATION`<br />`VECTOR_VERTEX_AI_LOCATION`<br />`VECTOR__VERTEX_AI__LOCATION` | `str &#124; NoneType` | `us-central1` | Vector store configuration supporting multiple backends. |
-| vector | `vector.vertex_ai_project` | `I4G_VECTOR__VERTEX_AI_PROJECT`<br />`VECTOR_VERTEX_AI_PROJECT`<br />`VECTOR__VERTEX_AI__PROJECT` | `str &#124; NoneType` | `None` | Vector store configuration supporting multiple backends. |
+| vector | `vector.vertex_ai_location` | `I4G_VECTOR__VERTEX_AI_LOCATION`<br />`VECTOR_VERTEX_AI_LOCATION`<br />`VECTOR__VERTEX_AI__LOCATION`<br />`I4G_VERTEX_SEARCH_LOCATION` | `str &#124; NoneType` | `us-central1` | Vector store configuration supporting multiple backends. |
+| vector | `vector.vertex_ai_project` | `I4G_VECTOR__VERTEX_AI_PROJECT`<br />`VECTOR_VERTEX_AI_PROJECT`<br />`VECTOR__VERTEX_AI__PROJECT`<br />`I4G_VERTEX_SEARCH_PROJECT` | `str &#124; NoneType` | `None` | Vector store configuration supporting multiple backends. |
 
 ## Local Account-List Smoke
 

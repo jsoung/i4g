@@ -1,4 +1,4 @@
-generated_at: '2025-11-29T18:23:49.876113+00:00'
+generated_at: '2025-11-30T20:25:13.380402+00:00'
 source: src/i4g/settings/config.py
 env_prefix: I4G_
 fields:
@@ -169,7 +169,6 @@ fields:
   default: unknown
   env_vars:
   - I4G_INGESTION__DEFAULT_DATASET
-  - I4G_INGEST__DEFAULT_DATASET
   - INGEST_DEFAULT_DATASET
   - INGEST__DEFAULT_DATASET
   - INGESTION_DEFAULT_DATASET
@@ -181,7 +180,6 @@ fields:
   default: us-central1
   env_vars:
   - I4G_INGESTION__DEFAULT_REGION
-  - I4G_INGEST__DEFAULT_REGION
   - INGESTION_DEFAULT_REGION
   - INGESTION__DEFAULT_REGION
   description: Scheduler + job configuration for ingestion workflows.
@@ -191,7 +189,6 @@ fields:
   default: null
   env_vars:
   - I4G_INGESTION__DEFAULT_SERVICE_ACCOUNT
-  - I4G_INGEST__DEFAULT_SERVICE_ACCOUNT
   - INGESTION_SERVICE_ACCOUNT
   - INGESTION__SERVICE_ACCOUNT
   description: Scheduler + job configuration for ingestion workflows.
@@ -201,7 +198,6 @@ fields:
   default: false
   env_vars:
   - I4G_INGESTION__ENABLE_FIRESTORE
-  - I4G_INGEST__ENABLE_FIRESTORE
   - INGEST_ENABLE_FIRESTORE
   - INGEST__ENABLE_FIRESTORE
   - INGESTION_ENABLE_FIRESTORE
@@ -213,7 +209,6 @@ fields:
   default: false
   env_vars:
   - I4G_INGESTION__ENABLE_SCHEDULED_JOBS
-  - I4G_INGEST__ENABLE_SCHEDULED_JOBS
   - INGESTION_ENABLE_SCHEDULED_JOBS
   - INGESTION__ENABLE_SCHEDULED_JOBS
   description: Scheduler + job configuration for ingestion workflows.
@@ -223,7 +218,6 @@ fields:
   default: true
   env_vars:
   - I4G_INGESTION__ENABLE_SQL
-  - I4G_INGEST__ENABLE_SQL
   - INGEST_ENABLE_SQL
   - INGEST__ENABLE_SQL
   - INGESTION_ENABLE_SQL
@@ -235,8 +229,6 @@ fields:
   default: true
   env_vars:
   - I4G_INGESTION__ENABLE_VECTOR_STORE
-  - I4G_INGEST__ENABLE_VECTOR_STORE
-  - I4G_INGEST__ENABLE_VECTOR
   - INGEST_ENABLE_VECTOR
   - INGEST__ENABLE_VECTOR
   - INGESTION_ENABLE_VECTOR
@@ -248,7 +240,6 @@ fields:
   default: false
   env_vars:
   - I4G_INGESTION__ENABLE_VERTEX
-  - I4G_INGEST__ENABLE_VERTEX
   - INGEST_ENABLE_VERTEX
   - INGEST__ENABLE_VERTEX
   - INGESTION_ENABLE_VERTEX
@@ -260,7 +251,6 @@ fields:
   default: 60
   env_vars:
   - I4G_INGESTION__FANOUT_TIMEOUT_SECONDS
-  - I4G_INGEST__FANOUT_TIMEOUT_SECONDS
   - INGEST_FANOUT_TIMEOUT_SECONDS
   - INGEST__FANOUT_TIMEOUT_SECONDS
   - INGESTION_FANOUT_TIMEOUT_SECONDS
@@ -272,11 +262,21 @@ fields:
   default: 3
   env_vars:
   - I4G_INGESTION__MAX_RETRIES
-  - I4G_INGEST__MAX_RETRIES
   - INGEST_MAX_RETRIES
   - INGEST__MAX_RETRIES
   - INGESTION_MAX_RETRIES
   - INGESTION__MAX_RETRIES
+  description: Scheduler + job configuration for ingestion workflows.
+- path: ingestion.retry_delay_seconds
+  section: ingestion
+  type: int
+  default: 60
+  env_vars:
+  - I4G_INGESTION__RETRY_DELAY_SECONDS
+  - INGEST_RETRY_DELAY_SECONDS
+  - INGEST__RETRY_DELAY_SECONDS
+  - INGESTION_RETRY_DELAY_SECONDS
+  - INGESTION__RETRY_DELAY_SECONDS
   description: Scheduler + job configuration for ingestion workflows.
 - path: ingestion.scheduler_project
   section: ingestion
@@ -284,7 +284,6 @@ fields:
   default: null
   env_vars:
   - I4G_INGESTION__SCHEDULER_PROJECT
-  - I4G_INGEST__SCHEDULER_PROJECT
   - INGESTION_SCHEDULER_PROJECT
   - INGESTION__SCHEDULER_PROJECT
   description: Scheduler + job configuration for ingestion workflows.
@@ -394,6 +393,102 @@ fields:
   - LOG_LEVEL
   - RUNTIME__LOG_LEVEL
   description: Process-level runtime controls.
+- path: search.classification_presets
+  section: search
+  type: list[str]
+  default: []
+  env_vars:
+  - I4G_SEARCH__CLASSIFICATION_PRESETS
+  - SEARCH_CLASSIFICATION_PRESETS
+  - SEARCH__CLASSIFICATION_PRESETS
+  description: Hybrid search tuning parameters and schema presets.
+- path: search.dataset_presets
+  section: search
+  type: list[str]
+  default: []
+  env_vars:
+  - I4G_SEARCH__DATASET_PRESETS
+  - SEARCH_DATASET_PRESETS
+  - SEARCH__DATASET_PRESETS
+  description: Hybrid search tuning parameters and schema presets.
+- path: search.default_limit
+  section: search
+  type: int
+  default: 25
+  env_vars:
+  - I4G_SEARCH__DEFAULT_LIMIT
+  - SEARCH_DEFAULT_LIMIT
+  - SEARCH__DEFAULT_LIMIT
+  description: Hybrid search tuning parameters and schema presets.
+- path: search.indicator_types
+  section: search
+  type: list[str]
+  default:
+  - bank_account
+  - crypto_wallet
+  - email
+  - phone
+  - ip_address
+  - asn
+  - browser_agent
+  - url
+  - merchant
+  env_vars:
+  - I4G_SEARCH__INDICATOR_TYPES
+  - SEARCH_INDICATOR_TYPES
+  - SEARCH__INDICATOR_TYPES
+  description: Hybrid search tuning parameters and schema presets.
+- path: search.loss_buckets
+  section: search
+  type: list[str]
+  default:
+  - <10k
+  - 10k-50k
+  - '>50k'
+  env_vars:
+  - I4G_SEARCH__LOSS_BUCKETS
+  - SEARCH_LOSS_BUCKETS
+  - SEARCH__LOSS_BUCKETS
+  description: Hybrid search tuning parameters and schema presets.
+- path: search.schema_cache_ttl_seconds
+  section: search
+  type: int
+  default: 300
+  env_vars:
+  - I4G_SEARCH__SCHEMA_CACHE_TTL_SECONDS
+  - SEARCH_SCHEMA_CACHE_TTL
+  - SEARCH__SCHEMA_CACHE_TTL
+  description: Hybrid search tuning parameters and schema presets.
+- path: search.semantic_weight
+  section: search
+  type: float
+  default: 0.65
+  env_vars:
+  - I4G_SEARCH__SEMANTIC_WEIGHT
+  - SEARCH_SEMANTIC_WEIGHT
+  - SEARCH__SEMANTIC_WEIGHT
+  description: Hybrid search tuning parameters and schema presets.
+- path: search.structured_weight
+  section: search
+  type: float
+  default: 0.35
+  env_vars:
+  - I4G_SEARCH__STRUCTURED_WEIGHT
+  - SEARCH_STRUCTURED_WEIGHT
+  - SEARCH__STRUCTURED_WEIGHT
+  description: Hybrid search tuning parameters and schema presets.
+- path: search.time_presets
+  section: search
+  type: list[str]
+  default:
+  - 7d
+  - 30d
+  - 90d
+  env_vars:
+  - I4G_SEARCH__TIME_PRESETS
+  - SEARCH_TIME_PRESETS
+  - SEARCH__TIME_PRESETS
+  description: Hybrid search tuning parameters and schema presets.
 - path: secrets.local_env_file
   section: secrets
   type: Path | NoneType
@@ -550,6 +645,26 @@ fields:
   - VECTOR_PGVECTOR_DSN
   - VECTOR__PGVECTOR__DSN
   description: Vector store configuration supporting multiple backends.
+- path: vector.vertex_ai_branch
+  section: vector
+  type: str
+  default: default_branch
+  env_vars:
+  - I4G_VECTOR__VERTEX_AI_BRANCH
+  - VECTOR_VERTEX_AI_BRANCH
+  - VECTOR__VERTEX_AI__BRANCH
+  - I4G_VERTEX_SEARCH_BRANCH
+  description: Vector store configuration supporting multiple backends.
+- path: vector.vertex_ai_data_store
+  section: vector
+  type: str | NoneType
+  default: null
+  env_vars:
+  - I4G_VECTOR__VERTEX_AI_DATA_STORE
+  - VECTOR_VERTEX_AI_DATA_STORE
+  - VECTOR__VERTEX_AI__DATA_STORE
+  - I4G_VERTEX_SEARCH_DATA_STORE
+  description: Vector store configuration supporting multiple backends.
 - path: vector.vertex_ai_index
   section: vector
   type: str | NoneType
@@ -567,6 +682,7 @@ fields:
   - I4G_VECTOR__VERTEX_AI_LOCATION
   - VECTOR_VERTEX_AI_LOCATION
   - VECTOR__VERTEX_AI__LOCATION
+  - I4G_VERTEX_SEARCH_LOCATION
   description: Vector store configuration supporting multiple backends.
 - path: vector.vertex_ai_project
   section: vector
@@ -576,4 +692,5 @@ fields:
   - I4G_VECTOR__VERTEX_AI_PROJECT
   - VECTOR_VERTEX_AI_PROJECT
   - VECTOR__VERTEX_AI__PROJECT
+  - I4G_VERTEX_SEARCH_PROJECT
   description: Vector store configuration supporting multiple backends.

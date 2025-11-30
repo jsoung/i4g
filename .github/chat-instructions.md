@@ -21,3 +21,4 @@ Apply the [general coding guidelines](./general-coding.instructions.md) to all c
 
 ## Execution Discipline
 - When assigned a task (e.g., fix a failing search), debug and implement the end-to-end solution within the same request. Do not pause mid-stream to ask permission for subsequent steps—finish the work unless explicitly instructed otherwise.
+- Default to the TOML-based settings workflow for every CLI/worker command: inherit shared defaults from `config/settings.default.toml`, place personal overrides in the git-ignored `config/settings.local.toml`, or point `I4G_SETTINGS_FILE` to a purpose-built TOML file. Avoid exporting long env var lists; update the local config file instead so repeated commands stay reproducible.

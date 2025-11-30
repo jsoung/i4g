@@ -30,3 +30,11 @@
 
 [account_list]
 # drive_folder_id = "<drive-folder-id>"
+
+[search]
+# semantic_weight = 0.65
+# structured_weight = 0.35
+# default_limit = 25
+# indicator_types = ["bank_account", "crypto_wallet", "email", "phone", "ip_address"]
+# dataset_presets = ["retrieval_poc_dev", "account_list"]
+# classification_presets = ["romance", "pig_butcher", "tech_support"]

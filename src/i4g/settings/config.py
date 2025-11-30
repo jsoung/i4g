@@ -495,6 +495,59 @@ class AccountListSettings(BaseSettings):
     )
 
 
+class SearchSettings(BaseSettings):
+    """Hybrid search tuning parameters and schema presets."""
+
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
+
+    semantic_weight: float = Field(
+        default=0.65,
+        validation_alias=AliasChoices("SEARCH_SEMANTIC_WEIGHT", "SEARCH__SEMANTIC_WEIGHT"),
+    )
+    structured_weight: float = Field(
+        default=0.35,
+        validation_alias=AliasChoices("SEARCH_STRUCTURED_WEIGHT", "SEARCH__STRUCTURED_WEIGHT"),
+    )
+    default_limit: int = Field(
+        default=25,
+        validation_alias=AliasChoices("SEARCH_DEFAULT_LIMIT", "SEARCH__DEFAULT_LIMIT"),
+    )
+    schema_cache_ttl_seconds: int = Field(
+        default=300,
+        validation_alias=AliasChoices("SEARCH_SCHEMA_CACHE_TTL", "SEARCH__SCHEMA_CACHE_TTL"),
+    )
+    indicator_types: list[str] = Field(
+        default_factory=lambda: [
+            "bank_account",
+            "crypto_wallet",
+            "email",
+            "phone",
+            "ip_address",
+            "asn",
+            "browser_agent",
+            "url",
+            "merchant",
+        ],
+        validation_alias=AliasChoices("SEARCH_INDICATOR_TYPES", "SEARCH__INDICATOR_TYPES"),
+    )
+    dataset_presets: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("SEARCH_DATASET_PRESETS", "SEARCH__DATASET_PRESETS"),
+    )
+    classification_presets: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("SEARCH_CLASSIFICATION_PRESETS", "SEARCH__CLASSIFICATION_PRESETS"),
+    )
+    time_presets: list[str] = Field(
+        default_factory=lambda: ["7d", "30d", "90d"],
+        validation_alias=AliasChoices("SEARCH_TIME_PRESETS", "SEARCH__TIME_PRESETS"),
+    )
+    loss_buckets: list[str] = Field(
+        default_factory=lambda: ["<10k", "10k-50k", ">50k"],
+        validation_alias=AliasChoices("SEARCH_LOSS_BUCKETS", "SEARCH__LOSS_BUCKETS"),
+    )
+
+
 class Settings(BaseSettings):
     """Top-level configuration model with nested sections for each subsystem."""
 
@@ -520,6 +573,7 @@ class Settings(BaseSettings):
     ingestion: IngestionSettings = Field(default_factory=IngestionSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     account_list: AccountListSettings = Field(default_factory=AccountListSettings)
+    search: SearchSettings = Field(default_factory=SearchSettings)
     env_files: tuple[Path, ...] = Field(default_factory=tuple, exclude=True)
     config_files: tuple[Path, ...] = Field(default_factory=tuple, exclude=True)
 
