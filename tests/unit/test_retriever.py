@@ -25,7 +25,11 @@ def test_query_semantic_only():
     vector_store = MagicMock()
     vector_store.query_similar.return_value = [{"case_id": "case-1", "score": 0.75, "text": "sample"}]
 
-    retriever = HybridRetriever(structured_store=structured_store, vector_store=vector_store)
+    retriever = HybridRetriever(
+        structured_store=structured_store,
+        vector_store=vector_store,
+        entity_store=MagicMock(),
+    )
     response = retriever.query(text="sample", vector_top_k=3)
     results = response["results"]
 
@@ -51,7 +55,11 @@ def test_query_structured_filters():
     vector_store = MagicMock()
     vector_store.query_similar.return_value = []
 
-    retriever = HybridRetriever(structured_store=structured_store, vector_store=vector_store)
+    retriever = HybridRetriever(
+        structured_store=structured_store,
+        vector_store=vector_store,
+        entity_store=MagicMock(),
+    )
     filters = {"classification": "romance_scam"}
     response = retriever.query(filters=filters, structured_top_k=7)
     results = response["results"]
@@ -75,7 +83,11 @@ def test_combines_structured_and_vector_hits():
     vector_store = MagicMock()
     vector_store.query_similar.return_value = [{"case_id": "case-3", "score": 0.82, "text": "login account suspended"}]
 
-    retriever = HybridRetriever(structured_store=structured_store, vector_store=vector_store)
+    retriever = HybridRetriever(
+        structured_store=structured_store,
+        vector_store=vector_store,
+        entity_store=MagicMock(),
+    )
     response = retriever.query(
         text="account suspended",
         filters={"classification": "phishing"},
@@ -110,7 +122,11 @@ def test_pagination_slice_returns_expected_segment():
         {"case_id": "case-3", "score": 0.75, "text": "C"},
     ]
 
-    retriever = HybridRetriever(structured_store=structured_store, vector_store=vector_store)
+    retriever = HybridRetriever(
+        structured_store=structured_store,
+        vector_store=vector_store,
+        entity_store=MagicMock(),
+    )
     page = retriever.query(text="query", vector_top_k=3, offset=1, limit=1)
 
     assert len(page["results"]) == 1
@@ -130,7 +146,11 @@ def test_text_fallback_when_vector_unavailable():
     vector_store = MagicMock()
     vector_store.query_similar.side_effect = RuntimeError("vector backend down")
 
-    retriever = HybridRetriever(structured_store=structured_store, vector_store=vector_store)
+    retriever = HybridRetriever(
+        structured_store=structured_store,
+        vector_store=vector_store,
+        entity_store=MagicMock(),
+    )
     response = retriever.query(text="wallet", vector_top_k=2)
 
     assert response["vector_hits"] == 0
@@ -139,3 +159,44 @@ def test_text_fallback_when_vector_unavailable():
     assert response["results"][0]["sources"] == ["text"]
     vector_store.query_similar.assert_called_once_with("wallet", top_k=2)
     structured_store.search_text.assert_called_once_with("wallet", top_k=5)
+
+
+def test_entity_filter_routes_through_entity_store():
+    record = make_record(case_id="case-entity")
+    structured_store = MagicMock()
+    structured_store.search_by_field.return_value = []
+    structured_store.get_by_id.return_value = record
+
+    vector_store = MagicMock()
+    vector_store.query_similar.return_value = []
+
+    entity_store = MagicMock()
+    entity_store.search_cases_by_indicator.return_value = [
+        {"case_id": "case-entity", "indicator_type": "bank_account", "indicator_value": "123"}
+    ]
+
+    retriever = HybridRetriever(
+        structured_store=structured_store,
+        vector_store=vector_store,
+        entity_store=entity_store,
+    )
+
+    filters = [
+        (
+            "bank_account",
+            {
+                "filter_type": "entity",
+                "entity_type": "bank_account",
+                "value": "123",
+                "match_mode": "exact",
+            },
+        )
+    ]
+
+    response = retriever.query(filters=filters, structured_top_k=5)
+
+    entity_store.search_cases_by_indicator.assert_called_once()
+    structured_store.get_by_id.assert_called_once_with("case-entity")
+    structured_store.search_by_field.assert_not_called()
+    assert response["structured_hits"] == 1
+    assert response["results"][0]["case_id"] == "case-entity"

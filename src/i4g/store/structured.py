@@ -225,6 +225,9 @@ class StructuredStore:
             rows = cur.fetchall()
             return [self._row_to_record(r) for r in rows]
 
+        if field == "dataset":
+            return self._search_by_dataset(value, top_k)
+
         # Try JSON extraction (works if SQLite built with JSON1)
         try:
             # json_extract returns NULL when path not found
@@ -302,3 +305,29 @@ class StructuredStore:
         cur.execute("DELETE FROM scam_records WHERE case_id = ?", (case_id,))
         self._conn.commit()
         return cur.rowcount > 0
+
+    def _search_by_dataset(self, dataset: Any, top_k: int) -> List[ScamRecord]:
+        """Return records whose metadata.dataset matches the requested dataset."""
+
+        if dataset is None:
+            return []
+        target = str(dataset).strip().lower()
+        if not target:
+            return []
+
+        cur = self._conn.cursor()
+        cur.execute("SELECT * FROM scam_records WHERE metadata IS NOT NULL")
+        rows = cur.fetchall()
+        results: List[ScamRecord] = []
+        for row in rows:
+            metadata = {}
+            try:
+                metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+            except Exception:
+                metadata = {}
+            dataset_value = metadata.get("dataset") or metadata.get("source")
+            if dataset_value and str(dataset_value).strip().lower() == target:
+                results.append(self._row_to_record(row))
+                if len(results) >= top_k:
+                    break
+        return results

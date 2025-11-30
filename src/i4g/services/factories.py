@@ -16,6 +16,7 @@ from i4g.services.firestore_writer import FirestoreWriter
 from i4g.services.vertex_writer import VertexDocumentWriter
 from i4g.settings import get_settings
 from i4g.storage import EvidenceStorage
+from i4g.store.entity_store import EntityStore
 from i4g.store.ingestion_retry_store import IngestionRetryStore
 from i4g.store.ingestion_run_tracker import IngestionRunTracker
 from i4g.store.intake_store import IntakeStore
@@ -52,6 +53,13 @@ def build_structured_store(db_path: str | Path | None = None) -> StructuredStore
         raise NotImplementedError("Cloud SQL structured backend not implemented yet")
 
     raise NotImplementedError(f"Unsupported structured storage backend '{backend}'")
+
+
+def build_entity_store() -> EntityStore:
+    """Instantiate an :class:`EntityStore` backed by the configured SQL engine."""
+
+    session_factory = build_sql_session_factory()
+    return EntityStore(session_factory=session_factory)
 
 
 def build_review_store(db_path: str | Path | None = None) -> ReviewStore:
@@ -206,6 +214,7 @@ def build_firestore_writer(*, settings: "Settings" | None = None) -> FirestoreWr
 
 __all__ = [
     "build_structured_store",
+    "build_entity_store",
     "build_review_store",
     "build_vector_store",
     "build_intake_store",

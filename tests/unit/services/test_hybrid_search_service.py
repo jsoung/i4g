@@ -73,9 +73,15 @@ def test_search_merges_scores_and_applies_time_range(retriever_payload):
     item = response["results"][0]
     assert item["case_id"] == "case-001"
     assert item["merged_score"] is not None
-    assert set(item["scores"].keys()) == {"semantic", "structured"}
+    assert item["scores"]["winner"] == "semantic"
+    semantic_weighted = item["scores"]["semantic_weighted"]
+    structured_weighted = item["scores"].get("structured_weighted", 0)
+    assert semantic_weighted > structured_weighted
     assert response["vector_hits"] == 1
     assert response["structured_hits"] == 2
+    diagnostics = response.get("diagnostics")
+    assert diagnostics["score_policy"]["strategy"] == "max_weighted"
+    assert diagnostics["counts"]["returned_results"] == 1
 
 
 def test_entity_filters_pass_through_to_retriever(retriever_payload):
@@ -84,6 +90,7 @@ def test_entity_filters_pass_through_to_retriever(retriever_payload):
         entities=[QueryEntityFilter(type="bank_account", value="123", match_mode="exact")],
         classifications=["romance"],
         datasets=["retrieval_poc_dev"],
+        loss_buckets=[">50k"],
         case_ids=["case-xyz"],
     )
     service = HybridSearchService(retriever=retriever)
@@ -94,7 +101,17 @@ def test_entity_filters_pass_through_to_retriever(retriever_payload):
         ("classification", "romance"),
         ("dataset", "retrieval_poc_dev"),
         ("case_id", "case-xyz"),
-        ("bank_account", "123"),
+        (
+            "bank_account",
+            {
+                "filter_type": "entity",
+                "entity_type": "bank_account",
+                "value": "123",
+                "match_mode": "exact",
+                "datasets": ["retrieval_poc_dev"],
+                "loss_buckets": [">50k"],
+            },
+        ),
     ]
 
 

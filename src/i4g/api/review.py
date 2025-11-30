@@ -92,6 +92,7 @@ class HybridSearchRequest(BaseModel):
     text: Optional[str] = None
     classifications: List[str] = Field(default_factory=list)
     datasets: List[str] = Field(default_factory=list)
+    loss_buckets: List[str] = Field(default_factory=list)
     case_ids: List[str] = Field(default_factory=list)
     entities: List[EntityFilterModel] = Field(default_factory=list)
     time_range: Optional[TimeRangeModel] = None
@@ -187,6 +188,7 @@ def search_cases(
     query = _build_hybrid_query_from_request(payload)
     query_result = search_service.search(query)
     results = query_result["results"]
+    diagnostics = query_result.get("diagnostics")
     search_id = f"search:{uuid.uuid4()}"
     store.log_action(
         review_id="search",
@@ -206,6 +208,7 @@ def search_cases(
             "total": query_result["total"],
             "vector_hits": query_result.get("vector_hits"),
             "structured_hits": query_result.get("structured_hits"),
+            "diagnostics": diagnostics,
         },
     )
 
@@ -217,6 +220,7 @@ def search_cases(
         "total": query_result["total"],
         "vector_hits": query_result.get("vector_hits"),
         "structured_hits": query_result.get("structured_hits"),
+        "diagnostics": diagnostics,
         "search_id": search_id,
     }
 
@@ -253,6 +257,7 @@ def search_cases_advanced(
             "total": query_result["total"],
             "vector_hits": query_result.get("vector_hits"),
             "structured_hits": query_result.get("structured_hits"),
+            "diagnostics": query_result.get("diagnostics"),
         },
     )
     return {**query_result, "search_id": search_id}
@@ -481,6 +486,7 @@ def _build_hybrid_query_from_request(payload: HybridSearchRequest) -> HybridSear
         text=payload.text,
         classifications=payload.classifications,
         datasets=payload.datasets,
+        loss_buckets=payload.loss_buckets,
         case_ids=payload.case_ids,
         entities=entities,
         time_range=time_range,

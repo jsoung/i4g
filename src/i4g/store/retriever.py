@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-from i4g.services.factories import build_structured_store, build_vector_store
+from i4g.services.factories import build_entity_store, build_structured_store, build_vector_store
 from i4g.store.schema import ScamRecord
 
 LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from i4g.store.entity_store import EntityStore
     from i4g.store.structured import StructuredStore
     from i4g.store.vector import VectorStore
 
@@ -22,12 +23,14 @@ class HybridRetriever:
         self,
         structured_store: Optional["StructuredStore"] = None,
         vector_store: Optional["VectorStore"] = None,
+        entity_store: Optional["EntityStore"] = None,
         *,
         enable_vector: bool = True,
     ) -> None:
         """Initialize the retriever with optional backend overrides."""
 
         self.structured_store = structured_store or build_structured_store()
+        self.entity_store = entity_store or build_entity_store()
         self._vector_error = False
 
         if vector_store is not None:
@@ -50,7 +53,7 @@ class HybridRetriever:
     def query(
         self,
         text: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: Optional[Iterable[Tuple[str, Any]] | Dict[str, Any]] = None,
         vector_top_k: int = 5,
         structured_top_k: int = 5,
         offset: int = 0,
@@ -168,6 +171,9 @@ class HybridRetriever:
         """Merge structured results into the aggregated map."""
         total = 0
         for field, value in self._iter_filters(filters):
+            if self._is_entity_filter(field, value):
+                total += self._merge_entity_filter(aggregated, field, value, top_k)
+                continue
             records = self.structured_store.search_by_field(field, value, top_k=top_k)
             total += len(records)
             for record in records:
@@ -195,12 +201,92 @@ class HybridRetriever:
         return len(records)
 
     @staticmethod
-    def _iter_filters(filters: Dict[str, Any]) -> Iterable[Tuple[str, Any]]:
-        """Normalize filters input to an iterable of (field, value)."""
+    def _iter_filters(filters: Iterable[Tuple[str, Any]] | Dict[str, Any]) -> Iterable[Tuple[str, Any]]:
+        """Normalize filters input to an iterable of ``(field, value)`` tuples."""
         if isinstance(filters, dict):
             return filters.items()
-        # Fall back to treating filters as iterable of tuples
         return list(filters)
+
+    @staticmethod
+    def _is_entity_filter(field: str, value: Any) -> bool:
+        if not isinstance(value, dict):
+            return False
+        if value.get("filter_type") == "entity":
+            return True
+        expected_type = value.get("entity_type") or value.get("type")
+        return bool(expected_type and str(expected_type).lower() == field.lower())
+
+    def _merge_entity_filter(
+        self,
+        aggregated: Dict[str, Dict[str, Any]],
+        field: str,
+        value: Any,
+        top_k: int,
+    ) -> int:
+        descriptor = self._normalize_entity_descriptor(field, value)
+        if not descriptor:
+            return 0
+        if not self.entity_store:
+            LOGGER.debug("Entity filters requested but EntityStore is unavailable")
+            return 0
+
+        matches = self.entity_store.search_cases_by_indicator(
+            indicator_type=descriptor["entity_type"],
+            value=descriptor["value"],
+            match_mode=descriptor["match_mode"],
+            datasets=descriptor.get("datasets"),
+            loss_buckets=descriptor.get("loss_buckets"),
+            limit=top_k,
+        )
+        hits = 0
+        for match in matches:
+            case_id = match.get("case_id")
+            if not case_id:
+                continue
+            record = self.structured_store.get_by_id(case_id)
+            if not record:
+                continue
+            self._add_structured_record(aggregated, record)
+            hits += 1
+        return hits
+
+    @staticmethod
+    def _normalize_entity_descriptor(field: str, payload: Any) -> Dict[str, Any] | None:
+        if isinstance(payload, dict):
+            entity_value = payload.get("value")
+            entity_type = payload.get("entity_type") or payload.get("type") or field
+            match_mode = payload.get("match_mode", "exact")
+            datasets = HybridRetriever._normalize_string_sequence(payload.get("datasets"))
+            loss_buckets = HybridRetriever._normalize_string_sequence(payload.get("loss_buckets"))
+        else:
+            entity_value = payload
+            entity_type = field
+            match_mode = "exact"
+            datasets = None
+            loss_buckets = None
+
+        if not entity_type or entity_value in (None, ""):
+            return None
+
+        return {
+            "entity_type": str(entity_type),
+            "value": str(entity_value),
+            "match_mode": match_mode,
+            "datasets": datasets,
+            "loss_buckets": loss_buckets,
+        }
+
+    @staticmethod
+    def _normalize_string_sequence(value: Any) -> List[str] | None:
+        if not value:
+            return None
+        if isinstance(value, str):
+            cleaned = value.strip()
+            return [cleaned] if cleaned else None
+        if isinstance(value, Sequence):
+            entries = [str(item).strip() for item in value if item not in (None, "")]
+            return entries or None
+        return None
 
     @staticmethod
     def _add_structured_record(aggregated: Dict[str, Dict[str, Any]], record: ScamRecord) -> None:

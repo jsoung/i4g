@@ -36,6 +36,7 @@ class HybridSearchQuery:
     entities: List[QueryEntityFilter] = field(default_factory=list)
     classifications: List[str] = field(default_factory=list)
     datasets: List[str] = field(default_factory=list)
+    loss_buckets: List[str] = field(default_factory=list)
     case_ids: List[str] = field(default_factory=list)
     time_range: QueryTimeRange | None = None
     limit: int | None = None
@@ -88,6 +89,9 @@ class SearchSchema:
 class HybridSearchService:
     """Coordinate hybrid search queries across vector + structured stores."""
 
+    SCORE_STRATEGY = "max_weighted"
+    _TIE_EPSILON = 1e-9
+
     def __init__(
         self,
         *,
@@ -119,13 +123,22 @@ class HybridSearchService:
             limit=limit,
         )
 
-        items = [self._normalize_result(result) for result in raw["results"]]
+        raw_results = raw["results"]
+        items = [self._normalize_result(result) for result in raw_results]
         total_before_filters = raw.get("total", len(items))
         if query.time_range:
             items = self._filter_by_time_range(items, query.time_range)
 
         # Re-sort by merged score (desc) to ensure deterministic ordering after time filtering
         items.sort(key=lambda item: (item.merged_score is not None, item.merged_score or 0.0), reverse=True)
+
+        diagnostics = self._build_diagnostics(
+            raw_payload=raw,
+            deduped_count=len(raw_results),
+            filtered_count=len(items),
+            limit=limit,
+            query=query,
+        )
 
         return {
             "results": [item.to_dict() for item in items],
@@ -135,6 +148,7 @@ class HybridSearchService:
             "total": total_before_filters,
             "vector_hits": raw.get("vector_hits", 0),
             "structured_hits": raw.get("structured_hits", 0),
+            "diagnostics": diagnostics,
         }
 
     def schema(self) -> Dict[str, Any]:
@@ -178,7 +192,19 @@ class HybridSearchService:
         for case_id in query.case_ids:
             filters.append(("case_id", case_id))
         for entity in query.entities:
-            filters.append((entity.type, entity.value))
+            filters.append(
+                (
+                    entity.type,
+                    {
+                        "filter_type": "entity",
+                        "entity_type": entity.type,
+                        "value": entity.value,
+                        "match_mode": entity.match_mode,
+                        "datasets": list(query.datasets),
+                        "loss_buckets": list(query.loss_buckets),
+                    },
+                )
+            )
         return filters
 
     def _normalize_result(self, payload: Dict[str, Any]) -> HybridSearchItem:
@@ -250,24 +276,46 @@ class HybridSearchService:
     ) -> tuple[float | None, Dict[str, float]]:
         weights = self.settings.search
         scores: Dict[str, float] = {}
-        semantic_contrib = 0.0
-        structured_contrib = 0.0
-        total_weight = 0.0
+        semantic_weighted: float | None = None
+        structured_weighted: float | None = None
 
         if semantic is not None and weights.semantic_weight > 0:
             scores["semantic"] = semantic
-            semantic_contrib = semantic * weights.semantic_weight
-            total_weight += weights.semantic_weight
+            semantic_weighted = semantic * weights.semantic_weight
+            scores["semantic_weighted"] = semantic_weighted
 
         if structured is not None and weights.structured_weight > 0:
             scores["structured"] = structured
-            structured_contrib = structured * weights.structured_weight
-            total_weight += weights.structured_weight
+            structured_weighted = structured * weights.structured_weight
+            scores["structured_weighted"] = structured_weighted
 
-        if not total_weight:
+        winner: str | None = None
+        merged_score: float | None = None
+
+        if semantic_weighted is None and structured_weighted is None:
             return None, scores
 
-        return semantic_contrib + structured_contrib, scores
+        if structured_weighted is None:
+            winner = "semantic"
+            merged_score = semantic_weighted
+        elif semantic_weighted is None:
+            winner = "structured"
+            merged_score = structured_weighted
+        else:
+            if semantic_weighted > structured_weighted + self._TIE_EPSILON:
+                winner = "semantic"
+                merged_score = semantic_weighted
+            elif structured_weighted > semantic_weighted + self._TIE_EPSILON:
+                winner = "structured"
+                merged_score = structured_weighted
+            else:
+                winner = "structured"
+                merged_score = structured_weighted
+
+        scores["winner"] = winner or "unknown"
+        if merged_score is not None:
+            scores["merged_contribution"] = merged_score
+        return merged_score, scores
 
     @staticmethod
     def _extract_metadata(payload: Dict[str, Any]) -> Dict[str, Any] | None:
@@ -325,3 +373,35 @@ class HybridSearchService:
             except ValueError:
                 return None
         return None
+
+    def _build_diagnostics(
+        self,
+        *,
+        raw_payload: Dict[str, Any],
+        deduped_count: int,
+        filtered_count: int,
+        limit: int,
+        query: HybridSearchQuery,
+    ) -> Dict[str, Any]:
+        vector_hits = int(raw_payload.get("vector_hits", 0) or 0)
+        structured_hits = int(raw_payload.get("structured_hits", 0) or 0)
+        deduped_overlap = max(vector_hits + structured_hits - deduped_count, 0)
+        dropped_by_time = max(deduped_count - filtered_count, 0) if query.time_range else 0
+
+        return {
+            "score_policy": {
+                "strategy": self.SCORE_STRATEGY,
+                "semantic_weight": self.settings.search.semantic_weight,
+                "structured_weight": self.settings.search.structured_weight,
+            },
+            "counts": {
+                "vector_hits": vector_hits,
+                "structured_hits": structured_hits,
+                "merged_results": deduped_count,
+                "deduped_overlap": deduped_overlap,
+                "returned_results": filtered_count,
+                "dropped_by_time_range": dropped_by_time,
+                "query_offset": query.offset,
+                "query_limit": limit,
+            },
+        }
