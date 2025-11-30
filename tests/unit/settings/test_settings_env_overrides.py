@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import textwrap
 
 from i4g.settings.config import reload_settings
 
@@ -110,3 +111,44 @@ def test_ingestion_sql_toggle_env_overrides(monkeypatch: object) -> None:
     assert overridden.ingestion.default_dataset == "account_list"
     assert overridden.ingestion.max_retries == 5
     assert overridden.ingestion.retry_delay_seconds == 120
+
+
+def test_settings_file_override(tmp_path, monkeypatch: object) -> None:
+    """Ensure TOML config files populate settings without manual env vars."""
+
+    _clear_env(
+        monkeypatch,
+        "I4G_STORAGE__FIRESTORE_PROJECT",
+        "I4G_INGEST__DEFAULT_DATASET",
+        "I4G_INGEST__ENABLE_FIRESTORE",
+        "I4G_ENV",
+    )
+    _set_env(monkeypatch, "I4G_ENV", "dev")
+
+    settings_file = tmp_path / "settings.local.toml"
+    settings_file.write_text(
+        textwrap.dedent(
+            """
+            env = "dev"
+
+            [storage]
+            firestore_project = "i4g-dev"
+
+            [ingestion]
+            default_dataset = "toml_dataset"
+            enable_firestore = true
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("I4G_SETTINGS_FILE", str(settings_file))
+    settings_from_file = reload_settings()
+    assert settings_from_file.storage.firestore_project == "i4g-dev"
+    assert settings_from_file.ingestion.default_dataset == "toml_dataset"
+    assert settings_from_file.ingestion.enable_firestore is True
+    assert settings_file in settings_from_file.config_files
+
+    _set_env(monkeypatch, "I4G_INGEST__DEFAULT_DATASET", "env_dataset")
+    env_override = reload_settings()
+    assert env_override.ingestion.default_dataset == "env_dataset"

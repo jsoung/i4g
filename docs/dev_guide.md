@@ -104,10 +104,10 @@ i4g services load configuration through `i4g.settings`, which is powered by
 Values are resolved in the following order:
 
 1. Defaults declared in the `Settings` model.
-2. Project-level `.env`.
-3. Environment-specific `.env.<env>` (e.g. `.env.staging`).
-4. Local overrides in `.env.local` (ignored by git).
-5. Direct environment variables (`I4G_*`).
+2. Direct environment variables (`I4G_*`).
+3. Project `.env` files (`.env`, `.env.<env>`, `.env.local`).
+4. TOML config files (`I4G_SETTINGS_FILE`, `config/settings.local.toml`, `config/settings.default.toml`).
+5. Secret files (when `SECRETS_*` points to a directory of files).
 
 The active environment is selected via `I4G_ENV` (defaults to `local`). All
 services—including Streamlit, FastAPI, and CLI tools—should read configuration
@@ -122,6 +122,37 @@ I4G_API_URL=http://127.0.0.1:8000
 I4G_API_KEY=dev-analyst-token
 I4G_VECTOR_BACKEND=chroma
 ```
+
+### TOML configuration files
+
+When you find yourself exporting a dozen env vars before every command, move
+those values into TOML config files. The repo ships with
+`config/settings.default.toml` for shared defaults and git-ignores
+`config/settings.local.toml` so laptops can define their own overrides. Both
+files use the same nesting as `Settings`, so the snippet below captures the
+common dev ingestion profile:
+
+```toml
+# config/settings.local.toml
+env = "dev"
+
+[storage]
+firestore_project = "i4g-dev"
+
+[vector]
+vertex_ai_project = "i4g-dev"
+vertex_ai_data_store = "retrieval-poc"
+
+[ingestion]
+default_dataset = "retrieval_poc_dev"
+enable_firestore = true
+enable_vertex = true
+```
+
+Values from `settings.local.toml` override the tracked defaults but remain
+below explicit env vars, so ad-hoc overrides still work. To test a one-off file
+without renaming it, point `I4G_SETTINGS_FILE` at the desired TOML path before
+running a command.
 
 To inspect the effective configuration:
 

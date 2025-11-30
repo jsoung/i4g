@@ -15,6 +15,25 @@ Usage guidance for developers and sysadmins:
 3. Store credentials in `.env.local` or Secret Manager rather than committing secrets here; laptop runs can source the file via `direnv` or the built-in dotenv loader.
 4. Keep `I4G_ENV=local` for sandbox testing; other values assume GCP services (Firestore, Cloud Storage, Vertex AI) are reachable.
 5. Machine-readable manifests live next to this page (`docs/config/settings_manifest.{json,yaml}` in proto, `config/settings.yaml` in the docs site) for automation and CI validation.
+6. Repository-wide configuration defaults now live in `config/settings.default.toml` (checked in). Developers can create `config/settings.local.toml` for laptop-specific overrides—this file is git-ignored. Both files share the same nesting as `Settings`, so a minimal local override that enables the dev ingestion profile looks like:
+
+	```toml
+	env = "dev"
+
+	[storage]
+	firestore_project = "i4g-dev"
+
+	[vector]
+	vertex_ai_project = "i4g-dev"
+	vertex_ai_data_store = "retrieval-poc"
+
+	[ingestion]
+	default_dataset = "retrieval_poc_dev"
+	enable_firestore = true
+	enable_vertex = true
+	```
+
+	Values from `settings.local.toml` override `settings.default.toml`, and both sit below real environment variables. To temporarily use an alternate config file, set `I4G_SETTINGS_FILE=/path/to/file.toml` before launching a command.
 
 This catalog is assembled by `proto/scripts/export_settings_manifest.py` directly from `src/i4g/settings/config.py`. The descriptions below are automatically generated—do not hand-edit them; change the implementation defaults and rerun the exporter instead.
 

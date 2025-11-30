@@ -1,0 +1,32 @@
+# Shared Pydantic configuration overrides.
+#
+# This file ships with the repository so we can codify opinionated defaults
+# (for example, shared Cloud Run project IDs) without forcing developers to
+# export dozens of environment variables per command. Keep this file focused
+# on committed defaults that every environment should inherit.
+#
+# Developers can create `config/settings.local.toml` (git-ignored) to apply
+# laptop-specific settings. Local files follow the exact same schema as the
+# Pydantic settings model, which means keys align with the nested sections
+# exposed in `src/i4g/settings/config.py`. See the docs/dev_guide.md for
+# examples.
+#
+# Uncomment the sections below to promote a setting to the default layer.
+
+[storage]
+# firestore_project = "i4g-dev"
+# reports_bucket = "i4g-reports-dev"
+
+[vector]
+# vertex_ai_project = "i4g-dev"
+# vertex_ai_data_store = "retrieval-poc"
+# vertex_ai_branch = "default_branch"
+
+[ingestion]
+# default_dataset = "retrieval_poc_dev"
+# enable_firestore = true
+# enable_vertex = true
+# enable_vector_store = true
+
+[account_list]
+# drive_folder_id = "<drive-folder-id>"

@@ -4,16 +4,21 @@ from __future__ import annotations
 
 import json
 import os
+import tomllib
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, Field, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 ENV_VAR_NAME = "I4G_ENV"
 DEFAULT_ENV = "local"
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
+CONFIG_DIR = PROJECT_ROOT / "config"
+DEFAULT_CONFIG_FILE = CONFIG_DIR / "settings.default.toml"
+LOCAL_CONFIG_FILE = CONFIG_DIR / "settings.local.toml"
+SETTINGS_FILE_ENV_VAR = "I4G_SETTINGS_FILE"
 
 
 def _resolve_env(explicit_env: str | None = None) -> str:
@@ -48,6 +53,64 @@ def _env_file_candidates(env: str) -> list[Path]:
     ]
 
 
+def _resolve_config_path(raw_path: str | None) -> Path | None:
+    """Return an absolute config path from user input."""
+
+    if not raw_path:
+        return None
+    candidate = Path(raw_path).expanduser()
+    if not candidate.is_absolute():
+        candidate = (PROJECT_ROOT / candidate).resolve()
+    return candidate
+
+
+def _config_file_priority(include_missing: bool = False) -> tuple[Path, ...]:
+    """Return config files in descending precedence order."""
+
+    ordered: list[Path] = []
+    env_override = _resolve_config_path(os.getenv(SETTINGS_FILE_ENV_VAR))
+    if env_override:
+        ordered.append(env_override)
+    ordered.append(LOCAL_CONFIG_FILE)
+    ordered.append(DEFAULT_CONFIG_FILE)
+    if include_missing:
+        return tuple(ordered)
+    existing: list[Path] = []
+    for path in ordered:
+        if path.exists():
+            existing.append(path)
+    return tuple(existing)
+
+
+class TomlConfigSettingsSource(PydanticBaseSettingsSource):
+    """Pydantic settings source that loads values from a TOML file."""
+
+    def __init__(self, settings_cls: type[BaseSettings], path: Path) -> None:
+        super().__init__(settings_cls)
+        self.path = path
+        self._data: dict[str, Any] | None = None
+
+    def _load(self) -> dict[str, Any]:
+        if self._data is not None:
+            return self._data
+        if not self.path.exists():
+            self._data = {}
+            return self._data
+        try:
+            with self.path.open("rb") as handle:
+                self._data = tomllib.load(handle)
+        except tomllib.TOMLDecodeError as exc:  # pragma: no cover - invalid files surface immediately
+            raise ValueError(f"Invalid TOML syntax in {self.path}") from exc
+        return self._data
+
+    def __call__(self) -> dict[str, Any]:  # pragma: no cover - trivial wrapper
+        return self._load()
+
+    def get_field_value(self, field_name: str, field):  # pragma: no cover - passthrough helper
+        data = self._load()
+        return data.get(field_name), field_name in data
+
+
 def _read_env_value(*keys: str) -> str | None:
     """Return the first present environment variable from ``keys``."""
 
@@ -61,7 +124,7 @@ def _read_env_value(*keys: str) -> str | None:
 class RuntimeSettings(BaseSettings):
     """Process-level runtime controls."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     log_level: str = Field(
         default="INFO",
@@ -72,7 +135,7 @@ class RuntimeSettings(BaseSettings):
 class APISettings(BaseSettings):
     """API endpoint configuration shared by CLI + dashboards."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     base_url: str = Field(
         default="http://127.0.0.1:8000",
@@ -87,7 +150,7 @@ class APISettings(BaseSettings):
 class IdentitySettings(BaseSettings):
     """Identity provider wiring for auth-enabled services."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     provider: Literal["mock", "google_identity", "authentik", "firebase"] = Field(
         default="mock",
@@ -114,7 +177,7 @@ class IdentitySettings(BaseSettings):
 class StorageSettings(BaseSettings):
     """Structured + blob storage configuration."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     structured_backend: Literal["sqlite", "firestore", "cloudsql"] = Field(
         default="sqlite",
@@ -157,7 +220,7 @@ class StorageSettings(BaseSettings):
 class VectorSettings(BaseSettings):
     """Vector store configuration supporting multiple backends."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     backend: Literal["chroma", "faiss", "pgvector", "vertex_ai"] = Field(
         default="chroma",
@@ -224,7 +287,7 @@ class VectorSettings(BaseSettings):
 class LLMSettings(BaseSettings):
     """Large language model provider settings."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     provider: Literal["ollama", "vertex_ai", "mock"] = Field(
         default="ollama",
@@ -259,7 +322,7 @@ class LLMSettings(BaseSettings):
 class SecretsSettings(BaseSettings):
     """Secret resolution strategy (local vs Secret Manager)."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     use_secret_manager: bool = Field(
         default=False,
@@ -278,7 +341,7 @@ class SecretsSettings(BaseSettings):
 class IngestionSettings(BaseSettings):
     """Scheduler + job configuration for ingestion workflows."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     enable_scheduled_jobs: bool = Field(
         default=False,
@@ -373,7 +436,7 @@ class IngestionSettings(BaseSettings):
 class ObservabilitySettings(BaseSettings):
     """Logging, tracing, and metrics configuration."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     structured_logging: bool = Field(
         default=True,
@@ -392,7 +455,7 @@ class ObservabilitySettings(BaseSettings):
 class AccountListSettings(BaseSettings):
     """Account list extraction configuration."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     enabled: bool = Field(
         default=True,
@@ -458,13 +521,35 @@ class Settings(BaseSettings):
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     account_list: AccountListSettings = Field(default_factory=AccountListSettings)
     env_files: tuple[Path, ...] = Field(default_factory=tuple, exclude=True)
+    config_files: tuple[Path, ...] = Field(default_factory=tuple, exclude=True)
 
     model_config = SettingsConfigDict(
         env_prefix="I4G_",
         env_nested_delimiter="__",
         case_sensitive=False,
         extra="ignore",
+        populate_by_name=True,
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        """Extend settings sources with TOML-based config files."""
+
+        config_sources = [TomlConfigSettingsSource(settings_cls, path) for path in _config_file_priority()]
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            *config_sources,
+            file_secret_settings,
+        )
 
     @model_validator(mode="after")
     def _resolve_paths(self) -> "Settings":
@@ -811,11 +896,13 @@ def _load_settings(env: str | None = None) -> Settings:
 
     resolved_env = _resolve_env(env)
     candidate_files = [path for path in _env_file_candidates(resolved_env) if path.exists()]
+    config_files = _config_file_priority()
     return Settings(
         _env_file=[str(path) for path in candidate_files],
         _env_file_encoding="utf-8",
         env=resolved_env,
         env_files=tuple(candidate_files),
+        config_files=config_files,
     )
 
 
