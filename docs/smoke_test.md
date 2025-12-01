@@ -531,3 +531,85 @@ validate that Vertex throttling is handled by the retry worker.
   `Document batch requests per minute` quota before running larger corpora. When tuning these
   values, also adjust `I4G_INGEST_RETRY__BATCH_LIMIT` so the retry worker respects the same rate
   envelope.
+
+### 7. Network Entities Ingestion Smoke (Dev)
+
+Use this flow to mirror the `settings.dev_network_smoke` profile inside Cloud Run without touching
+`process-intakes`. The job ingests `data/manual_demo/network_entities.jsonl` into SQL, Firestore, and
+Vertex so UI chips stay in sync with the demo dataset.
+
+1. **Create or refresh the dedicated job (one-time per release).** Point the job at the current
+   ingest image digest and keep the env vars aligned with
+   `config/settings.dev_network_smoke.toml`:
+   ```bash
+   gcloud run jobs create ingest-network-smoke \
+     --project i4g-dev \
+     --region us-central1 \
+     --image us-central1-docker.pkg.dev/i4g-dev/applications/ingest-job@sha256:f3232cbb5769bdaeb1a706c6aa20b3705e63b5690163d68b460cca5e470cac45 \
+     --service-account sa-ingest@i4g-dev.iam.gserviceaccount.com \
+     --max-retries 3 \
+     --timeout 600s \
+     --cpu 1 \
+     --memory 512Mi \
+     --set-env-vars=I4G_ENV=dev, \
+I4G_STORAGE__FIRESTORE_PROJECT=i4g-dev, \
+I4G_STORAGE__REPORTS_BUCKET=i4g-reports-dev, \
+I4G_VECTOR__BACKEND=vertex_ai, \
+I4G_VECTOR__VERTEX_AI__PROJECT=i4g-dev, \
+I4G_VECTOR__VERTEX_AI__LOCATION=global, \
+I4G_VECTOR__VERTEX_AI__DATA_STORE=retrieval-poc, \
+I4G_VECTOR__VERTEX_AI__BRANCH=default_branch, \
+I4G_VERTEX_SEARCH_PROJECT=i4g-dev, \
+I4G_VERTEX_SEARCH_LOCATION=global, \
+I4G_VERTEX_SEARCH_DATA_STORE=retrieval-poc, \
+I4G_VERTEX_SEARCH_BRANCH=default_branch, \
+I4G_INGEST__JSONL_PATH=/app/data/manual_demo/network_entities.jsonl, \
+I4G_INGEST__DEFAULT_DATASET=network_smoke, \
+I4G_INGEST__BATCH_LIMIT=1, \
+I4G_INGEST__ENABLE_SQL=true, \
+I4G_INGEST__ENABLE_VECTOR=true, \
+I4G_INGEST__ENABLE_VECTOR_STORE=true, \
+I4G_INGEST__ENABLE_VERTEX=true, \
+I4G_INGEST__ENABLE_FIRESTORE=true, \
+I4G_INGEST__RESET_VECTOR=false, \
+I4G_INGEST__DRY_RUN=false, \
+I4G_LLM__PROVIDER=mock, \
+I4G_RUNTIME__LOG_LEVEL=INFO
+   ```
+   Re-run the same command with `jobs update` whenever the ingest image or env vars change. Keep the
+   digest in sync with the latest `ingest-job` release so Terraform diffs stay predictable.
+2. **Execute the smoke job.** Capture the execution name so you can query status and logs without
+   retyping:
+   ```bash
+   EXECUTION=$(gcloud run jobs execute ingest-network-smoke \
+     --project i4g-dev \
+     --region us-central1 \
+     --wait \
+     --format='value(metadata.name)')
+   echo "Started $EXECUTION"
+   ```
+   Typical runs finish in under two minutes because the batch size is pinned to `1`.
+3. **Inspect the execution status and logs.**
+   ```bash
+   gcloud run jobs executions describe "$EXECUTION" \
+     --project i4g-dev \
+     --region us-central1 \
+     --format='value(status.conditions)'
+
+   gcloud logging read \
+     "resource.type=cloud_run_job AND resource.labels.job_name=ingest-network-smoke AND labels.\"run.googleapis.com/execution_name\"=$EXECUTION" \
+     --project i4g-dev --limit 50 --format text
+   ```
+   Expect the `Completed` condition plus `Ingestion run ... dataset=network_smoke` log lines. If the job
+   fails, set `I4G_RUNTIME__LOG_LEVEL=DEBUG` via `jobs update` and rerun before filing an incident.
+4. **Verify downstream search + UI.** Use the admin helper to confirm the new cases reached Vertex:
+   ```bash
+   conda run -n i4g i4g-admin vertex-search "network entity" \
+     --project i4g-dev \
+     --location global \
+     --data-store-id retrieval-poc \
+     --filter 'dataset: ANY("network_smoke")'
+   ```
+   Then run the analyst console smoke from the `ui/` repo (see the "Analyst console" section above) and
+   confirm the indicator chips for `network_smoke` cases render. Log the ingest run ID plus any UI
+   observations in `planning/change_log.md`.

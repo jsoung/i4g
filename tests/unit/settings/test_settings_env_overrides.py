@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import textwrap
+from pathlib import Path
 
-from i4g.settings.config import reload_settings
+from i4g.settings.config import PROJECT_ROOT, reload_settings
 
 
 def _clear_env(monkeypatch: object, *names: str) -> None:
@@ -152,6 +153,140 @@ def test_settings_file_override(tmp_path, monkeypatch: object) -> None:
     _set_env(monkeypatch, "I4G_INGEST__DEFAULT_DATASET", "env_dataset")
     env_override = reload_settings()
     assert env_override.ingestion.default_dataset == "env_dataset"
+
+
+def test_ingestion_local_config_dataset_override(tmp_path, monkeypatch: object) -> None:
+    """Local config files should override the ingestion default dataset."""
+
+    _clear_env(monkeypatch, "I4G_INGEST__DEFAULT_DATASET", "I4G_SETTINGS_FILE", "I4G_ENV")
+
+    local_file = tmp_path / "settings.local.toml"
+    local_file.write_text(
+        textwrap.dedent(
+            """
+            env = "dev"
+
+            [ingestion]
+            default_dataset = "local_dataset"
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+
+    default_file = tmp_path / "settings.default.toml"
+    default_file.write_text('env = "dev"', encoding="utf-8")
+
+    monkeypatch.setattr("i4g.settings.config.LOCAL_CONFIG_FILE", local_file)
+    monkeypatch.setattr("i4g.settings.config.DEFAULT_CONFIG_FILE", default_file)
+
+    settings_from_local = reload_settings(env="dev")
+    assert settings_from_local.ingestion.default_dataset == "local_dataset"
+    assert local_file in settings_from_local.config_files
+    assert default_file in settings_from_local.config_files
+
+
+def test_ingestion_default_config_dataset_override(tmp_path, monkeypatch: object) -> None:
+    """Default config files should populate ingestion dataset when local overrides are absent."""
+
+    _clear_env(monkeypatch, "I4G_INGEST__DEFAULT_DATASET", "I4G_SETTINGS_FILE", "I4G_ENV")
+
+    default_file = tmp_path / "settings.default.toml"
+    default_file.write_text(
+        textwrap.dedent(
+            """
+            env = "dev"
+
+            [ingestion]
+            default_dataset = "baseline_dataset"
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+
+    missing_local_file = tmp_path / "settings.local.toml"
+
+    monkeypatch.setattr("i4g.settings.config.LOCAL_CONFIG_FILE", missing_local_file)
+    monkeypatch.setattr("i4g.settings.config.DEFAULT_CONFIG_FILE", default_file)
+
+    settings_from_default = reload_settings(env="dev")
+    assert settings_from_default.ingestion.default_dataset == "baseline_dataset"
+    assert default_file in settings_from_default.config_files
+    assert missing_local_file not in settings_from_default.config_files
+
+
+def test_ingestion_dataset_path_from_config(tmp_path, monkeypatch: object) -> None:
+    """Relative dataset paths in config files should resolve against the project root."""
+
+    _clear_env(monkeypatch, "I4G_INGEST__JSONL_PATH", "I4G_SETTINGS_FILE", "I4G_ENV")
+
+    local_file = tmp_path / "settings.local.toml"
+    local_file.write_text(
+        textwrap.dedent(
+            """
+            env = "dev"
+
+            [ingestion]
+            dataset_path = "data/manual_demo/network_entities.jsonl"
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+
+    default_file = tmp_path / "settings.default.toml"
+    default_file.write_text("env = \"dev\"", encoding="utf-8")
+
+    monkeypatch.setattr("i4g.settings.config.LOCAL_CONFIG_FILE", local_file)
+    monkeypatch.setattr("i4g.settings.config.DEFAULT_CONFIG_FILE", default_file)
+
+    settings_with_path = reload_settings(env="dev")
+    expected = (PROJECT_ROOT / "data/manual_demo/network_entities.jsonl").resolve()
+    assert settings_with_path.ingestion.dataset_path == expected
+
+
+def test_ingestion_dataset_path_env_override(monkeypatch: object) -> None:
+    """Environment variables still override dataset paths when provided."""
+
+    _clear_env(monkeypatch, "I4G_INGEST__JSONL_PATH", "I4G_SETTINGS_FILE", "I4G_ENV")
+    temp_path = Path("/tmp/override.jsonl")
+    monkeypatch.setenv("I4G_INGEST__JSONL_PATH", str(temp_path))
+    settings_override = reload_settings(env="dev")
+    assert settings_override.ingestion.dataset_path == temp_path
+
+
+def test_ingestion_batch_limit_from_config(tmp_path, monkeypatch: object) -> None:
+    """Batch limits configured via TOML files should populate settings."""
+
+    _clear_env(monkeypatch, "I4G_INGEST__BATCH_LIMIT", "I4G_SETTINGS_FILE", "I4G_ENV")
+
+    local_file = tmp_path / "settings.local.toml"
+    local_file.write_text(
+        textwrap.dedent(
+            """
+            env = "dev"
+
+            [ingestion]
+            batch_limit = 25
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+    default_file = tmp_path / "settings.default.toml"
+    default_file.write_text("env = \"dev\"", encoding="utf-8")
+
+    monkeypatch.setattr("i4g.settings.config.LOCAL_CONFIG_FILE", local_file)
+    monkeypatch.setattr("i4g.settings.config.DEFAULT_CONFIG_FILE", default_file)
+
+    settings_with_batch = reload_settings(env="dev")
+    assert settings_with_batch.ingestion.batch_limit == 25
+
+
+def test_ingestion_batch_limit_env_override(monkeypatch: object) -> None:
+    """Environment variables override batch_limit settings values."""
+
+    _clear_env(monkeypatch, "I4G_INGEST__BATCH_LIMIT", "I4G_SETTINGS_FILE", "I4G_ENV")
+    monkeypatch.setenv("I4G_INGEST__BATCH_LIMIT", "7")
+    settings_override = reload_settings(env="dev")
+    assert settings_override.ingestion.batch_limit == 7
 
 
 def test_observability_statsd_env_overrides(monkeypatch: object) -> None:

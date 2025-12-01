@@ -23,7 +23,9 @@
 # vertex_ai_branch = "default_branch"
 
 [ingestion]
+# dataset_path = "data/retrieval_poc/cases.jsonl"
 # default_dataset = "retrieval_poc_dev"
+# batch_limit = 0
 # enable_firestore = true
 # enable_vertex = true
 # enable_vector_store = true

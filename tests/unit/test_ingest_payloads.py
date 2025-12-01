@@ -124,3 +124,35 @@ def test_prepare_payload_copies_document_fields():
     assert payload["risk_level"] == "high"
     assert payload["language"] == "en"
     assert payload["ground_truth_label"] == "template-1"
+
+
+def test_prepare_payload_enriches_network_entities_without_duplicates():
+    record = {
+        "case_id": "case-network",
+        "text": "Browser + network indicators",
+        "entities": {"ip_address": [{"value": "198.51.100.10"}]},
+        "structured_fields": {
+            "network": {
+                "browser_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0_0)",
+                "ip_address": ["203.0.113.25", {"value": "198.51.100.10"}],
+            },
+            "asn": 64512,
+        },
+        "metadata": {
+            "network": {
+                "client_ip": "203.0.113.25",
+                "asn_number": "AS13335",
+            }
+        },
+    }
+
+    payload, diagnostics = prepare_ingest_payload(record)
+
+    entities = payload["entities"]
+    assert entities["ip_address"] == [
+        {"value": "198.51.100.10"},
+        {"value": "203.0.113.25"},
+    ]
+    assert entities["browser_agent"] == [{"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0_0)"}]
+    assert {entry["value"] for entry in entities["asn"]} == {"64512", "AS13335"}
+    assert diagnostics["entities_source"].endswith("+network")

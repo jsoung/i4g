@@ -124,12 +124,23 @@ def main() -> int:
 
     _configure_logging()
 
-    dataset_path = Path(os.getenv("I4G_INGEST__JSONL_PATH", "/app/data/retrieval_poc/cases.jsonl"))
     settings = get_settings()
 
-    batch_limit = int(os.getenv("I4G_INGEST__BATCH_LIMIT", "0") or 0)
-    dry_run = os.getenv("I4G_INGEST__DRY_RUN", "false").lower() in {"1", "true", "yes", "on"}
-    reset_vector = os.getenv("I4G_INGEST__RESET_VECTOR", "false").lower() in {"1", "true", "yes", "on"}
+    dataset_override = os.getenv("I4G_INGEST__JSONL_PATH")
+    dataset_path = Path(dataset_override) if dataset_override else Path(settings.ingestion.dataset_path)
+
+    batch_limit_override = os.getenv("I4G_INGEST__BATCH_LIMIT")
+    try:
+        batch_limit = int(batch_limit_override) if batch_limit_override else settings.ingestion.batch_limit
+    except ValueError:
+        LOGGER.warning("Invalid batch limit override: %s", batch_limit_override)
+        batch_limit = settings.ingestion.batch_limit
+
+    dry_run_override = _env_flag("I4G_INGEST__DRY_RUN")
+    dry_run = dry_run_override if dry_run_override is not None else settings.ingestion.dry_run
+
+    reset_override = _env_flag("I4G_INGEST__RESET_VECTOR")
+    reset_vector = reset_override if reset_override is not None else settings.ingestion.reset_vector
     vector_override = _env_flag("I4G_INGEST__ENABLE_VECTOR")
     enable_vector = vector_override if vector_override is not None else settings.ingestion.enable_vector_store
     vertex_override = _env_flag("I4G_INGEST__ENABLE_VERTEX")

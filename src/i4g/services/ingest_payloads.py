@@ -2,7 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
+
+_NETWORK_ENTITY_FIELDS: Dict[str, Tuple[str, ...]] = {
+    "browser_agent": ("browser_agent", "browser", "browser_string", "user_agent", "ua"),
+    "ip_address": (
+        "ip_address",
+        "ip_addresses",
+        "ip",
+        "ips",
+        "client_ip",
+        "client_ips",
+        "source_ip",
+        "source_ips",
+    ),
+    "asn": ("asn", "asn_number", "autonomous_system_number", "autonomous_system", "as_number"),
+}
 
 
 def _as_dict(value: Any) -> Dict[str, Any]:
@@ -106,6 +121,113 @@ def _extract_entities(record: Dict[str, Any], metadata: Dict[str, Any]) -> Tuple
     return {}, "none"
 
 
+def _normalize_network_value(value: Any) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        stripped = value.strip()
+        return [stripped] if stripped else []
+    if isinstance(value, (int, float)):
+        return [str(value)]
+    if isinstance(value, dict):
+        for key in ("value", "number", "id", "raw", "display"):
+            candidate = value.get(key)
+            if candidate:
+                return _normalize_network_value(candidate)
+        return []
+    if isinstance(value, (list, tuple, set)):
+        results: List[str] = []
+        for item in value:
+            results.extend(_normalize_network_value(item))
+        return results
+    return [str(value)]
+
+
+def _dedupe_preserving_order(values: Iterable[str]) -> List[str]:
+    seen: set[str] = set()
+    ordered: List[str] = []
+    for item in values:
+        normalized = item.strip()
+        if not normalized:
+            continue
+        key = normalized.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(normalized)
+    return ordered
+
+
+def _extract_network_entities(
+    record: Dict[str, Any],
+    metadata: Dict[str, Any],
+    structured_fields: Dict[str, Any] | None,
+) -> Dict[str, List[str]]:
+    sources: List[Dict[str, Any]] = []
+    for candidate in (record, metadata):
+        if isinstance(candidate, dict):
+            sources.append(candidate)
+            network_section = candidate.get("network")
+            if isinstance(network_section, dict):
+                sources.append(network_section)
+    if isinstance(structured_fields, dict):
+        sources.append(structured_fields)
+        network_section = structured_fields.get("network")
+        if isinstance(network_section, dict):
+            sources.append(network_section)
+
+    extracted: Dict[str, List[str]] = {}
+    for entity_type, field_names in _NETWORK_ENTITY_FIELDS.items():
+        collected: List[str] = []
+        for source in sources:
+            for field_name in field_names:
+                raw_value = source.get(field_name)
+                if raw_value is None:
+                    continue
+                collected.extend(_normalize_network_value(raw_value))
+        deduped = _dedupe_preserving_order(collected)
+        if deduped:
+            extracted[entity_type] = deduped
+    return extracted
+
+
+def _entity_list_contains(entries: List[Any], value: str) -> bool:
+    target = value.strip().lower()
+    if not target:
+        return True
+    for entry in entries:
+        if isinstance(entry, str) and entry.strip().lower() == target:
+            return True
+        if isinstance(entry, dict):
+            candidate = entry.get("canonical") or entry.get("value") or entry.get("number") or entry.get("raw")
+            if isinstance(candidate, str) and candidate.strip().lower() == target:
+                return True
+    return False
+
+
+def _merge_network_entities(
+    entities: Dict[str, Any],
+    network_entities: Dict[str, List[str]],
+) -> Dict[str, Any]:
+    if not network_entities:
+        return entities
+    merged = dict(entities)
+    for entity_type, values in network_entities.items():
+        existing = merged.get(entity_type)
+        if isinstance(existing, list):
+            target_list = existing
+        elif existing is None:
+            target_list = []
+            merged[entity_type] = target_list
+        else:
+            target_list = [existing]
+            merged[entity_type] = target_list
+        for value in values:
+            if not _entity_list_contains(target_list, value):
+                target_list.append({"value": value})
+    return merged
+
+
 def _extract_categories(record: Dict[str, Any], metadata: Dict[str, Any]) -> List[str]:
     for candidate in (record.get("categories"), record.get("category"), metadata.get("categories")):
         categories = _normalise_string_list(candidate)
@@ -176,6 +298,11 @@ def prepare_ingest_payload(
     summary = _extract_summary(record, metadata)
     tags = _extract_tags(record, metadata)
     structured_fields = record.get("structured_fields") or metadata.get("structured_fields")
+    network_entities = _extract_network_entities(record, metadata, structured_fields)
+    if network_entities:
+        entities = _merge_network_entities(entities, network_entities)
+        if "network" not in entities_source:
+            entities_source = f"{entities_source}+network" if entities_source else "network"
     channel = record.get("channel") or metadata.get("channel")
     timestamp = record.get("timestamp") or metadata.get("timestamp")
     risk_level = record.get("risk_level") or metadata.get("risk_level")

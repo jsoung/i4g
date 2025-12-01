@@ -395,6 +395,42 @@ class IngestionSettings(BaseSettings):
             "INGESTION__ENABLE_VECTOR",
         ),
     )
+    dataset_path: Path = Field(
+        default=PROJECT_ROOT / "data" / "retrieval_poc" / "cases.jsonl",
+        validation_alias=AliasChoices(
+            "INGEST_JSONL_PATH",
+            "INGEST__JSONL_PATH",
+            "INGESTION_JSONL_PATH",
+            "INGESTION__JSONL_PATH",
+        ),
+    )
+    batch_limit: int = Field(
+        default=0,
+        validation_alias=AliasChoices(
+            "INGEST_BATCH_LIMIT",
+            "INGEST__BATCH_LIMIT",
+            "INGESTION_BATCH_LIMIT",
+            "INGESTION__BATCH_LIMIT",
+        ),
+    )
+    dry_run: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "INGEST_DRY_RUN",
+            "INGEST__DRY_RUN",
+            "INGESTION_DRY_RUN",
+            "INGESTION__DRY_RUN",
+        ),
+    )
+    reset_vector: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "INGEST_RESET_VECTOR",
+            "INGEST__RESET_VECTOR",
+            "INGESTION_RESET_VECTOR",
+            "INGESTION__RESET_VECTOR",
+        ),
+    )
     default_dataset: str = Field(
         default="unknown",
         validation_alias=AliasChoices(
@@ -648,7 +684,21 @@ class Settings(BaseSettings):
             secrets_update = {"local_env_file": (self.project_root / self.secrets.local_env_file).resolve()}
             object.__setattr__(self, "secrets", self.secrets.model_copy(update=secrets_update))
 
+        self._normalize_ingestion_paths()
+
         return self
+
+    def _normalize_ingestion_paths(self) -> None:
+        """Ensure ingestion paths resolve relative to the project root."""
+
+        dataset_path = self.ingestion.dataset_path
+        normalized = dataset_path
+        if dataset_path and not isinstance(dataset_path, Path):
+            normalized = Path(dataset_path)
+        if normalized and not normalized.is_absolute():
+            normalized = (self.project_root / normalized).resolve()
+        if normalized and normalized != dataset_path:
+            object.__setattr__(self, "ingestion", self.ingestion.model_copy(update={"dataset_path": normalized}))
 
     @model_validator(mode="after")
     def _apply_environment_overrides(self) -> "Settings":
@@ -809,12 +859,26 @@ class Settings(BaseSettings):
             "INGEST__DEFAULT_DATASET",
             "INGEST_DEFAULT_DATASET",
         )
+        _ingestion_str(
+            "dataset_path",
+            "INGESTION__JSONL_PATH",
+            "INGESTION_JSONL_PATH",
+            "INGEST__JSONL_PATH",
+            "INGEST_JSONL_PATH",
+        )
         _ingestion_int(
             "fanout_timeout_seconds",
             "INGESTION__FANOUT_TIMEOUT_SECONDS",
             "INGESTION_FANOUT_TIMEOUT_SECONDS",
             "INGEST__FANOUT_TIMEOUT_SECONDS",
             "INGEST_FANOUT_TIMEOUT_SECONDS",
+        )
+        _ingestion_int(
+            "batch_limit",
+            "INGESTION__BATCH_LIMIT",
+            "INGESTION_BATCH_LIMIT",
+            "INGEST__BATCH_LIMIT",
+            "INGEST_BATCH_LIMIT",
         )
         _ingestion_int(
             "max_retries",
@@ -830,9 +894,24 @@ class Settings(BaseSettings):
             "INGEST__RETRY_DELAY_SECONDS",
             "INGEST_RETRY_DELAY_SECONDS",
         )
+        _ingestion_bool(
+            "dry_run",
+            "INGESTION__DRY_RUN",
+            "INGESTION_DRY_RUN",
+            "INGEST__DRY_RUN",
+            "INGEST_DRY_RUN",
+        )
+        _ingestion_bool(
+            "reset_vector",
+            "INGESTION__RESET_VECTOR",
+            "INGESTION_RESET_VECTOR",
+            "INGEST__RESET_VECTOR",
+            "INGEST_RESET_VECTOR",
+        )
 
         if ingestion_alias_updates:
             object.__setattr__(self, "ingestion", self.ingestion.model_copy(update=ingestion_alias_updates))
+            self._normalize_ingestion_paths()
 
         provider_override = _read_env_value(
             "I4G_LLM__PROVIDER",

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-11-30T23:21:38.662262+00:00",
+  "generated_at": "2025-12-01T21:35:08.577557+00:00",
   "source": "src/i4g/settings/config.py",
   "env_prefix": "I4G_",
   "fields": [
@@ -219,6 +219,34 @@
       "description": "Identity provider wiring for auth-enabled services."
     },
     {
+      "path": "ingestion.batch_limit",
+      "section": "ingestion",
+      "type": "int",
+      "default": 0,
+      "env_vars": [
+        "I4G_INGESTION__BATCH_LIMIT",
+        "INGEST_BATCH_LIMIT",
+        "INGEST__BATCH_LIMIT",
+        "INGESTION_BATCH_LIMIT",
+        "INGESTION__BATCH_LIMIT"
+      ],
+      "description": "Scheduler + job configuration for ingestion workflows."
+    },
+    {
+      "path": "ingestion.dataset_path",
+      "section": "ingestion",
+      "type": "Path",
+      "default": "/Users/jerry/Work/project/i4g/data/retrieval_poc/cases.jsonl",
+      "env_vars": [
+        "I4G_INGESTION__DATASET_PATH",
+        "INGEST_JSONL_PATH",
+        "INGEST__JSONL_PATH",
+        "INGESTION_JSONL_PATH",
+        "INGESTION__JSONL_PATH"
+      ],
+      "description": "Scheduler + job configuration for ingestion workflows."
+    },
+    {
       "path": "ingestion.default_dataset",
       "section": "ingestion",
       "type": "str",
@@ -253,6 +281,20 @@
         "I4G_INGESTION__DEFAULT_SERVICE_ACCOUNT",
         "INGESTION_SERVICE_ACCOUNT",
         "INGESTION__SERVICE_ACCOUNT"
+      ],
+      "description": "Scheduler + job configuration for ingestion workflows."
+    },
+    {
+      "path": "ingestion.dry_run",
+      "section": "ingestion",
+      "type": "bool",
+      "default": false,
+      "env_vars": [
+        "I4G_INGESTION__DRY_RUN",
+        "INGEST_DRY_RUN",
+        "INGEST__DRY_RUN",
+        "INGESTION_DRY_RUN",
+        "INGESTION__DRY_RUN"
       ],
       "description": "Scheduler + job configuration for ingestion workflows."
     },
@@ -349,6 +391,20 @@
         "INGEST__MAX_RETRIES",
         "INGESTION_MAX_RETRIES",
         "INGESTION__MAX_RETRIES"
+      ],
+      "description": "Scheduler + job configuration for ingestion workflows."
+    },
+    {
+      "path": "ingestion.reset_vector",
+      "section": "ingestion",
+      "type": "bool",
+      "default": false,
+      "env_vars": [
+        "I4G_INGESTION__RESET_VECTOR",
+        "INGEST_RESET_VECTOR",
+        "INGEST__RESET_VECTOR",
+        "INGESTION_RESET_VECTOR",
+        "INGESTION__RESET_VECTOR"
       ],
       "description": "Scheduler + job configuration for ingestion workflows."
     },

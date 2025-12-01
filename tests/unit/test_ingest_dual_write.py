@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlalchemy as sa
 
 from i4g.services.firestore_writer import FirestoreWriteResult
+from i4g.services.ingest_payloads import prepare_ingest_payload
 from i4g.settings.config import get_settings, reload_settings
 from i4g.store import sql as sql_schema
 from i4g.store.ingest import IngestPipeline
@@ -112,5 +113,59 @@ def test_ingest_pipeline_writes_firestore_when_enabled(tmp_path, monkeypatch):
         assert result.firestore_written is True
         assert dummy_writer.calls == 1
         assert dummy_writer.last_args[2] == "run-firestore"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_ingest_pipeline_persists_network_entities(tmp_path, monkeypatch):
+    db_path = tmp_path / "network_entities.db"
+    monkeypatch.setenv("I4G_STORAGE__SQLITE_PATH", str(db_path))
+    monkeypatch.setenv("I4G_INGESTION__ENABLE_SQL", "true")
+    monkeypatch.setenv("I4G_INGESTION__DEFAULT_DATASET", "network_demo")
+
+    try:
+        reload_settings(env="local")
+
+        engine = sa.create_engine(f"sqlite:///{db_path}", future=True)
+        sql_schema.METADATA.create_all(engine)
+        engine.dispose()
+
+        structured_store = StructuredStore(str(db_path))
+        pipeline = IngestPipeline(
+            structured_store=structured_store,
+            vector_store=None,
+            enable_vector=False,
+            default_dataset="network_demo",
+        )
+
+        record = {
+            "text": "Session contained browser and ASN details",
+            "fraud_type": "tech_support",
+            "fraud_confidence": 0.88,
+            "structured_fields": {
+                "network": {
+                    "browser_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                    "ip_address": ["203.0.113.25", "198.51.100.18"],
+                },
+                "asn": 15169,
+            },
+        }
+        payload, _ = prepare_ingest_payload(record, default_dataset="network_demo")
+
+        result = pipeline.ingest_classified_case(payload, ingestion_run_id="run-network")
+        assert result.sql_result is not None
+
+        with sa.create_engine(f"sqlite:///{db_path}", future=True).connect() as conn:
+            rows = conn.execute(
+                sa.select(sql_schema.entities.c.entity_type, sql_schema.entities.c.canonical_value)
+                .where(sql_schema.entities.c.case_id == result.case_id)
+                .where(sql_schema.entities.c.entity_type.in_(["browser_agent", "ip_address", "asn"]))
+            ).fetchall()
+        assert {(row.entity_type, row.canonical_value) for row in rows} == {
+            ("browser_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"),
+            ("ip_address", "203.0.113.25"),
+            ("ip_address", "198.51.100.18"),
+            ("asn", "15169"),
+        }
     finally:
         get_settings.cache_clear()

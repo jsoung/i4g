@@ -1,0 +1,30 @@
+# Dev ingestion profile for network entity smoke bundle.
+env = "dev"
+
+[runtime]
+log_level = "INFO"
+
+[storage]
+firestore_project = "i4g-dev"
+reports_bucket = "i4g-reports-dev"
+
+[vector]
+backend = "vertex_ai"
+vertex_ai_project = "i4g-dev"
+vertex_ai_location = "global"
+vertex_ai_data_store = "retrieval-poc"
+vertex_ai_branch = "default_branch"
+
+[ingestion]
+dataset_path = "proto/data/manual_demo/network_entities.jsonl"
+default_dataset = "network_smoke"
+batch_limit = 1
+enable_sql = true
+enable_vector_store = true
+enable_vertex = true
+enable_firestore = true
+reset_vector = false
+dry_run = false
+
+[llm]
+provider = "mock"

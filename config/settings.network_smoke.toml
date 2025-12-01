@@ -1,0 +1,21 @@
+# Network entity smoke ingestion profile.
+# Use this config with `I4G_SETTINGS_FILE=config/settings.network_smoke.toml` when
+# running ingestion jobs that target the manual demo bundle.
+env = "local"
+
+[runtime]
+log_level = "INFO"
+
+[ingestion]
+dataset_path = "proto/data/manual_demo/network_entities.jsonl"
+default_dataset = "network_smoke"
+batch_limit = 1
+enable_sql = true
+enable_firestore = false
+enable_vertex = false
+enable_vector_store = false
+dry_run = false
+reset_vector = false
+
+[llm]
+provider = "mock"
