@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal, Sequence
 
 from i4g.observability import Observability, get_observability
+from i4g.services.factories import build_entity_store
 from i4g.settings import Settings, get_settings
 from i4g.store.retriever import HybridRetriever
 
@@ -74,17 +75,21 @@ class SearchSchema:
     classifications: List[str]
     loss_buckets: List[str]
     time_presets: List[str]
+    entity_examples: Dict[str, List[str]] | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize schema to a dictionary."""
 
-        return {
+        payload = {
             "indicator_types": list(self.indicator_types),
             "datasets": list(self.datasets),
             "classifications": list(self.classifications),
             "loss_buckets": list(self.loss_buckets),
             "time_presets": list(self.time_presets),
         }
+        if self.entity_examples:
+            payload["entity_examples"] = self.entity_examples
+        return payload
 
 
 class HybridSearchService:
@@ -99,10 +104,16 @@ class HybridSearchService:
         retriever: HybridRetriever | None = None,
         settings: Settings | None = None,
         observability: Observability | None = None,
+        entity_store: "EntityStore" | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self.retriever = retriever or HybridRetriever()
         self.observability = observability or get_observability(component="hybrid_search", settings=self.settings)
+        if entity_store is not None:
+            self.entity_store = entity_store
+        else:
+            candidate = getattr(self.retriever, "entity_store", None)
+            self.entity_store = candidate if candidate is not None else build_entity_store()
         self._schema_cache: tuple[float, SearchSchema] | None = None
 
     # ------------------------------------------------------------------
@@ -199,12 +210,15 @@ class HybridSearchService:
             return cached.to_dict()
 
         self.observability.increment("hybrid_search.schema.cache_miss")
+        indicator_types = list(self.settings.search.indicator_types)
+        datasets = self._resolve_dataset_presets(indicator_types)
         schema = SearchSchema(
-            indicator_types=list(self.settings.search.indicator_types),
-            datasets=list(self.settings.search.dataset_presets),
+            indicator_types=indicator_types,
+            datasets=datasets,
             classifications=list(self.settings.search.classification_presets),
             loss_buckets=list(self.settings.search.loss_buckets),
             time_presets=list(self.settings.search.time_presets),
+            entity_examples=self._resolve_entity_examples(indicator_types),
         )
         ttl = max(self.settings.search.schema_cache_ttl_seconds, 0)
         if ttl:
@@ -414,6 +428,49 @@ class HybridSearchService:
             except ValueError:
                 return None
         return None
+
+    def _resolve_dataset_presets(self, indicator_types: Sequence[str]) -> List[str]:
+        configured = list(self.settings.search.dataset_presets)
+        if not self.entity_store:
+            return configured
+        dynamic = self.entity_store.list_datasets(entity_types=indicator_types or None)
+        return self._merge_preserving_order(configured, dynamic)
+
+    def _resolve_entity_examples(self, indicator_types: Sequence[str]) -> Dict[str, List[str]]:
+        if not indicator_types or not self.entity_store:
+            return {}
+        limit = self.settings.search.schema_entity_example_limit
+        raw_examples = self.entity_store.list_entity_examples(
+            entity_types=indicator_types,
+            datasets=None,
+            per_type_limit=limit,
+        )
+        resolved: Dict[str, List[str]] = {}
+        for indicator_type in indicator_types:
+            key = indicator_type.strip().lower()
+            entries = raw_examples.get(key, [])
+            values = [entry.get("value") for entry in entries if entry.get("value")]
+            if values:
+                resolved[indicator_type] = values
+        return resolved
+
+    @staticmethod
+    def _merge_preserving_order(primary: Sequence[str], secondary: Sequence[str]) -> List[str]:
+        merged: List[str] = []
+        seen: set[str] = set()
+        for source in (primary, secondary):
+            for value in source:
+                if value is None:
+                    continue
+                normalized = value.strip()
+                if not normalized:
+                    continue
+                key = normalized.lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                merged.append(normalized)
+        return merged
 
     def _build_diagnostics(
         self,

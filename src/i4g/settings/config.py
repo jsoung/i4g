@@ -598,6 +598,25 @@ class SearchSettings(BaseSettings):
         default_factory=lambda: ["<10k", "10k-50k", ">50k"],
         validation_alias=AliasChoices("SEARCH_LOSS_BUCKETS", "SEARCH__LOSS_BUCKETS"),
     )
+    schema_entity_example_limit: int = Field(
+        default=5,
+        validation_alias=AliasChoices(
+            "SEARCH_SCHEMA_ENTITY_EXAMPLE_LIMIT",
+            "SEARCH__SCHEMA_ENTITY_EXAMPLE_LIMIT",
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _validate_weights(self) -> "SearchSettings":
+        """Ensure semantic/structured weights fall within acceptable bounds."""
+
+        for field_name in ("semantic_weight", "structured_weight"):
+            value = getattr(self, field_name)
+            if value < 0 or value > 1:
+                raise ValueError(f"{field_name} must be between 0 and 1 inclusive (got {value})")
+        if self.semantic_weight == 0 and self.structured_weight == 0:
+            raise ValueError("At least one of semantic_weight or structured_weight must be greater than zero.")
+        return self
 
 
 class Settings(BaseSettings):

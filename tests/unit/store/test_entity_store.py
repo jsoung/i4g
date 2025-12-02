@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict
 
 import sqlalchemy as sa
@@ -18,17 +18,22 @@ def _session_factory() -> sessionmaker:
     return sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 
-def _seed_case_with_indicator(
+def _seed_case_with_entity(
     session,
     *,
     case_id: str,
     dataset: str,
-    indicator_number: str,
+    entity_value: str,
     loss_amount: float | None = None,
+    entity_type: str = "bank_account",
+    last_seen_offset_days: int = 0,
 ) -> None:
     case_metadata: Dict[str, Any] = {"dataset": dataset}
     if loss_amount is not None:
         case_metadata["loss_amount"] = loss_amount
+
+    now = datetime.utcnow()
+    last_seen_at = now - timedelta(days=last_seen_offset_days)
 
     session.execute(
         sql_schema.cases.insert(),
@@ -46,15 +51,14 @@ def _seed_case_with_indicator(
         },
     )
     session.execute(
-        sql_schema.indicators.insert(),
+        sql_schema.entities.insert(),
         {
-            "indicator_id": f"ind-{case_id}",
+            "entity_id": f"entity-{case_id}",
             "case_id": case_id,
-            "category": "bank_account",
-            "type": "account_number",
-            "number": indicator_number,
-            "dataset": dataset,
+            "entity_type": entity_type,
+            "canonical_value": entity_value,
             "metadata": {"dataset": dataset},
+            "last_seen_at": last_seen_at,
         },
     )
     session.commit()
@@ -64,11 +68,11 @@ def test_search_cases_by_indicator_filters_dataset_and_loss_bucket():
     factory = _session_factory()
     store = EntityStore(session_factory=factory)
     with factory() as session:
-        _seed_case_with_indicator(
+        _seed_case_with_entity(
             session,
             case_id="case-a",
             dataset="retrieval_poc_dev",
-            indicator_number="021000021-123456789",
+            entity_value="021000021-123456789",
             loss_amount=25000,
         )
 
@@ -90,11 +94,11 @@ def test_search_cases_by_indicator_honors_mismatch_filters():
     factory = _session_factory()
     store = EntityStore(session_factory=factory)
     with factory() as session:
-        _seed_case_with_indicator(
+        _seed_case_with_entity(
             session,
             case_id="case-b",
             dataset="account_list",
-            indicator_number="999-222-111",
+            entity_value="999-222-111",
             loss_amount=5000,
         )
 
@@ -123,3 +127,77 @@ def test_search_cases_by_indicator_honors_mismatch_filters():
         )
         == []
     )
+
+
+def test_list_datasets_orders_by_frequency():
+    factory = _session_factory()
+    store = EntityStore(session_factory=factory)
+    with factory() as session:
+        _seed_case_with_entity(session, case_id="case-c", dataset="network_smoke", entity_value="ua-1")
+        _seed_case_with_entity(session, case_id="case-d", dataset="network_smoke", entity_value="ua-2")
+        _seed_case_with_entity(session, case_id="case-e", dataset="retrieval_poc_dev", entity_value="ua-3")
+
+    datasets = store.list_datasets()
+
+    assert datasets[0] == "network_smoke"  # appears most frequently
+    assert set(datasets) == {"network_smoke", "retrieval_poc_dev"}
+
+
+def test_list_entity_examples_returns_unique_values():
+    factory = _session_factory()
+    store = EntityStore(session_factory=factory)
+    with factory() as session:
+        _seed_case_with_entity(
+            session,
+            case_id="case-f",
+            dataset="network_smoke",
+            entity_value="Mozilla/5.0",
+            entity_type="browser_agent",
+            last_seen_offset_days=1,
+        )
+        _seed_case_with_entity(
+            session,
+            case_id="case-g",
+            dataset="network_smoke",
+            entity_value="Mozilla/5.0",
+            entity_type="browser_agent",
+            last_seen_offset_days=2,
+        )
+        _seed_case_with_entity(
+            session,
+            case_id="case-h",
+            dataset="network_smoke",
+            entity_value="Safari/17",
+            entity_type="browser_agent",
+        )
+
+    examples = store.list_entity_examples(entity_types=["browser_agent"], per_type_limit=2)
+
+    assert "browser_agent" in examples
+    values = [entry["value"] for entry in examples["browser_agent"]]
+    assert values == ["Safari/17", "Mozilla/5.0"]
+
+
+def test_list_entity_examples_filters_by_dataset():
+    factory = _session_factory()
+    store = EntityStore(session_factory=factory)
+    with factory() as session:
+        _seed_case_with_entity(
+            session,
+            case_id="case-i",
+            dataset="network_smoke",
+            entity_value="1.1.1.1",
+            entity_type="ip_address",
+        )
+        _seed_case_with_entity(
+            session,
+            case_id="case-j",
+            dataset="retrieval_poc_dev",
+            entity_value="2.2.2.2",
+            entity_type="ip_address",
+        )
+
+    filtered = store.list_entity_examples(entity_types=["ip_address"], datasets=["network_smoke"], per_type_limit=5)
+
+    values = [entry["value"] for entry in filtered["ip_address"]]
+    assert values == ["1.1.1.1"]

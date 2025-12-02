@@ -6,6 +6,9 @@ import json
 import textwrap
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from i4g.settings.config import PROJECT_ROOT, reload_settings
 
 
@@ -24,6 +27,57 @@ def _set_env(monkeypatch: object, name: str, value: str) -> None:
     """Set both prefixed and unprefixed aliases for reliability."""
 
     monkeypatch.setenv(name, value)
+
+
+def test_search_weight_bounds(monkeypatch: object) -> None:
+    """Semantic/structured weights must remain within 0–1 inclusive."""
+
+    _clear_env(
+        monkeypatch,
+        "I4G_SEARCH__SEMANTIC_WEIGHT",
+        "I4G_SEARCH__STRUCTURED_WEIGHT",
+        "SEARCH_SEMANTIC_WEIGHT",
+        "SEARCH_STRUCTURED_WEIGHT",
+    )
+    _set_env(monkeypatch, "I4G_SEARCH__SEMANTIC_WEIGHT", "-0.1")
+
+    with pytest.raises(ValidationError):
+        reload_settings(env="dev")
+
+
+def test_search_weights_not_both_zero(monkeypatch: object) -> None:
+    """At least one hybrid search weight must remain positive."""
+
+    _clear_env(
+        monkeypatch,
+        "I4G_SEARCH__SEMANTIC_WEIGHT",
+        "I4G_SEARCH__STRUCTURED_WEIGHT",
+        "SEARCH_SEMANTIC_WEIGHT",
+        "SEARCH_STRUCTURED_WEIGHT",
+    )
+    _set_env(monkeypatch, "I4G_SEARCH__SEMANTIC_WEIGHT", "0")
+    _set_env(monkeypatch, "I4G_SEARCH__STRUCTURED_WEIGHT", "0")
+
+    with pytest.raises(ValidationError):
+        reload_settings(env="dev")
+
+
+def test_search_schema_entity_example_limit_override(monkeypatch: object) -> None:
+    """Schema entity example limits should follow env overrides."""
+
+    _clear_env(
+        monkeypatch,
+        "I4G_SEARCH__SCHEMA_ENTITY_EXAMPLE_LIMIT",
+        "SEARCH_SCHEMA_ENTITY_EXAMPLE_LIMIT",
+        "SEARCH__SCHEMA_ENTITY_EXAMPLE_LIMIT",
+    )
+
+    default_settings = reload_settings(env="dev")
+    assert default_settings.search.schema_entity_example_limit == 5
+
+    _set_env(monkeypatch, "I4G_SEARCH__SCHEMA_ENTITY_EXAMPLE_LIMIT", "3")
+    overridden = reload_settings(env="dev")
+    assert overridden.search.schema_entity_example_limit == 3
 
 
 def test_llm_provider_env_override(monkeypatch: object) -> None:
@@ -233,7 +287,7 @@ def test_ingestion_dataset_path_from_config(tmp_path, monkeypatch: object) -> No
     )
 
     default_file = tmp_path / "settings.default.toml"
-    default_file.write_text("env = \"dev\"", encoding="utf-8")
+    default_file.write_text('env = "dev"', encoding="utf-8")
 
     monkeypatch.setattr("i4g.settings.config.LOCAL_CONFIG_FILE", local_file)
     monkeypatch.setattr("i4g.settings.config.DEFAULT_CONFIG_FILE", default_file)
@@ -271,7 +325,7 @@ def test_ingestion_batch_limit_from_config(tmp_path, monkeypatch: object) -> Non
         encoding="utf-8",
     )
     default_file = tmp_path / "settings.default.toml"
-    default_file.write_text("env = \"dev\"", encoding="utf-8")
+    default_file.write_text('env = "dev"', encoding="utf-8")
 
     monkeypatch.setattr("i4g.settings.config.LOCAL_CONFIG_FILE", local_file)
     monkeypatch.setattr("i4g.settings.config.DEFAULT_CONFIG_FILE", default_file)

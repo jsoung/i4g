@@ -40,6 +40,20 @@ class _SpyObservability:
         self.timings.append((metric, value_ms, tags))
 
 
+class _StubEntityStore:
+    """Minimal entity-store double for schema helpers."""
+
+    def __init__(self, *, datasets: list[str] | None = None, examples: dict[str, list[dict[str, str]]] | None = None):
+        self._datasets = datasets or []
+        self._examples = examples or {}
+
+    def list_datasets(self, *, entity_types=None, limit=None):  # type: ignore[override]
+        return list(self._datasets)
+
+    def list_entity_examples(self, *, entity_types, datasets=None, per_type_limit=5):  # type: ignore[override]
+        return self._examples
+
+
 @pytest.fixture(name="retriever_payload")
 def _retriever_payload() -> dict[str, object]:
     return {
@@ -83,7 +97,7 @@ def test_search_merges_scores_and_applies_time_range(retriever_payload):
         time_range=QueryTimeRange(start=start, end=end),
         limit=5,
     )
-    service = HybridSearchService(retriever=retriever)
+    service = HybridSearchService(retriever=retriever, entity_store=_StubEntityStore())
 
     response = service.search(query)
 
@@ -111,7 +125,7 @@ def test_entity_filters_pass_through_to_retriever(retriever_payload):
         loss_buckets=[">50k"],
         case_ids=["case-xyz"],
     )
-    service = HybridSearchService(retriever=retriever)
+    service = HybridSearchService(retriever=retriever, entity_store=_StubEntityStore())
 
     service.search(query)
 
@@ -137,7 +151,7 @@ def test_search_emits_observability_signals(retriever_payload):
     retriever = _StubRetriever(retriever_payload)
     spy = _SpyObservability()
     query = HybridSearchQuery(text="romance scam", limit=5)
-    service = HybridSearchService(retriever=retriever, observability=spy)
+    service = HybridSearchService(retriever=retriever, observability=spy, entity_store=_StubEntityStore())
 
     service.search(query)
 
@@ -161,15 +175,61 @@ def test_schema_reflects_search_settings_and_caches():
     )
     settings = settings.model_copy(update={"search": custom_search})
     retriever = _StubRetriever({"results": [], "vector_hits": 0, "structured_hits": 0, "total": 0})
-    service = HybridSearchService(retriever=retriever, settings=settings)
+    entity_store = _StubEntityStore(
+        datasets=["network_smoke"],
+        examples={"ip_address": [{"value": "203.0.113.25"}]},
+    )
+    service = HybridSearchService(retriever=retriever, settings=settings, entity_store=entity_store)
 
     schema = service.schema()
     assert schema == {
         "indicator_types": ["ip_address"],
-        "datasets": ["retrieval_poc_dev"],
+        "datasets": ["retrieval_poc_dev", "network_smoke"],
         "classifications": ["romance"],
         "loss_buckets": [">50k"],
         "time_presets": ["30d"],
+        "entity_examples": {"ip_address": ["203.0.113.25"]},
     }
     # Access again to ensure cache path is exercised (no assertion, but should not raise)
     assert service.schema() == schema
+
+
+def test_weighted_scores_control_result_ordering():
+    payload = {
+        "results": [
+            {
+                "case_id": "semantic-first",
+                "sources": ["vector"],
+                "vector": {"similarity": 0.95},
+                "record": {
+                    "case_id": "semantic-first",
+                    "confidence": 0.1,
+                    "metadata": {},
+                },
+            },
+            {
+                "case_id": "structured-dominant",
+                "sources": ["structured"],
+                "record": {
+                    "case_id": "structured-dominant",
+                    "confidence": 0.9,
+                    "metadata": {},
+                },
+            },
+        ],
+        "vector_hits": 1,
+        "structured_hits": 2,
+        "total": 2,
+    }
+    retriever = _StubRetriever(payload)
+    settings = reload_settings()
+    tuned_search = settings.search.model_copy(update={"semantic_weight": 0.2, "structured_weight": 0.8})
+    tuned_settings = settings.model_copy(update={"search": tuned_search})
+    service = HybridSearchService(retriever=retriever, settings=tuned_settings, entity_store=_StubEntityStore())
+
+    response = service.search(HybridSearchQuery(limit=5))
+
+    ordered_cases = [item["case_id"] for item in response["results"]]
+    assert ordered_cases == ["structured-dominant", "semantic-first"]
+    assert response["diagnostics"]["score_policy"]["semantic_weight"] == pytest.approx(0.2)
+    assert response["diagnostics"]["score_policy"]["structured_weight"] == pytest.approx(0.8)

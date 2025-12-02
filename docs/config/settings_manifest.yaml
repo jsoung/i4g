@@ -122,6 +122,15 @@ fields:
   section: identity
   type: str | NoneType
   default: null
+- path: search.schema_entity_example_limit
+  section: search
+  type: int
+  default: 5
+  env_vars:
+  - I4G_SEARCH__SCHEMA_ENTITY_EXAMPLE_LIMIT
+  - SEARCH_SCHEMA_ENTITY_EXAMPLE_LIMIT
+  - SEARCH__SCHEMA_ENTITY_EXAMPLE_LIMIT
+  description: Number of entity example values returned per type in the hybrid search schema payload.
   env_vars:
   - I4G_IDENTITY__AUDIENCE
   - IDENTITY_AUDIENCE
@@ -547,7 +556,7 @@ fields:
   - I4G_SEARCH__SEMANTIC_WEIGHT
   - SEARCH_SEMANTIC_WEIGHT
   - SEARCH__SEMANTIC_WEIGHT
-  description: Hybrid search tuning parameters and schema presets.
+  description: Semantic score weight (0–1). At least one search weight must be greater than zero.
 - path: search.structured_weight
   section: search
   type: float
@@ -556,7 +565,7 @@ fields:
   - I4G_SEARCH__STRUCTURED_WEIGHT
   - SEARCH_STRUCTURED_WEIGHT
   - SEARCH__STRUCTURED_WEIGHT
-  description: Hybrid search tuning parameters and schema presets.
+  description: Structured score weight (0–1). At least one search weight must be greater than zero.
 - path: search.time_presets
   section: search
   type: list[str]

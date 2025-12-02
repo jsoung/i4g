@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Literal, Sequence
 
 import sqlalchemy as sa
@@ -68,31 +69,26 @@ class EntityStore:
         with self._session_scope() as session:
             stmt = (
                 sa.select(
-                    sql_schema.indicators.c.case_id,
-                    sql_schema.indicators.c.dataset,
-                    sql_schema.indicators.c.category,
-                    sql_schema.indicators.c.type,
-                    sql_schema.indicators.c.number,
-                    sql_schema.indicators.c.metadata.label("indicator_metadata"),
+                    sql_schema.entities.c.case_id,
+                    sql_schema.entities.c.entity_type,
+                    sql_schema.entities.c.canonical_value,
+                    sql_schema.entities.c.metadata.label("entity_metadata"),
+                    sql_schema.entities.c.last_seen_at,
+                    sql_schema.cases.c.dataset,
                     sql_schema.cases.c.classification,
                     sql_schema.cases.c.metadata.label("case_metadata"),
                 )
-                .join(sql_schema.cases, sql_schema.cases.c.case_id == sql_schema.indicators.c.case_id)
-                .where(
-                    sa.or_(
-                        sa.func.lower(sql_schema.indicators.c.category) == normalized_type,
-                        sa.func.lower(sql_schema.indicators.c.type) == normalized_type,
-                    )
-                )
+                .join(sql_schema.cases, sql_schema.cases.c.case_id == sql_schema.entities.c.case_id)
+                .where(sa.func.lower(sql_schema.entities.c.entity_type) == normalized_type)
             )
 
-            value_predicate = _value_predicate(sql_schema.indicators.c.number, normalized_value, match_mode)
+            value_predicate = _value_predicate(sql_schema.entities.c.canonical_value, normalized_value, match_mode)
             stmt = stmt.where(value_predicate)
 
             if dataset_filters:
-                stmt = stmt.where(sa.func.lower(sql_schema.indicators.c.dataset).in_(dataset_filters))
+                stmt = stmt.where(sa.func.lower(sql_schema.cases.c.dataset).in_(dataset_filters))
 
-            stmt = stmt.order_by(sql_schema.indicators.c.last_seen_at.desc().nullslast())
+            stmt = stmt.order_by(sql_schema.entities.c.last_seen_at.desc().nullslast())
             stmt = stmt.limit(fetch_limit)
             rows = session.execute(stmt).all()
 
@@ -103,7 +99,7 @@ class EntityStore:
             if case_id in seen:
                 continue
 
-            indicator_metadata = _coerce_metadata(row.indicator_metadata)
+            indicator_metadata = _coerce_metadata(row.entity_metadata)
             case_metadata = _coerce_metadata(row.case_metadata)
             dataset = row.dataset or indicator_metadata.get("dataset") or case_metadata.get("dataset")
             dataset_normalized = (dataset or "").strip().lower()
@@ -118,8 +114,8 @@ class EntityStore:
                 {
                     "case_id": case_id,
                     "dataset": dataset,
-                    "indicator_type": row.category or row.type,
-                    "indicator_value": row.number,
+                    "indicator_type": row.entity_type,
+                    "indicator_value": row.canonical_value,
                     "loss_amount": loss_amount,
                     "classification": row.classification,
                 }
@@ -127,6 +123,103 @@ class EntityStore:
             seen.add(case_id)
             if len(results) >= limit:
                 break
+
+        return results
+
+    def list_datasets(
+        self,
+        *,
+        entity_types: Sequence[str] | None = None,
+        limit: int | None = None,
+    ) -> List[str]:
+        """Return datasets that currently contain the requested entity types."""
+
+        normalized_types = _normalize_list(entity_types)
+        with self._session_scope() as session:
+            stmt = (
+                sa.select(
+                    sa.func.lower(sql_schema.cases.c.dataset).label("dataset_key"),
+                    sql_schema.cases.c.dataset,
+                    sa.func.count().label("row_count"),
+                )
+                .join(sql_schema.entities, sql_schema.entities.c.case_id == sql_schema.cases.c.case_id)
+                .where(sql_schema.cases.c.dataset.is_not(None))
+            )
+            if normalized_types:
+                stmt = stmt.where(sa.func.lower(sql_schema.entities.c.entity_type).in_(normalized_types))
+            stmt = stmt.group_by(sql_schema.cases.c.dataset)
+            stmt = stmt.order_by(sa.func.count().desc(), sql_schema.cases.c.dataset.asc())
+            rows = session.execute(stmt).all()
+
+        datasets: Dict[str, str] = {}
+        for row in rows:
+            dataset = (row.dataset or "").strip()
+            if not dataset:
+                continue
+            key = row.dataset_key or dataset.lower()
+            if key not in datasets:
+                datasets[key] = dataset
+            if limit is not None and len(datasets) >= limit:
+                break
+        return list(datasets.values())
+
+    def list_entity_examples(
+        self,
+        *,
+        entity_types: Sequence[str],
+        datasets: Sequence[str] | None = None,
+        per_type_limit: int = 5,
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Return representative entity values for each requested type."""
+
+        normalized_types = _normalize_list(entity_types)
+        if not normalized_types or per_type_limit <= 0:
+            return {}
+
+        dataset_filters = _normalize_list(datasets)
+        fetch_limit = max(per_type_limit * 4, per_type_limit)
+        results: Dict[str, List[Dict[str, Any]]] = {entity_type: [] for entity_type in normalized_types}
+
+        with self._session_scope() as session:
+            for entity_type in normalized_types:
+                stmt = (
+                    sa.select(
+                        sql_schema.entities.c.canonical_value,
+                        sql_schema.entities.c.metadata.label("entity_metadata"),
+                        sql_schema.entities.c.last_seen_at,
+                        sql_schema.cases.c.dataset,
+                    )
+                    .join(sql_schema.cases, sql_schema.cases.c.case_id == sql_schema.entities.c.case_id)
+                    .where(sa.func.lower(sql_schema.entities.c.entity_type) == entity_type)
+                )
+                if dataset_filters:
+                    stmt = stmt.where(sa.func.lower(sql_schema.cases.c.dataset).in_(dataset_filters))
+                stmt = stmt.order_by(sql_schema.entities.c.last_seen_at.desc().nullslast())
+                stmt = stmt.limit(fetch_limit)
+                rows = session.execute(stmt).all()
+
+                examples: List[Dict[str, Any]] = []
+                seen_values: set[str] = set()
+                for row in rows:
+                    canonical = (row.canonical_value or "").strip()
+                    if not canonical:
+                        continue
+                    key = canonical.lower()
+                    if key in seen_values:
+                        continue
+                    seen_values.add(key)
+                    entity_metadata = _coerce_metadata(row.entity_metadata)
+                    dataset = row.dataset or entity_metadata.get("dataset")
+                    examples.append(
+                        {
+                            "value": canonical,
+                            "dataset": dataset,
+                            "last_seen_at": _serialize_timestamp(row.last_seen_at),
+                        }
+                    )
+                    if len(examples) >= per_type_limit:
+                        break
+                results[entity_type] = examples
 
         return results
 
@@ -253,6 +346,17 @@ def _loss_in_buckets(value: float | None, buckets: Sequence[tuple[float | None, 
             continue
         return True
     return False
+
+
+def _serialize_timestamp(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        target = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return target.astimezone(timezone.utc).isoformat()
+    if isinstance(value, str):
+        return value
+    return str(value)
 
 
 __all__ = ["EntityStore", "MatchMode"]
