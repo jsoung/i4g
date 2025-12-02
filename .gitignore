@@ -35,3 +35,8 @@ data/
 .turbo/cache/
 .turbo/cookies/
 .turbo/daemon/
+
+**/.next
+
+# Developer-specific configuration overrides
+config/settings.local.toml

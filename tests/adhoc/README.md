@@ -39,6 +39,10 @@ The helper adds `src/` to `PYTHONPATH`, so editable installs are optional. Expec
 -   **Description:** A manual, end-to-end smoke test for the full report generation and export pipeline. It uses a text query to generate a report and saves it locally as a `.docx` file.
 -   **Usage:** `python tests/adhoc/manual_report_export_demo.py`
 
+### `account_list_export_smoke.py`
+-   **Description:** Stubs the account list retriever/extractor layers and runs `AccountListService` to generate CSV/JSON/XLSX/PDF artifacts, verifying the exporter wiring without requiring the full LLM workflow.
+-   **Usage:** `python tests/adhoc/account_list_export_smoke.py --output-dir data/reports/account_list_smoke`
+
 ### `manual_review_demo.py`
 -   **Description:** A script for manually reviewing and verifying the results of the fraud classification pipeline.
 -   **Usage:** `python tests/adhoc/manual_review_demo.py`

@@ -104,10 +104,10 @@ i4g services load configuration through `i4g.settings`, which is powered by
 Values are resolved in the following order:
 
 1. Defaults declared in the `Settings` model.
-2. Project-level `.env`.
-3. Environment-specific `.env.<env>` (e.g. `.env.staging`).
-4. Local overrides in `.env.local` (ignored by git).
-5. Direct environment variables (`I4G_*`).
+2. Direct environment variables (`I4G_*`).
+3. Project `.env` files (`.env`, `.env.<env>`, `.env.local`).
+4. TOML config files (`I4G_SETTINGS_FILE`, `config/settings.local.toml`, `config/settings.default.toml`).
+5. Secret files (when `SECRETS_*` points to a directory of files).
 
 The active environment is selected via `I4G_ENV` (defaults to `local`). All
 services—including Streamlit, FastAPI, and CLI tools—should read configuration
@@ -122,6 +122,37 @@ I4G_API_URL=http://127.0.0.1:8000
 I4G_API_KEY=dev-analyst-token
 I4G_VECTOR_BACKEND=chroma
 ```
+
+### TOML configuration files
+
+When you find yourself exporting a dozen env vars before every command, move
+those values into TOML config files. The repo ships with
+`config/settings.default.toml` for shared defaults and git-ignores
+`config/settings.local.toml` so laptops can define their own overrides. Both
+files use the same nesting as `Settings`, so the snippet below captures the
+common dev ingestion profile:
+
+```toml
+# config/settings.local.toml
+env = "dev"
+
+[storage]
+firestore_project = "i4g-dev"
+
+[vector]
+vertex_ai_project = "i4g-dev"
+vertex_ai_data_store = "retrieval-poc"
+
+[ingestion]
+default_dataset = "retrieval_poc_dev"
+enable_firestore = true
+enable_vertex = true
+```
+
+Values from `settings.local.toml` override the tracked defaults but remain
+below explicit env vars, so ad-hoc overrides still work. To test a one-off file
+without renaming it, point `I4G_SETTINGS_FILE` at the desired TOML path before
+running a command.
 
 To inspect the effective configuration:
 
@@ -148,6 +179,22 @@ Use double underscores to drill into nested fields (for example `I4G_STORAGE__EV
 ## Running the Core Pipelines
 
 There are also targeted demos under `tests/adhoc/` if you want to exercise a single feature (OCR, extraction, reporting, etc.); check the README in that folder for usage details.
+
+## Database Migrations
+
+Dual-extraction work now ships with Alembic migrations. Apply the latest schema before running
+local demos or CLI jobs:
+
+```bash
+python -m alembic upgrade head
+```
+
+The command automatically targets the SQLite path from `settings.storage.sqlite_path`. To apply
+migrations against Cloud SQL/AlloyDB, export `I4G_DATABASE_URL` (or `ALEMBIC_DATABASE_URL`) with a
+Postgres connection string and rerun the upgrade command.
+
+`scripts/bootstrap_local_sandbox.py` runs migrations for you, but keep the command above handy for
+CI/CD and ops workflows.
 
 ## Restoring Sample Data & Artifacts
 
@@ -208,7 +255,7 @@ Once these assets exist, the downstream scripts referenced below will find usabl
 
 ## Vertex AI Search Retrieval PoC
 
-For the hosted Discovery Engine workflows (Terraform setup, ingestion script, CLI query helpers, filters, and boosting examples) see `docs/retrieval_gcp_guide.md`. That guide tracks the GCP environment separately from the local sandbox to keep each workflow focused.
+For the hosted Discovery workflows (Terraform setup, ingestion script, CLI query helpers, filters, and boosting examples) see `docs/retrieval_gcp_guide.md`. That guide tracks the GCP environment separately from the local sandbox to keep each workflow focused.
 
 ### Hugging Face API Tokens
 
@@ -324,6 +371,17 @@ Generated `.docx` files are written to `data/reports/` whether you trigger them 
 
 For a consolidated checklist of ingestion and intake smoke tests, see [`docs/smoke_test.md`](./smoke_test.md).
 
+## Analyst Console (Next.js UI)
+
+The analyst console lives in the sibling `ui/` workspace (PNPM + Turborepo). Install dependencies at the repo root with `pnpm install`, then run `pnpm --filter web dev` to launch the Next.js app. The console talks to the proto API directly; set `I4G_API_URL`/`I4G_API_KEY` (or rely on the mock client) before starting the server.
+
+### UI test strategy
+
+1. **Unit tests (Vitest + Testing Library).** Run `pnpm --filter web test` to exercise hooks, utilities, and React components under jsdom. Place new specs alongside the module under `apps/web/src/` or in `apps/web/tests/unit/`. Keep coverage for entity-filter builders, API payload helpers, and any non-trivial state transitions. The UI git hook enforces this by default; export `I4G_UI_PRECOMMIT_QUICK=1` only when you need a temporary lint-only pass, and make sure to rerun the full suite before pushing or opening a PR.
+2. **Smoke tests (Playwright).** Run `pnpm --filter web test:smoke` for a lightweight end-to-end check that boots `next dev` and opens `/search`. Extend `apps/web/tests/smoke/` whenever you add a new route or major workflow so deploys retain at least one canary scenario. Install browsers once per machine with `pnpm --filter web exec playwright install --with-deps`. Treat Playwright as mandatory before releases, after changing routing/server-actions, or when saved-search/history/filters touch backend contracts.
+
+Both commands respect the same env vars as Next.js, so you can point the suite at `i4g-dev` by exporting `I4G_API_URL`/`I4G_API_KEY` beforehand. Prefer running the unit suite locally before every commit and the smoke tests before cutting a release or merging sizable UI work.
+
 > ⚠️ Run commits from an activated `i4g` environment (or set `CONDA_PREFIX`/`VIRTUAL_ENV`) so the hook uses the correct Python when executing unit tests.
 > Formatter line length is set to 120 characters to match team editor settings.
 
@@ -347,7 +405,7 @@ Install locally with `pip install -e .` to expose `i4g-admin` everywhere; run `i
 
 ### Terraforming GCP Resources
 
-Infrastructure lives under the sibling `infra/` tree. For module layout, workflow steps, and Discovery Engine prerequisites (including the quota-project command), follow the instructions in `infra/README.md`.
+Infrastructure lives under the sibling `infra/` tree. For module layout, workflow steps, and Discovery prerequisites (including the quota-project command), follow the instructions in `infra/README.md`.
 
 ### Publishing the FastAPI Image to Artifact Registry
 
@@ -375,7 +433,7 @@ When you need to re-test Streamlit changes quickly, you can reuse the `streamlit
             --push .
         ```
 
-2. Force Cloud Run to pull the new digest, keeping existing env vars and supplying the Discovery Engine defaults:
+2. Force Cloud Run to pull the new digest, keeping existing env vars and supplying the Discovery defaults:
 
     ```bash
         gcloud run services update streamlit-analyst-ui \

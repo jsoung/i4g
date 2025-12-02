@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Import Vertex-ready JSONL documents into Discovery Engine data stores.
+"""Import Vertex-ready JSONL documents into Discovery data stores.
 
-This script wraps the Discovery Engine `ImportDocuments` API so we can load
+This script wraps the Discovery `ImportDocuments` API so we can load
 transformed Azure Search exports without relying on `gcloud` alpha commands.
 
 Example usage:
@@ -26,13 +26,13 @@ from google.cloud import discoveryengine_v1beta as discoveryengine
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Import Vertex-ready JSONL files into Discovery Engine")
+    parser = argparse.ArgumentParser(description="Import Vertex-ready JSONL files into Discovery")
     parser.add_argument("--project", required=True, help="GCP project ID (e.g. i4g-dev)")
-    parser.add_argument("--location", default="global", help="Discovery Engine location (default: global)")
-    parser.add_argument("--collection-id", default="default_collection", help="Discovery Engine collection ID")
-    parser.add_argument("--data-store-id", required=True, help="Discovery Engine data store ID")
+    parser.add_argument("--location", default="global", help="Discovery location (default: global)")
+    parser.add_argument("--collection-id", default="default_collection", help="Discovery collection ID")
+    parser.add_argument("--data-store-id", required=True, help="Discovery data store ID")
     parser.add_argument(
-        "--branch-id", default="default_branch", help="Discovery Engine branch ID (default: default_branch)"
+        "--branch-id", default="default_branch", help="Discovery branch ID (default: default_branch)"
     )
     parser.add_argument("--uris", nargs="+", required=True, help="GCS URIs of JSONL files to import")
     parser.add_argument(

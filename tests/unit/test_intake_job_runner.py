@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from i4g.services.intake_job_runner import LocalPipelineIntakeJobRunner
+
+
+@dataclass
+class DummyResult:
+    case_id: str
+    sql_result = None
+    vector_written = False
 
 
 class DummyPipeline:
@@ -12,7 +21,7 @@ class DummyPipeline:
 
     def ingest_classified_case(self, payload):
         self.last_payload = payload
-        return payload.get("case_id") or "generated-case-id"
+        return DummyResult(payload.get("case_id") or "generated-case-id")
 
 
 def test_local_runner_normalises_payload(monkeypatch):

@@ -136,7 +136,8 @@ def test_ingest_pipeline_writes_to_both_stores(tmp_path, mock_embeddings, mock_c
         "entities": {"people": [{"value": "Anna"}]},
     }
 
-    case_id = pipeline.ingest_classified_case(case)
+    result = pipeline.ingest_classified_case(case)
+    case_id = result.case_id
     assert isinstance(case_id, str)
 
     # Check record exists in structured store

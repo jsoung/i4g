@@ -89,27 +89,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--vertex-project",
         default="i4g-dev",
-        help="GCP project for Discovery Engine imports.",
+        help="GCP project for Discovery imports.",
     )
     parser.add_argument(
         "--vertex-location",
         default="global",
-        help="Discovery Engine location (defaults to global).",
+        help="Discovery location (defaults to global).",
     )
     parser.add_argument(
         "--vertex-collection-id",
         default="default_collection",
-        help="Discovery Engine collection ID (default_collection).",
+        help="Discovery collection ID (default_collection).",
     )
     parser.add_argument(
         "--vertex-data-store-id",
         default="retrieval-poc",
-        help="Discovery Engine data store ID (e.g. retrieval-poc).",
+        help="Discovery data store ID (e.g. retrieval-poc).",
     )
     parser.add_argument(
         "--vertex-branch-id",
         default="default_branch",
-        help="Discovery Engine branch ID (default_branch).",
+        help="Discovery branch ID (default_branch).",
     )
     parser.add_argument(
         "--reconciliation-mode",

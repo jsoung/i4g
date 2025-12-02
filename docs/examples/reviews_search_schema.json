@@ -1,0 +1,43 @@
+{
+  "indicator_types": [
+    "bank_account",
+    "crypto_wallet",
+    "email",
+    "phone",
+    "ip_address",
+    "asn",
+    "browser_agent",
+    "url",
+    "merchant"
+  ],
+  "datasets": [
+    "network_smoke"
+  ],
+  "classifications": [],
+  "loss_buckets": [
+    "<10k",
+    "10k-50k",
+    ">50k"
+  ],
+  "time_presets": [
+    "7d",
+    "30d",
+    "90d"
+  ],
+  "entity_examples": {
+    "email": [
+      "analyst@example.com"
+    ],
+    "ip_address": [
+      "203.0.113.25",
+      "198.51.100.10"
+    ],
+    "asn": [
+      "64512",
+      "AS64512"
+    ],
+    "browser_agent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    ]
+  }
+}

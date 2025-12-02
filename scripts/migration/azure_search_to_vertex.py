@@ -2,7 +2,7 @@
 """Transform Azure Cognitive Search exports into Vertex AI Search import format.
 
 This utility reads schema/document JSON files produced by
-`azure_search_export.py` and emits Discovery Engine style JSONL documents
+`azure_search_export.py` and emits Discovery style JSONL documents
 ready for `gcloud discovery-engine data-stores documents import`.
 
 Example usage:
@@ -109,7 +109,7 @@ class IndexMapping:
             if title:
                 doc.setdefault("structData", {})["title"] = str(title)
 
-        # Discovery Engine limits document IDs to 128 characters.
+        # Discovery limits document IDs to 128 characters.
         if len(doc["id"]) > 128:
             original_id = doc["id"]
             hashed = hashlib.sha256(original_id.encode("utf-8")).hexdigest()
